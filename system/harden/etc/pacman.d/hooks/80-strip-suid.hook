@@ -1,0 +1,15 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = krb5
+Target = cifs-utils
+Target = openssh
+Target = util-linux
+Target = vmware-workstation
+Target = btop
+
+[Action]
+Description = Stripping unneeded SUID bits (hardening phase 12)
+When = PostTransaction
+Exec = /usr/local/sbin/strip-suid

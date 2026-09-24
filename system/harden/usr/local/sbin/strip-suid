@@ -1,0 +1,8 @@
+#!/bin/sh
+# Remove SUID/SGID and file capabilities this system doesn't use (reapplied by a pacman hook after upgrades)
+for f in /usr/bin/ksu /usr/bin/mount.cifs /usr/lib/ssh/ssh-keysign /usr/bin/chfn /usr/bin/chsh \
+         /usr/bin/wall /usr/bin/write /usr/lib/vmware/bin/vmware-vmx-debug /usr/lib/vmware/bin/vmware-vmx-stats; do
+  [ -f "$f" ] && chmod u-s,g-s "$f"
+done
+getcap /usr/bin/btop 2>/dev/null | grep -q . && setcap -r /usr/bin/btop
+exit 0

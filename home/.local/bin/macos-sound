@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Plays one event sound from the macOS sound theme, e.g. `macos-sound bell`.
+# Silent when the sound has not been built (see macos-sounds-build).
+# Turned off in System Settings > Sound ("Play user interface sound effects").
+[ -e "$HOME/.config/macos-look/mute-ui-sounds" ] && exit 0
+f="$HOME/.local/share/sounds/macOS/stereo/$1.oga"
+[ -f "$f" ] || exit 0
+# Volume feedback repeats while the key is held; don't stack the pops.
+if [ "$1" = "audio-volume-change" ]; then
+    pkill -f "pw-play .*audio-volume-change.oga" 2>/dev/null
+fi
+exec pw-play "$f"

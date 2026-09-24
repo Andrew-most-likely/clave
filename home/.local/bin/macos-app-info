@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Prints key=value facts about an app for the menu bar's "About <App>" and
+# "<App> Help" items (Quickshell MacOS/AppInfo.qml).
+#   macos-app-info APP_ID
+# Keys: name, version, description, url, source (pacman, flatpak or none).
+id="$1"
+[ -n "$id" ] || exit 1
+
+dirs=(~/.local/share/applications ~/.local/share/flatpak/exports/share/applications
+      /var/lib/flatpak/exports/share/applications /usr/share/applications)
+
+desk=""
+for d in "${dirs[@]}"; do
+    [ -f "$d/$id.desktop" ] && { desk="$d/$id.desktop"; break; }
+done
+if [ -z "$desk" ]; then
+    desk=$(grep -lis "^StartupWMClass=$id\$" "${dirs[@]/%//*.desktop}" 2>/dev/null | head -1)
+fi
+name=""
+[ -n "$desk" ] && name=$(grep -m1 '^Name=' "$desk" | cut -d= -f2-)
+[ -n "$name" ] || name="$id"
+echo "name=$name"
+
+# Flatpak app (a window class like "code" belongs to com.visualstudio.code)
+if ! flatpak info "$id" >/dev/null 2>&1; then
+    fp=$(flatpak list --app --columns=application | grep -i "\.${id//./\\.}\$" | head -1)
+    if [ -n "$fp" ]; then
+        id="$fp"
+        [ "$name" = "$1" ] && name=$(flatpak info "$fp" | sed -n '2p' | sed 's/ *-.*//')
+        echo "name=$name"
+    fi
+fi
+if flatpak info "$id" >/dev/null 2>&1; then
+    echo "version=$(flatpak info "$id" | awk -F': *' '/^ *Version:/{print $2; exit}')"
+    echo "description=$(flatpak info "$id" | sed -n '2p' | sed 's/^[^-]*- *//')"
+    echo "url=https://flathub.org/apps/$id"
+    echo "source=flatpak"
+    exit 0
+fi
+
+# Pacman package: owner of the desktop entry's binary, else a package named
+# like the app id.
+pkg=""
+if [ -n "$desk" ]; then
+    exe=$(grep -m1 '^Exec=' "$desk" | cut -d= -f2- | awk '{print $1}')
+    bin=$(command -v "$exe" 2>/dev/null)
+    [ -n "$bin" ] && pkg=$(pacman -Qqo "$(readlink -f "$bin")" 2>/dev/null | head -1)
+fi
+if [ -z "$pkg" ]; then
+    last="${id##*.}"
+    for cand in "$id" "${id,,}" "$last" "${last,,}"; do
+        pacman -Qq "$cand" >/dev/null 2>&1 && { pkg="$cand"; break; }
+    done
+fi
+if [ -n "$pkg" ]; then
+    LC_ALL=C pacman -Qi "$pkg" | awk -F' *: ' '
+        /^Version/     { print "version=" $2 }
+        /^Description/ { print "description=" $2 }
+        /^URL/         { print "url=" $2 }'
+    echo "source=pacman"
+    exit 0
+fi
+echo "source=none"

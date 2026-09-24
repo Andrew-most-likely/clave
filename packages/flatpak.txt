@@ -1,0 +1,3 @@
+# Installed with: flatpak install --user flathub <id>
+io.github.kolunmi.Bazaar
+com.tomjwatson.Emote

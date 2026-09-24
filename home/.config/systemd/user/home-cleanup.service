@@ -1,0 +1,8 @@
+[Unit]
+Description=Clean home caches (yay builds, old trash, unused flatpak runtimes)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/home-cleanup
+Nice=19
+IOSchedulingClass=idle

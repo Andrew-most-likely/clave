@@ -1,0 +1,4 @@
+com.spotify.Client
+com.visualstudio.code
+dev.vencord.Vesktop
+org.libreoffice.LibreOffice

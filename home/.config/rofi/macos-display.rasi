@@ -1,0 +1,18 @@
+/* Display mode menu (Super+P), styled like Spotlight */
+@import "macos-spotlight.rasi"
+
+configuration {
+    show-icons: false;
+}
+window {
+    y-offset: 30%;
+    width:    360px;
+}
+mainbox  { children: [ message, listview ]; }
+message  {
+    padding:      12px 18px;
+    border:       0 0 1px 0;
+    border-color: @border-c;
+}
+textbox  { font: "SF Pro Display 15"; text-color: @fg; }
+listview { lines: 4; }

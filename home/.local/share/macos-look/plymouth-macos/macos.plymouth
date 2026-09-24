@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=macOS
+Description=Black screen with the Apple logo and a thin progress bar, like a Mac starting up
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/macos
+ScriptFile=/usr/share/plymouth/themes/macos/macos.script

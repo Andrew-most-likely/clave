@@ -1,0 +1,4 @@
+*.bak-*
+*.so
+*.qsb
+__pycache__/

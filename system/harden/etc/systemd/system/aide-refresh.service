@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh AIDE baseline after a pacman upgrade
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=idle
+ExecStart=/usr/bin/aide --update
+ExecStartPost=/bin/sh -c 'mv -f /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz'
+SuccessExitStatus=0 1 2 3 4 5 6 7

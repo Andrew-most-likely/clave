@@ -1,0 +1,6 @@
+# macOS look (pacman)
+quickshell rofi swaync kitty fastfetch matugen hyprlock hypridle hyprsunset
+qt5ct qt6ct kvantum kvantum-qt5 qt5-wayland qt6-wayland nwg-look gnome-themes-extra sassc
+plymouth sddm sushi ffmpeg alsa-utils pipewire imagemagick libnotify jq playerctl brightnessctl
+qt6-shadertools swayosd grim slurp satty cliphist hyprpicker
+cmake meson ninja gcc pkgconf git

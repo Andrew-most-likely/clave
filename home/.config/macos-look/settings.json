@@ -1,0 +1,25 @@
+{
+    "menubar": {
+        "batteryPercent": true,
+        "clock24h": false,
+        "showDate": true,
+        "showDay": true
+    },
+    "hotCorners": {
+        "topLeft": "missioncontrol",
+        "topRight": "notifications",
+        "bottomLeft": "launchpad",
+        "bottomRight": "none"
+    },
+    "windows": {
+        "minimizeEffect": "genie",
+        "trafficLights": true
+    },
+    "trackpad": {
+        "tapToClick": true,
+        "naturalScroll": true
+    },
+    "sound": {
+        "uiSounds": true
+    }
+}

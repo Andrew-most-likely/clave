@@ -1,0 +1,574 @@
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Hyprland
+import Quickshell.Io
+import Quickshell.Widgets
+import Quickshell.Bluetooth
+import Quickshell.Services.Pipewire
+import Quickshell.Services.Mpris
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Effects
+
+// macOS Control Center, opened from the switches icon in the menu bar:
+//
+//   [ Wi-Fi / Bluetooth / VPN ] [        Focus        ]
+//   [                         ] [ Night Shift ][ Mirror ]
+//   [ Display brightness                              ]
+//   [ Sound                                           ]
+//   [ Now Playing                                     ]
+//
+// Wi-Fi uses nmcli, the VPN row Mullvad's CLI, Focus is swaync's Do Not
+// Disturb, Night Shift runs hyprsunset and Screen Mirroring opens the display
+// mode menu (hypr/scripts/display-mode.sh).
+//   qs ipc call controlcenter toggle | open | close
+PanelWindow {
+    id: root
+
+    WlrLayershell.namespace: "macos-control-center"
+    WlrLayershell.layer: WlrLayer.Overlay
+    anchors { top: true; right: true }
+    margins { top: 6; right: 10 }
+    exclusiveZone: 0
+    implicitWidth: 336
+    implicitHeight: body.implicitHeight + 20
+    color: "transparent"
+    visible: root.shown || fadeOut.running
+
+    readonly property string fontFamily: "SF Pro Text"
+    readonly property color accent: "#0a84ff"
+    readonly property string home: Quickshell.env("HOME")
+
+    property bool shown: false
+    // The focus grab closes the panel on a click outside it, and that click
+    // may be on the menu bar icon, which then toggles it straight back open.
+    property real closedAt: 0
+
+    function open(): void {
+        if (root.shown)
+            return
+        status.running = true
+        brightnessProc.running = true
+        root.shown = true
+    }
+
+    function close(): void {
+        if (!root.shown)
+            return
+        root.shown = false
+        root.closedAt = Date.now()
+    }
+
+    function toggle(): void {
+        if (root.shown)
+            root.close()
+        else if (Date.now() - root.closedAt > 250)
+            root.open()
+    }
+
+    IpcHandler {
+        target: "controlcenter"
+        function toggle(): void { root.toggle() }
+        function open(): void { root.open() }
+        function close(): void { root.close() }
+    }
+
+    HyprlandFocusGrab {
+        windows: [root]
+        active: root.shown
+        onCleared: root.close()
+    }
+
+    // ==========================================
+    // STATE
+    // ==========================================
+    property bool wifiOn: false
+    property string ssid: ""
+    property bool vpnOn: false
+    property bool hasVpn: false
+    property bool dnd: false
+    property bool nightShift: false
+    property real brightness: 1
+
+    readonly property var adapter: Bluetooth.defaultAdapter
+    readonly property bool btOn: root.adapter !== null && root.adapter.enabled
+    readonly property var btConnected: root.adapter
+        ? root.adapter.devices.values.filter(d => d.connected) : []
+
+    readonly property PwNode sink: Pipewire.defaultAudioSink
+    readonly property bool sinkReady: root.sink !== null && root.sink.ready && root.sink.audio !== null
+    PwObjectTracker { objects: root.sink ? [root.sink] : [] }
+
+    // The player shown under Now Playing: a playing one if any.
+    readonly property var player: {
+        const list = Mpris.players.values
+        return list.find(p => p.isPlaying) || (list.length > 0 ? list[0] : null)
+    }
+
+    // One snapshot of everything command-line driven, as key=value lines.
+    Process {
+        id: status
+        command: ["sh", "-c",
+            "echo wifi=$(nmcli -t radio wifi 2>/dev/null);"
+            + "echo ssid=$(nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | sed -n 's/^yes://p' | head -n1);"
+            + "command -v mullvad >/dev/null && echo vpn=$(mullvad status 2>/dev/null | head -n1);"
+            + "echo dnd=$(swaync-client -D 2>/dev/null);"
+            + "pgrep -x hyprsunset >/dev/null && echo night=1 || echo night=0"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let v = ({})
+                this.text.split("\n").forEach(line => {
+                    const i = line.indexOf("=")
+                    if (i > 0)
+                        v[line.slice(0, i)] = line.slice(i + 1).trim()
+                })
+                root.wifiOn = v.wifi === "enabled"
+                root.ssid = v.ssid || ""
+                root.hasVpn = v.vpn !== undefined
+                root.vpnOn = v.vpn === "Connected"
+                root.dnd = v.dnd === "true"
+                root.nightShift = v.night === "1"
+            }
+        }
+    }
+    Timer { id: restatus; interval: 1500; onTriggered: status.running = true }
+    // mullvad status takes about a second; have values ready for the first open.
+    Component.onCompleted: status.running = true
+
+    Process {
+        id: brightnessProc
+        command: ["brightnessctl", "-m"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const f = this.text.trim().split(",")
+                if (f.length >= 4)
+                    root.brightness = parseInt(f[3]) / 100
+            }
+        }
+    }
+
+    function run(cmd: var): void {
+        Quickshell.execDetached(cmd)
+        restatus.restart()
+    }
+
+    function setBrightness(v: real): void {
+        root.brightness = v
+        Quickshell.execDetached(["brightnessctl", "-q", "set", Math.max(1, Math.round(v * 100)) + "%"])
+    }
+
+    // ==========================================
+    // PIECES
+    // ==========================================
+    component Module: Rectangle {
+        radius: 14
+        color: Qt.rgba(1, 1, 1, 0.09)
+        border.color: Qt.rgba(1, 1, 1, 0.08)
+        border.width: 1
+    }
+
+    component Circle: Rectangle {
+        id: circle
+        property string icon: ""
+        property bool on: false
+        property int size: 30
+        signal clicked()
+        implicitWidth: size
+        implicitHeight: size
+        radius: size / 2
+        color: on ? root.accent : Qt.rgba(1, 1, 1, circleMouse.containsMouse ? 0.24 : 0.16)
+        Behavior on color { ColorAnimation { duration: 140 } }
+        Image {
+            anchors.centerIn: parent
+            source: circle.icon
+            width: circle.size * 0.52
+            height: width
+            sourceSize.width: width * 2
+            sourceSize.height: height * 2
+        }
+        MouseArea {
+            id: circleMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: circle.clicked()
+        }
+    }
+
+    component Label: Text {
+        color: "#ffffff"
+        font.family: root.fontFamily
+        font.pixelSize: 13
+        font.weight: Font.DemiBold
+        elide: Text.ElideRight
+    }
+
+    component Detail: Text {
+        color: Qt.rgba(1, 1, 1, 0.55)
+        font.family: root.fontFamily
+        font.pixelSize: 11
+        elide: Text.ElideRight
+    }
+
+    // Row of the connectivity module: circle, name, state. The text half
+    // opens the matching settings.
+    component ToggleRow: RowLayout {
+        id: tr
+        property string icon
+        property string label
+        property string detail
+        property bool on
+        signal toggled()
+        signal opened()
+        spacing: 9
+        Circle { icon: tr.icon; on: tr.on; onClicked: tr.toggled() }
+        ColumnLayout {
+            spacing: 0
+            Layout.fillWidth: true
+            Label { text: tr.label; Layout.fillWidth: true }
+            Detail { text: tr.detail; Layout.fillWidth: true }
+            TapHandler { onTapped: tr.opened() }
+        }
+    }
+
+    // Slider as in macOS: a white fill over a dark track, icon at the start.
+    component MacSlider: Rectangle {
+        id: sl
+        property real value: 0
+        property string icon: ""
+        signal moved(real v)
+        implicitHeight: 24
+        radius: height / 2
+        color: Qt.rgba(1, 1, 1, 0.14)
+        Rectangle {
+            width: Math.max(sl.height, sl.width * Math.min(1, sl.value))
+            height: sl.height
+            radius: sl.height / 2
+            color: "#ffffff"
+        }
+        Image {
+            anchors.left: parent.left
+            anchors.leftMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            width: 13; height: 13
+            sourceSize.width: 26; sourceSize.height: 26
+            source: sl.icon
+            // The glyph sits on the white fill, so draw it dark.
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1
+                colorizationColor: "#6e6e73"
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            function setFrom(mx: real): void { sl.moved(Math.max(0, Math.min(1, mx / width))) }
+            onPressed: mouse => setFrom(mouse.x)
+            onPositionChanged: mouse => { if (pressed) setFrom(mouse.x) }
+        }
+    }
+
+    // ==========================================
+    // PANEL
+    // ==========================================
+    Rectangle {
+        id: panel
+        anchors.fill: parent
+        radius: 18
+        color: Qt.rgba(0.13, 0.13, 0.14, 0.62)
+        border.color: Qt.rgba(1, 1, 1, 0.14)
+        border.width: 1
+
+        opacity: root.shown ? 1 : 0
+        scale: root.shown ? 1 : 0.96
+        transformOrigin: Item.TopRight
+        Behavior on opacity { NumberAnimation { id: fadeOut; duration: root.shown ? 120 : 160; easing.type: Easing.OutQuad } }
+        Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+        focus: true
+        Keys.onEscapePressed: root.close()
+
+        ColumnLayout {
+            id: body
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 10
+
+            // --- top block ---
+            RowLayout {
+                spacing: 10
+                Layout.fillWidth: true
+
+                Module {
+                    Layout.preferredWidth: 153
+                    Layout.preferredHeight: 158
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 11
+                        spacing: 8
+
+                        ToggleRow {
+                            Layout.fillWidth: true
+                            icon: "icons/wifi.svg"
+                            label: "Wi-Fi"
+                            detail: !root.wifiOn ? "Off" : root.ssid !== "" ? root.ssid : "Not Connected"
+                            on: root.wifiOn
+                            onToggled: {
+                                root.wifiOn = !root.wifiOn
+                                root.run(["nmcli", "radio", "wifi", root.wifiOn ? "on" : "off"])
+                            }
+                            onOpened: {
+                                root.close()
+                                Quickshell.execDetached(["qs", "ipc", "call", "menubar", "open", "wifi"])
+                            }
+                        }
+                        ToggleRow {
+                            Layout.fillWidth: true
+                            icon: "icons/bluetooth.svg"
+                            label: "Bluetooth"
+                            detail: !root.btOn ? "Off"
+                                  : root.btConnected.length > 0 ? root.btConnected[0].name : "On"
+                            on: root.btOn
+                            onToggled: if (root.adapter) root.adapter.enabled = !root.adapter.enabled
+                            onOpened: {
+                                root.close()
+                                Quickshell.execDetached(["blueman-manager"])
+                            }
+                        }
+                        ToggleRow {
+                            Layout.fillWidth: true
+                            visible: root.hasVpn
+                            icon: "icons/shield.svg"
+                            label: "VPN"
+                            detail: root.vpnOn ? "Mullvad" : "Not Connected"
+                            on: root.vpnOn
+                            onToggled: {
+                                root.vpnOn = !root.vpnOn
+                                root.run(["mullvad", root.vpnOn ? "connect" : "disconnect"])
+                            }
+                            onOpened: {
+                                root.close()
+                                Quickshell.execDetached(["mullvad-vpn"])
+                            }
+                        }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                ColumnLayout {
+                    spacing: 10
+                    Layout.fillWidth: true
+
+                    // Focus
+                    Module {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 74
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 11
+                            spacing: 9
+                            Circle {
+                                icon: "icons/moon.svg"
+                                on: root.dnd
+                                color: root.dnd ? "#5e5ce6" : Qt.rgba(1, 1, 1, 0.16)
+                                onClicked: {
+                                    root.dnd = !root.dnd
+                                    root.run(["swaync-client", root.dnd ? "-dn" : "-df"])
+                                }
+                            }
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+                                Label { text: "Focus"; Layout.fillWidth: true }
+                                Detail { text: root.dnd ? "Do Not Disturb" : "Off"; Layout.fillWidth: true }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 10
+                        Layout.fillWidth: true
+
+                        // Night Shift
+                        Module {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 74
+                            ColumnLayout {
+                                anchors.centerIn: parent
+                                spacing: 5
+                                Circle {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    icon: "icons/nightshift.svg"
+                                    on: root.nightShift
+                                    color: root.nightShift ? "#ff9f0a" : Qt.rgba(1, 1, 1, 0.16)
+                                    onClicked: {
+                                        root.nightShift = !root.nightShift
+                                        if (root.nightShift)
+                                            root.run(["hyprsunset", "-t", "4500"])
+                                        else
+                                            root.run(["pkill", "-x", "hyprsunset"])
+                                    }
+                                }
+                                Detail {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: "Night Shift"
+                                    color: "#ffffff"
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+
+                        // Screen Mirroring
+                        Module {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 74
+                            ColumnLayout {
+                                anchors.centerIn: parent
+                                spacing: 5
+                                Circle {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    icon: "icons/mirroring.svg"
+                                    onClicked: {
+                                        root.close()
+                                        Quickshell.execDetached([root.home + "/.config/hypr/scripts/display-mode.sh"])
+                                    }
+                                }
+                                Detail {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: "Mirroring"
+                                    color: "#ffffff"
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Display ---
+            Module {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 66
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 11
+                    spacing: 7
+                    Label { text: "Display" }
+                    MacSlider {
+                        Layout.fillWidth: true
+                        icon: "icons/sun.svg"
+                        value: root.brightness
+                        onMoved: v => root.setBrightness(v)
+                    }
+                }
+            }
+
+            // --- Sound ---
+            Module {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 66
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 11
+                    spacing: 7
+                    Label { text: "Sound" }
+                    MacSlider {
+                        Layout.fillWidth: true
+                        icon: root.sinkReady && (root.sink.audio.muted || root.sink.audio.volume <= 0)
+                            ? "icons/speaker-muted.svg" : "icons/speaker.svg"
+                        value: root.sinkReady && !root.sink.audio.muted ? root.sink.audio.volume : 0
+                        onMoved: v => {
+                            if (!root.sinkReady)
+                                return
+                            root.sink.audio.muted = false
+                            root.sink.audio.volume = v
+                        }
+                    }
+                }
+            }
+
+            // --- Now Playing ---
+            Module {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 66
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 11
+                    spacing: 10
+
+                    ClippingRectangle {
+                        Layout.preferredWidth: 44
+                        Layout.preferredHeight: 44
+                        radius: 8
+                        color: Qt.rgba(1, 1, 1, 0.12)
+                        Image {
+                            anchors.fill: parent
+                            source: root.player && root.player.trackArtUrl ? root.player.trackArtUrl : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            sourceSize.width: 88
+                            sourceSize.height: 88
+                        }
+                        Image {
+                            anchors.centerIn: parent
+                            visible: !root.player || !root.player.trackArtUrl
+                            source: "icons/play.svg"
+                            width: 16; height: 16
+                            sourceSize.width: 32; sourceSize.height: 32
+                            opacity: 0.35
+                        }
+                    }
+
+                    ColumnLayout {
+                        spacing: 1
+                        Layout.fillWidth: true
+                        Label {
+                            Layout.fillWidth: true
+                            text: root.player && root.player.trackTitle ? root.player.trackTitle : "Not Playing"
+                        }
+                        Detail {
+                            Layout.fillWidth: true
+                            visible: text !== ""
+                            text: root.player ? (root.player.trackArtist || root.player.identity || "") : ""
+                        }
+                    }
+
+                    Repeater {
+                        model: [
+                            { "icon": "icons/prev.svg", "act": "prev" },
+                            { "icon": root.player && root.player.isPlaying ? "icons/pause.svg" : "icons/play.svg", "act": "toggle" },
+                            { "icon": "icons/next.svg", "act": "next" }
+                        ]
+                        Item {
+                            required property var modelData
+                            implicitWidth: 26
+                            implicitHeight: 26
+                            opacity: root.player ? (ctlMouse.containsMouse ? 1 : 0.85) : 0.3
+                            Image {
+                                anchors.centerIn: parent
+                                source: parent.modelData.icon
+                                width: parent.modelData.act === "toggle" ? 18 : 17
+                                height: width
+                                sourceSize.width: width * 2
+                                sourceSize.height: height * 2
+                            }
+                            MouseArea {
+                                id: ctlMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    const p = root.player
+                                    if (!p)
+                                        return
+                                    const act = parent.modelData.act
+                                    if (act === "prev" && p.canGoPrevious) p.previous()
+                                    else if (act === "next" && p.canGoNext) p.next()
+                                    else if (act === "toggle" && p.canTogglePlaying) p.togglePlaying()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

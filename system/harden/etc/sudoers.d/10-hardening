@@ -1,0 +1,9 @@
+# hardening setup, phase 5
+Defaults use_pty
+Defaults timestamp_timeout=5
+Defaults passwd_tries=3
+Defaults logfile="/var/log/sudo.log"
+Defaults !pwfeedback
+# login umask is 027; keep files created via sudo world-readable where pacman/etc expect it
+Defaults umask=0022
+Defaults umask_override

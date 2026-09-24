@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Queuing AIDE baseline refresh (runs in background)
+When = PostTransaction
+Exec = /usr/bin/systemctl start --no-block aide-refresh.service

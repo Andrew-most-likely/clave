@@ -1,0 +1,19 @@
+## hardening setup, phase 10
+## Clear existing rules first so reloads are idempotent; larger backlog for bursts
+-D
+-b 8192
+--backlog_wait_time 60000
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/sudoers.d/ -p wa -k sudoers
+-w /etc/pam.d/ -p wa -k pam
+-w /etc/nftables.conf -p wa -k firewall
+-w /etc/kernel/cmdline -p wa -k boot
+-w /etc/sysctl.d/ -p wa -k sysctl
+-w /etc/modprobe.d/ -p wa -k modules
+-w /etc/usbguard/ -p wa -k usbguard
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k modules
+-w /usr/bin/sudo -p x -k priv

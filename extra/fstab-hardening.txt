@@ -1,0 +1,6 @@
+# Hardened mount options used on the original machine. NOT applied by the
+# installer: merge by hand into /etc/fstab, then reboot.
+#   /home     add: nodev,nosuid
+proc        /proc     proc   nosuid,nodev,noexec,hidepid=invisible,gid=proc  0 0
+tmpfs       /dev/shm  tmpfs  nosuid,nodev,noexec                             0 0
+/var/tmp    /var/tmp  none   bind,nosuid,nodev,noexec                        0 0

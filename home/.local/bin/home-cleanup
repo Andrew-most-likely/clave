@@ -1,0 +1,43 @@
+#!/bin/bash
+# Weekly cleanup of caches in the home folder that otherwise grow forever.
+# Run by ~/.config/systemd/user/home-cleanup.timer. Safe to run by hand.
+set -uo pipefail
+
+# Skip while a package build or install is running, so nothing is cleaned mid-build.
+if pgrep -x 'yay|makepkg|pacman' >/dev/null; then
+    echo "package tool running, skipping"
+    exit 0
+fi
+
+# 1. yay (AUR) build cache: after a package is installed, its build files,
+#    downloaded sources and built package are not needed. Keep only the
+#    PKGBUILD git repo, and drop folders of packages that are no longer installed.
+yay_cache="$HOME/.cache/yay"
+if [[ -d "$yay_cache" ]]; then
+    for dir in "$yay_cache"/*/; do
+        dir="${dir%/}"
+        name="$(basename "$dir")"
+        if ! pacman -Qq "$name" >/dev/null 2>&1; then
+            rm -rf -- "$dir"
+        elif [[ -d "$dir/.git" ]]; then
+            git -C "$dir" clean -fdxq
+        else
+            rm -rf -- "$dir/src" "$dir/pkg" "$dir"/*.pkg.tar.*
+        fi
+    done
+fi
+
+# 2. Trash: permanently delete items that have been in the trash for over 30 days.
+trash="$HOME/.local/share/Trash"
+if [[ -d "$trash/info" ]]; then
+    find "$trash/info" -maxdepth 1 -name '*.trashinfo' -mtime +30 -print0 |
+        while IFS= read -r -d '' info; do
+            item="$(basename "$info" .trashinfo)"
+            rm -rf -- "$trash/files/$item" "$info"
+        done
+fi
+
+# 3. Flatpak runtimes that no installed app uses any more.
+flatpak uninstall --user --unused --noninteractive >/dev/null 2>&1 || true
+
+echo "home cleanup done"

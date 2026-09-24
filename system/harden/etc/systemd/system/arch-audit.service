@@ -1,0 +1,6 @@
+[Unit]
+Description=Check installed packages for known CVEs
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/arch-audit --upgradable

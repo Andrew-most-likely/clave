@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily arch-audit CVE check
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

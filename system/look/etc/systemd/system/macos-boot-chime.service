@@ -1,0 +1,14 @@
+[Unit]
+Description=macOS-style startup chime
+# Plays as soon as the sound card is up, while Plymouth is still showing.
+DefaultDependencies=no
+Wants=sound.target
+After=sound.target alsa-restore.service
+ConditionPathExists=/usr/local/share/sounds/macos-boot-chime.wav
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/aplay -q /usr/local/share/sounds/macos-boot-chime.wav
+
+[Install]
+WantedBy=sound.target

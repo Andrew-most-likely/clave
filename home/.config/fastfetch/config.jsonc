@@ -1,0 +1,99 @@
+// Inspired by Catnap
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "source": "~/.config/fastfetch/assets/apple-rainbow.png", // classic Apple logo (was ~/.config/ml4w/assets/ml4w.png)
+        "type": "kitty",
+        "height": 14,
+        "padding": {
+            "top": 1,
+            "right": 4,
+            "left": 3
+        }
+    },
+    "display": {
+        "separator": " "
+    },
+    "modules": [
+        {
+            "key": "╭───────────╮",
+            "type": "custom"
+        },
+        {
+            "key": "│ {#34} user    {#keys}│",
+            "type": "title",
+            "format": "{user-name}"
+        },
+        {
+            "key": "│ {#34}󰇅 hname   {#keys}│",
+            "type": "title",
+            "format": "{host-name}"
+        },
+        {
+            "condition": {                                    // Conditional module: only show on non-macOS
+                "!system": "macOS"
+            },
+            "type": "disk",
+            "keyIcon": "",
+            "key": "│{#34} {icon} os age {#keys} │",
+            // "keyColor": "magenta",
+            "folders": "/",                                   // Check root filesystem
+            "format": "{create-time:10} [{days} days ({years} years)]"        // Show creation time and age in days
+        },        
+        {
+            "key": "│ {#34}󰅐 uptime  {#keys}│",
+            "type": "uptime"
+        },
+        {
+            "key": "│ {#34}{icon} distro  {#keys}│",
+            "type": "os"
+        },
+        {
+            "key": "│ {#34} kernel  {#keys}│",
+            "type": "kernel"
+        },
+        {
+            "key": "│ {#34} wm      {#keys}│",
+            "type": "wm"
+        },
+        {
+            "key": "│ {#34}󰇄 desktop {#keys}│",
+            "type": "de"
+        },
+        {
+            "key": "│ {#34} term    {#keys}│",
+            "type": "terminal"
+        },
+        {
+            "key": "│ {#34} shell   {#keys}│",
+            "type": "shell"
+        },
+        {
+            "key": "│ {#34}󰍛 cpu     {#keys}│",
+            "type": "cpu",
+            "format": "{name}"
+        },
+        {
+            "key": "│ {#34}󰉉 disk    {#keys}│",
+            "type": "disk",
+            "folders": "/"
+        },
+        {
+            "key": "│ {#34} memory  {#keys}│",
+            "type": "memory"
+        },
+        {
+            "key": "├───────────┤",
+            "type": "custom"
+        },
+        {
+            "key": "│ {#34} colors  {#keys}│",
+            "type": "colors",
+            "symbol": "circle"
+        },
+        {
+            "key": "╰───────────╯",
+            "type": "custom"
+        }
+    ]
+}
