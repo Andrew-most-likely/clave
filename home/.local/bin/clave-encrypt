@@ -244,6 +244,8 @@ checks() {
     say "Checks"
     for p in /sys/class/power_supply/*; do
         [ -e "$p/type" ] || continue
+        # A mouse, pen or headset battery (scope Device) is not the computer's.
+        [ "$(cat "$p/scope" 2>/dev/null)" = Device ] && continue
         case "$(cat "$p/type")" in
             Mains) [ "$(cat "$p/online" 2>/dev/null)" = 1 ] && online=1 ;;
             Battery) bat=1; cap=$(cat "$p/capacity" 2>/dev/null || echo 0)
@@ -263,7 +265,10 @@ checks() {
         [ "$(df --output=avail -B1M "$p" | tail -n1 | tr -d ' ')" -ge $((HEADER_MIB * 2)) ] \
             || { warn "  $p needs at least $((HEADER_MIB * 2)) MiB free."; ok=0; }
     done
-    if [ -z "$bootdev" ] || [ "$bootdev" = "$rootdev" ] || ! compgen -G "/boot/vmlinuz-*" >/dev/null; then
+    # A hardened /boot (mode 700) cannot be listed as the user: then only the
+    # partition is checked, and prepare (as root) finds the kernels.
+    if [ -z "$bootdev" ] || [ "$bootdev" = "$rootdev" ] \
+        || { [ -r /boot ] && [ -x /boot ] && ! compgen -G "/boot/vmlinuz-*" >/dev/null; }; then
         warn "  /boot is not its own partition with the kernels on it. It must stay readable before the"
         warn "  disk is unlocked: use the reinstall path."
         ok=0
