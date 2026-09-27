@@ -35,9 +35,9 @@ Then log out, and pick Hyprland on the login screen.
 
 | Option | What it does |
 |---|---|
-| `--yes` | No questions. The hardening layer stays off. |
-| `--harden` | Also install the security hardening layer (asks again first) |
-| `--extras` | Also install the optional apps in `packages/extras*.txt` |
+| `--yes` | No questions. The hardening layer is included; its warning is printed. |
+| `--no-harden` | Skip the security hardening layer |
+| `--extras` | Also install the optional apps in `packages/extras*.txt`, including the GNOME utilities Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys |
 | `--personal` | Use fonts, a cursor and sounds you supply. See [Personal option](#personal-option). |
 | `--user-only` | Only install files in `$HOME`. No sudo, no login screen or boot splash. |
 | `--no-packages` | Skip pacman, AUR and Flatpak |
@@ -80,7 +80,7 @@ GTK4/libadwaita and Flatpak apps all follow the theme.
 **Desktop essentials:** GNOME Keyring, printing (CUPS and mDNS discovery), Bluetooth, exFAT and NTFS support,
 common GNOME apps, CJK and emoji fonts, zram, a journald size cap, and weekly cache cleanup.
 
-**Hardening** (optional, `--harden`)
+**Hardening** (on by default; `--no-harden` skips it. If it locks you out, see [docs/RECOVERY.md](docs/RECOVERY.md).)
 - The `linux-hardened` kernel with lockdown, IOMMU and init_on_free flags
 - sysctl lockdown, AppArmor (`apparmor.d`) and auditd
 - An nftables firewall that drops all inbound traffic by default, with OpenSnitch for outbound traffic
@@ -168,7 +168,8 @@ To go back to the public build, delete `~/.local/state/clave/personal` and run `
 ## Things to know
 
 - **Hardening risks:** USBGuard blocks USB devices that were not plugged in during the install. Three wrong passwords
-  lock the account for 15 minutes. Keep a recovery USB.
+  lock the account for 15 minutes. Keep a recovery USB. [docs/RECOVERY.md](docs/RECOVERY.md) explains how to get
+  back in.
 - **SDDM reads every file in `/etc/sddm.conf.d`, backups included.** The installer moves `*.bak*` files to
   `/etc/sddm.conf.d.backup`.
 - **The calculator works offline.** The installer turns off the weekly download of currency rates, so currency

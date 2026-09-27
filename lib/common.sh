@@ -89,7 +89,7 @@ show_plan() {
   Repo:        $repo
   Packages:    $([ "$packages" -eq 1 ] && echo "yes (AUR helper: ${helper:-paru, installed first})" || echo no)
   System part: $([ "$user_only" -eq 1 ] && echo "no (--user-only)" || echo "yes (sudo): login screen, boot splash, services")
-  Hardening:   $([ "$harden" -eq 1 ] && echo "yes, asked again before it runs" || echo no)
+  Hardening:   $([ "$harden" -eq 1 ] && echo "yes (default; --no-harden skips it), explained before it runs" || echo "no (--no-harden)")
   Moved aside:${old:- nothing}
   Log:         $LOG
 EOF
@@ -272,18 +272,22 @@ changed_since_last_install() {
     git -C "$repo" diff --name-only "$last" HEAD | grep -qE "$1"
 }
 
+# Shows what the hardening layer does and how to get back in (SEC-2). Asks,
+# unless --yes: then the warning is only printed. Returns 0 to apply it.
 confirm_harden() {
     warn "
-The hardening layer changes how the machine boots and who may log in:
+The hardening layer is installed by default (skip it with --no-harden).
+It changes how the machine boots and who may log in:
   - linux-hardened kernel flags, AppArmor, auditd, sysctl lockdown
-  - default-drop inbound firewall (nftables table 'inet hardening') + OpenSnitch
-  - USBGuard: only USB devices plugged in NOW stay allowed
+  - an inbound firewall that drops everything by default, and OpenSnitch,
+    which asks before an app connects out
+  - USBGuard: only USB devices plugged in NOW stay allowed. Plug in your
+    keyboard, mouse and any USB dock before you go on.
   - faillock: 3 wrong passwords lock the account for 15 minutes
   - login umask 027, su limited to group wheel
-Keep a recovery USB at hand."
-    local ans
-    read -rp "Apply hardening? [y/N] " ans
-    [[ "$ans" =~ ^[Yy]$ ]]
+If you are locked out, see docs/RECOVERY.md (also on GitHub). Keep a
+recovery USB at hand."
+    ask "Apply hardening?" y
 }
 
 record_install() {

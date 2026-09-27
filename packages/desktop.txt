@@ -1,10 +1,12 @@
 # Everyday desktop essentials
-gnome-keyring seahorse
+gnome-keyring
 cups cups-pdf system-config-printer
 avahi nss-mdns
 exfatprogs ntfs-3g dosfstools
 man-db man-pages
-gnome-calculator gnome-disk-utility baobab gnome-text-editor loupe file-roller nautilus snapshot
+# Each app backs a feature (PROJECT_PLAN.md SW-3): Files and the Dock's Trash,
+# the Dock's default pins, and opening pictures and archives from Files.
+gnome-calculator gnome-text-editor loupe file-roller nautilus
 unrar unzip 7zip
 hunspell hunspell-en_us
 noto-fonts noto-fonts-cjk noto-fonts-emoji noto-fonts-extra

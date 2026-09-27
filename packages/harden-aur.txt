@@ -1,3 +1,2 @@
 aide
 apparmor.d
-usbguard-notifier

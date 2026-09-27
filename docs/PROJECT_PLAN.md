@@ -119,7 +119,7 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   passes `--no-harden`. `--yes` also installs it. `--harden` is still accepted and does nothing extra.
 - **SEC-2 Lockout warnings.** USBGuard and faillock can lock a user out. Before they are turned on, the
   installer shows what they do and how to recover. With `--yes` the warning is printed but not asked.
-  The README links to a recovery guide.
+  The README links to a recovery guide. Done: [RECOVERY.md](RECOVERY.md).
 - **SEC-3 Offline by default.** Nothing contacts the network unless the user asks for it. Online features
   (web search in Search, album art, currency rates) are off by default.
 - **SEC-4 Keyring.** GNOME Keyring unlocks at login and apps that store secrets use it with full
@@ -129,26 +129,40 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 
 - **PERF-1 Background budget.** No listeners or services beyond what a normal Arch install needs, plus the
   ones in the inventory below. Each entry has a written purpose.
-- **PERF-2 Inventory.** Keep this list current. Today it is:
+- **PERF-2 Inventory.** Keep this list current. Checked against a live install on 2026-09-27:
 
   | Unit or process | Layer | Purpose |
   |---|---|---|
   | Quickshell (shell, Dock) | look | The shell itself |
   | `sddm.service` | look | Login screen |
+  | swaync, swayosd-server, hypridle, awww-daemon, polkit-gnome agent | look | Notifications, volume and brightness pop-ups, idle timeouts, wallpaper, password prompts |
+  | `clave-clipboard watch` | look | Clipboard history. Off in System Settings stops it. |
   | `home-cleanup.timer` (user) | desktop | Weekly cache cleanup |
   | `paccache.timer` | desktop | Package cache cleanup |
   | `cups.socket`, `avahi-daemon.service` | desktop | Printing and printer discovery |
   | `bluetooth.service` | desktop | Bluetooth |
-  | `nftables`, `opensnitchd`, `usbguard` (+ user `usbguard-notifier`) | harden | Inbound firewall, outbound control, USB control |
+  | `nftables`, `opensnitchd`, `usbguard` | harden | Inbound firewall, outbound control, USB control |
   | `apparmor`, `auditd` | harden | Mandatory access control, audit log |
   | `arch-audit.timer` | harden | Daily CVE check |
   | `aidecheck.timer`, `aide-refresh.service` | harden | File integrity check, baseline refresh after upgrades |
 
-  Question each desktop entry against PERF-1. For example, `avahi-daemon` listens on the network and is only
-  needed for printer discovery.
+  Listeners inside the shell, all event-driven, none polling:
 
-  Count Quickshell `Process` and `Timer` objects too. Polling timers should be replaced with events where
-  Hyprland or the system offers them.
+  | Listener | Purpose |
+  |---|---|
+  | `nmcli monitor` (one per menu bar) | Wi-Fi icon |
+  | `gio monitor` on the Trash | Dock's Trash icon |
+  | `swaync-client -s` | Notification Center state |
+  | `journalctl -k -f`, only while USBGuard runs | Notice about blocked USB devices |
+
+  Removed in this check: two polling timers (Wi-Fi every 10 seconds, Trash every 5 seconds), and
+  `usbguard-notifier`, which repeated the shell's own USB notice. The startup chime went in phase 2.
+
+  Everything else that ran on the test machine came from Arch itself (systemd, the pacman keyring sockets,
+  `fstrim.timer`, `logrotate.timer`, `thermald`, `iio-sensor-proxy`) or from apps the user installed
+  (Mullvad, libvirt), not from Clave. `avahi-daemon` stays: printer discovery needs it. It listens on the
+  local network, and the firewall lets in only its mDNS multicast (UDP 5353) and drops other inbound traffic.
+
 - **PERF-3 Optional features cost nothing when off.** A disabled feature starts no process, timer or watcher.
 
 ### 5.4 Offline
@@ -170,7 +184,9 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 - **SW-2** Convenience apps (for example Spotify or virtual machine managers) never ship by default. They
   stay in `packages/extras*.txt`.
 - **SW-3** Audit `packages/desktop.txt` against SW-1. Each GNOME app either backs a feature (for example
-  Nautilus for the Dock's Trash) or moves to extras.
+  Nautilus for the Dock's Trash) or moves to extras. Done: Nautilus, Text Editor and Calculator back Files and the Dock's
+  default pins; Loupe and File Roller open pictures and archives from Files. Disks, Disk Usage Analyzer,
+  Snapshot and Passwords and Keys moved to extras.
 
 ## 6. Features
 

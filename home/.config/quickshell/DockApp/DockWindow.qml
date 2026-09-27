@@ -490,7 +490,12 @@ PanelWindow {
                     command: ["bash", "-c", "[ -n \"$(ls -A ~/.local/share/Trash/files 2>/dev/null)\" ] && echo 1 || echo 0"]
                     stdout: StdioCollector { onStreamFinished: trash.full = this.text.trim() === "1" }
                 }
-                Timer { interval: 5000; running: true; repeat: true; onTriggered: trashProbe.running = true }
+                // Check again when the Trash changes, not on a timer.
+                Process {
+                    running: true
+                    command: ["bash", "-c", "d=~/.local/share/Trash/files; mkdir -p \"$d\" && exec gio monitor \"$d\""]
+                    stdout: SplitParser { onRead: trashProbe.running = true }
+                }
             }
         }
 

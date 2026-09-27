@@ -255,9 +255,16 @@ Scope {
     ]
 
     // USBGuard blocks new USB devices silently. Watch the kernel log and say
-    // so, with a button that opens Privacy & Security.
+    // so, with a button that opens Privacy & Security. Only while USBGuard
+    // runs (PERF-3).
+    property bool usbguardOn: false
     Process {
         running: true
+        command: ["systemctl", "is-active", "-q", "usbguard.service"]
+        onExited: code => root.usbguardOn = code === 0
+    }
+    Process {
+        running: root.usbguardOn
         command: ["journalctl", "-k", "-f", "-n0", "-o", "cat"]
         stdout: SplitParser {
             onRead: line => { if (line.indexOf("not authorized for usage") >= 0) usbNotice.restart() }

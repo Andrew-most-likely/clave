@@ -816,7 +816,12 @@ PanelWindow {
                 running: true
                 stdout: StdioCollector { onStreamFinished: wifi.connected = this.text.trim() === "1" }
             }
-            Timer { interval: 10000; running: true; repeat: true; onTriggered: wifiProc.running = true }
+            // NetworkManager reports each change; check again then, not on a timer.
+            Process {
+                running: true
+                command: ["nmcli", "monitor"]
+                stdout: SplitParser { onRead: wifiProc.running = true }
+            }
         }
 
         // Volume: click for the Sound menu, right click mutes, scroll adjusts.

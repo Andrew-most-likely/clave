@@ -14,6 +14,9 @@ dotfiles, published as arch-macos-hyprland.
   fonts, a cursor and sounds that you supply.
 - The terminal logo is text now, so it no longer stays on screen after a full-screen program exits.
 - The startup chime is gone.
+- The hardening layer is installed by default. `--no-harden` skips it, and `--yes` includes it. The installer
+  explains it first, and [docs/RECOVERY.md](docs/RECOVERY.md) explains how to recover from a lockout.
+- Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys moved to `--extras`.
 - System Settings: login screen background and profile picture, Space numbers in the menu bar (off by default),
   the Super key symbol (⌘ or ❖), and a list of apps that draw their own title bar buttons. VS Code and Bazaar
   no longer show two sets of buttons.

@@ -1,5 +1,7 @@
 # Optional apps from the original machine (installed only with --extras)
 firefox steam vlc wireshark-qt libvirt qemu-full virt-manager edk2-ovmf dnsmasq
 neovim btop htop bat eza fzf ripgrep zoxide starship
+# GNOME utilities that no Clave feature needs (SW-3)
+gnome-disk-utility baobab snapshot seahorse
 # Backups and passwords
 timeshift bitwarden

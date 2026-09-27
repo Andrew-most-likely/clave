@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Clave installer. A polished desktop for Hyprland on Arch Linux.
 #
-#   ./install.sh                 packages + desktop + system parts (asks first)
-#   ./install.sh --yes           same, without questions (hardening stays off)
-#   ./install.sh --harden        also the security hardening layer (asks first)
+#   ./install.sh                 packages, desktop, system parts and the
+#                                security hardening layer (asks first)
+#   ./install.sh --yes           same, without questions
+#   ./install.sh --no-harden     everything except the hardening layer
 #   ./install.sh --extras        also the optional apps in packages/extras*.txt
 #   ./install.sh --personal      fonts, cursor and sounds you supply (see README)
 #   ./install.sh --update        only refresh changed desktop files (clave-update)
@@ -22,10 +23,11 @@ repo="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$repo/lib/common.sh"
 
-harden=0 extras=0 personal=0 user_only=0 packages=1 update=0
+harden=1 extras=0 personal=0 user_only=0 packages=1 update=0
 for a in "$@"; do
     case "$a" in
-        --harden) harden=1 ;;
+        --harden) harden=1 ;;   # the default; kept for old scripts
+        --no-harden) harden=0 ;;
         --extras) extras=1 ;;
         --personal) personal=1 ;;
         --update) update=1; packages=0; user_only=1 ;;
@@ -33,10 +35,12 @@ for a in "$@"; do
         --no-packages) packages=0 ;;
         --dry-run) DRY=1 ;;
         --yes|-y) YES=1 ;;
-        -h|--help) sed -n '2,19p' "$0" | cut -c3-; exit 0 ;;
+        -h|--help) sed -n '2,20p' "$0" | cut -c3-; exit 0 ;;
         *) die "Unknown option: $a (see --help)" ;;
     esac
 done
+# The hardening layer is part of the system half.
+[ "$user_only" -eq 0 ] || harden=0
 
 log_start
 preflight
@@ -89,7 +93,9 @@ if [ "$update" -eq 0 ]; then
     run systemctl --user enable --now home-cleanup.timer gnome-keyring-daemon.socket || true
     # Calculator works offline: no weekly download of currency rates.
     run gsettings set org.gnome.calculator refresh-interval 0 2>/dev/null || true
-    [ "$harden" -eq 1 ] && { run systemctl --user enable usbguard-notifier.service || true; }
+    # System Settings tells about blocked USB devices itself; earlier versions
+    # also ran usbguard-notifier, which repeated every message.
+    run systemctl --user disable --now usbguard-notifier.service 2>/dev/null || true
 fi
 
 # --- system part -----------------------------------------------------------
