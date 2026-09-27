@@ -79,9 +79,12 @@ hooks_add() {
 hooks_style_systemd() { grep -qE '^HOOKS=.*\bsystemd\b' "$R/etc/mkinitcpio.conf"; }
 
 # crypt_params LUKS_UUID: kernel parameters that unlock the root partition.
+# systemd.gpt_auto=0: a /home partition with the GPT "Linux home" type would
+# otherwise also be unlocked by systemd-gpt-auto-generator, which asks for a
+# passphrase next to the key file in /etc/crypttab. root= is always given.
 crypt_params() {
-    if hooks_style_systemd; then echo "rd.luks.name=$1=croot root=/dev/mapper/croot"
-    else echo "cryptdevice=UUID=$1:croot root=/dev/mapper/croot"; fi
+    if hooks_style_systemd; then echo "rd.luks.name=$1=croot root=/dev/mapper/croot systemd.gpt_auto=0"
+    else echo "cryptdevice=UUID=$1:croot root=/dev/mapper/croot systemd.gpt_auto=0"; fi
 }
 
 # patch_cmdline "CMDLINE" "PARAMS": drop root=, cryptdevice= and rd.luks.*,
@@ -89,7 +92,7 @@ crypt_params() {
 patch_cmdline() {
     local out=() w
     for w in $1; do
-        case "$w" in root=*|cryptdevice=*|rd.luks.*|BOOT_IMAGE=*|initrd=*) ;; *) out+=("$w") ;; esac
+        case "$w" in root=*|cryptdevice=*|rd.luks.*|systemd.gpt_auto=*|BOOT_IMAGE=*|initrd=*) ;; *) out+=("$w") ;; esac
     done
     echo "${out[*]} $2" | sed 's/^ //'
 }
@@ -201,7 +204,7 @@ entries_finish() {
     case "$loader" in
         grub)
             local f="$R/etc/default/grub" crypt
-            crypt=$(echo "$params" | tr ' ' '\n' | grep -v '^root=')
+            crypt=$(echo "$params" | tr ' ' '\n' | grep -v '^root=' | paste -sd' ')
             cp -a "$f" "$f.bak-encrypt"
             grep -q '^GRUB_CMDLINE_LINUX=' "$f" || echo 'GRUB_CMDLINE_LINUX=""' >> "$f"
             grep -qF "$crypt" "$f" || sed -i -E "s|^(GRUB_CMDLINE_LINUX=\"[^\"]*)\"|\1 $crypt\"|; s|^GRUB_CMDLINE_LINUX=\" |GRUB_CMDLINE_LINUX=\"|" "$f"
@@ -382,7 +385,7 @@ finish() {
 reapply() {
     [ -n "$R" ] || [ "$(id -u)" -eq 0 ] || die "Run with sudo."
     local crypt
-    crypt=$(tr ' ' '\n' < "${CLAVE_PROC_CMDLINE:-/proc/cmdline}" | grep -E '^(cryptdevice=|rd\.luks\.)' | tr '\n' ' ' | sed 's/ $//')
+    crypt=$(tr ' ' '\n' < "${CLAVE_PROC_CMDLINE:-/proc/cmdline}" | grep -E '^(cryptdevice=|rd\.luks\.|systemd\.gpt_auto=)' | tr '\n' ' ' | sed 's/ $//')
     [ -n "$crypt" ] || { echo "  No unlock parameters on the running kernel's command line: nothing to keep."; return 0; }
     hooks_add
     echo "  HOOKS: $(grep '^HOOKS=' "$R/etc/mkinitcpio.conf")"

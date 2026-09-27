@@ -76,15 +76,15 @@ r="$tmp/hooks-sd"; newroot "$r" systemd
 lib "$r" hooks_add; lib "$r" hooks_add
 has "$r/etc/mkinitcpio.conf" 'plymouth .*block sd-encrypt filesystems' "systemd HOOKS: sd-encrypt after block, after plymouth"
 eq "$(grep -o sd-encrypt "$r/etc/mkinitcpio.conf" | wc -l)" 1 "hooks_add is idempotent"
-eq "$(lib "$r" crypt_params LUKS-1)" "rd.luks.name=LUKS-1=croot root=/dev/mapper/croot" "systemd params"
+eq "$(lib "$r" crypt_params LUKS-1)" "rd.luks.name=LUKS-1=croot root=/dev/mapper/croot systemd.gpt_auto=0" "systemd params"
 
 r="$tmp/hooks-udev"; newroot "$r" udev
 sed -i 's/ keymap consolefont//' "$r/etc/mkinitcpio.conf"
 lib "$r" hooks_add
 has "$r/etc/mkinitcpio.conf" 'keyboard block encrypt filesystems' "udev HOOKS: keyboard added, encrypt after block"
-eq "$(lib "$r" crypt_params LUKS-1)" "cryptdevice=UUID=LUKS-1:croot root=/dev/mapper/croot" "udev params"
+eq "$(lib "$r" crypt_params LUKS-1)" "cryptdevice=UUID=LUKS-1:croot root=/dev/mapper/croot systemd.gpt_auto=0" "udev params"
 
-eq "$(lib "$r" patch_cmdline 'initrd=\x root=UUID=a rw cryptdevice=old quiet' 'root=/dev/mapper/croot')" \
+eq "$(lib "$r" patch_cmdline 'initrd=\x root=UUID=a rw cryptdevice=old systemd.gpt_auto=0 quiet' 'root=/dev/mapper/croot')" \
    "rw quiet root=/dev/mapper/croot" "patch_cmdline drops old root/crypt/initrd"
 
 # GRUB
@@ -101,7 +101,7 @@ has "$g" 'linux /vmlinuz-linux rw rootflags=subvol=@ quiet splash loglevel=3 rd.
 has "$g" 'initrd /intel-ucode.img /initramfs-linux.img' "GRUB entry initrd with microcode"
 out=$(sh "$g"); case "$out" in "menuentry"*"}") ok "GRUB script prints only the entry" ;; *) fail "GRUB script output: $out" ;; esac
 lib "$r" entries_finish grub "$p"
-has "$r/etc/default/grub" '^GRUB_CMDLINE_LINUX="rd.luks.name=LUKS-G=croot"$' "GRUB finish: unlock param in GRUB_CMDLINE_LINUX"
+has "$r/etc/default/grub" '^GRUB_CMDLINE_LINUX="rd.luks.name=LUKS-G=croot systemd.gpt_auto=0"$' "GRUB finish: unlock param in GRUB_CMDLINE_LINUX"
 [ ! -e "$g" ] && ok "GRUB finish removes the extra entry" || fail "GRUB extra entry still there"
 
 # systemd-boot
@@ -115,10 +115,10 @@ lib "$r" entry_add systemd-boot "$p"
 e="$r/boot/loader/entries/clave-encrypted.conf"
 has "$e" '^title   Clave \(encrypted\)$' "systemd-boot entry title"
 has "$e" '^initrd  /initramfs-linux.img$' "systemd-boot entry copies the normal (not fallback) entry"
-has "$e" '^options rw rootflags=subvol=@ quiet splash loglevel=3 cryptdevice=UUID=LUKS-S:croot root=/dev/mapper/croot$' "systemd-boot entry options"
+has "$e" '^options rw rootflags=subvol=@ quiet splash loglevel=3 cryptdevice=UUID=LUKS-S:croot root=/dev/mapper/croot systemd.gpt_auto=0$' "systemd-boot entry options"
 lib "$r" entries_finish systemd-boot "$p"
-has "$r/boot/loader/entries/arch.conf" 'cryptdevice=UUID=LUKS-S:croot root=/dev/mapper/croot$' "systemd-boot finish: normal entry"
-has "$r/boot/loader/entries/arch-fallback.conf" 'cryptdevice=UUID=LUKS-S:croot root=/dev/mapper/croot$' "systemd-boot finish: fallback entry"
+has "$r/boot/loader/entries/arch.conf" 'cryptdevice=UUID=LUKS-S:croot root=/dev/mapper/croot systemd.gpt_auto=0$' "systemd-boot finish: normal entry"
+has "$r/boot/loader/entries/arch-fallback.conf" 'cryptdevice=UUID=LUKS-S:croot root=/dev/mapper/croot systemd.gpt_auto=0$' "systemd-boot finish: fallback entry"
 [ ! -e "$e" ] && ok "systemd-boot finish removes the extra entry" || fail "systemd-boot extra entry still there"
 
 # Limine
@@ -144,7 +144,7 @@ lib "$r" entry_add limine "$p"
 c="$r/boot/limine.conf"
 has "$c" '^/Clave \(encrypted\)$' "Limine entry title"
 eq "$(grep -c 'rd.luks.name=LUKS-L=croot' "$c")" 1 "Limine: only the new entry has the unlock param"
-has "$c" '^    cmdline: rw rootflags=subvol=@ quiet rd.luks.name=LUKS-L=croot root=/dev/mapper/croot$' "Limine entry cmdline"
+has "$c" '^    cmdline: rw rootflags=subvol=@ quiet rd.luks.name=LUKS-L=croot root=/dev/mapper/croot systemd.gpt_auto=0$' "Limine entry cmdline"
 lib "$r" entries_finish limine "$p"
 hasnt "$c" 'Clave \(encrypted\)' "Limine finish removes the extra entry"
 eq "$(grep -c 'rd.luks.name=LUKS-L=croot root=/dev/mapper/croot' "$c")" 2 "Limine finish: both entries unlock"
@@ -157,10 +157,10 @@ eq "$(lib "$r" detect_loader)" uki "detect UKI"
 # reapply after uninstall restored the pre-install files
 r="$tmp/reapply"; newroot "$r" systemd
 printf 'GRUB_CMDLINE_LINUX_DEFAULT="quiet"\nGRUB_CMDLINE_LINUX=""\n' > "$r/etc/default/grub"
-echo 'BOOT_IMAGE=/vmlinuz-linux rd.luks.name=LUKS-R=croot root=/dev/mapper/croot rw' > "$r/proc-cmdline"
+echo 'BOOT_IMAGE=/vmlinuz-linux rd.luks.name=LUKS-R=croot root=/dev/mapper/croot systemd.gpt_auto=0 rw' > "$r/proc-cmdline"
 lib "$r" reapply >/dev/null
 has "$r/etc/mkinitcpio.conf" 'block sd-encrypt' "reapply: hook back"
-has "$r/etc/default/grub" '^GRUB_CMDLINE_LINUX="rd.luks.name=LUKS-R=croot"$' "reapply: GRUB unlock param back"
+has "$r/etc/default/grub" '^GRUB_CMDLINE_LINUX="rd.luks.name=LUKS-R=croot systemd.gpt_auto=0"$' "reapply: GRUB unlock param back"
 
 # A folder that is not a mount point (no separate /home) gives an empty
 # device, not an exit under set -e and pipefail.

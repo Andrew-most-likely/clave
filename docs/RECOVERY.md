@@ -108,8 +108,8 @@ mkinitcpio -P
 ```
 
 The boot entry needs `root=/dev/mapper/croot` plus `cryptdevice=UUID=LUKS_UUID:croot` (`encrypt` hook) or
-`rd.luks.name=LUKS_UUID=croot` (`sd-encrypt` hook). `cryptsetup luksUUID /dev/disk/by-partuuid/ROOT_PARTUUID`
-prints the LUKS UUID. `clave-encrypt finish` writes these into every entry, so after it has run, the normal
+`rd.luks.name=LUKS_UUID=croot` (`sd-encrypt` hook), and `systemd.gpt_auto=0` so that only `/etc/crypttab`
+unlocks `/home` and swap. `cryptsetup luksUUID /dev/disk/by-partuuid/ROOT_PARTUUID` prints the LUKS UUID. `clave-encrypt finish` writes these into every entry, so after it has run, the normal
 entries work again.
 
 ## `su` does not work
