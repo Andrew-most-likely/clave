@@ -1,7 +1,7 @@
 # Shared by install.sh and uninstall.sh. Expects $repo.
 # shellcheck shell=bash
 
-GITHUB_REPO="andrewcappelli/arch-macos-hyprland"
+GITHUB_REPO="Andrew-most-likely/arch-macos-hyprland"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/macos-look"
 LOG="${XDG_CACHE_HOME:-$HOME/.cache}/macos-look/install.log"
 STAMP="$(date +%F)"
