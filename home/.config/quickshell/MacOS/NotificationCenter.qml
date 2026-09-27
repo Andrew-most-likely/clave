@@ -80,6 +80,7 @@ PanelWindow {
                 spacing: 0
 
                 Text {
+                    textFormat: Text.PlainText
                     text: Qt.formatDate(root.today, "dddd").toUpperCase()
                     color: root.red
                     font.family: root.fontFamily
@@ -87,6 +88,7 @@ PanelWindow {
                     font.weight: Font.DemiBold
                 }
                 Text {
+                    textFormat: Text.PlainText
                     text: Qt.formatDate(root.today, "d")
                     color: "#ffffff"
                     font.family: "SF Pro Display"
@@ -96,6 +98,7 @@ PanelWindow {
                 }
                 Item { Layout.fillHeight: true }
                 Text {
+                    textFormat: Text.PlainText
                     text: "No events today"
                     color: Qt.rgba(235 / 255, 235 / 255, 245 / 255, 0.55)
                     font.family: root.fontFamily
@@ -110,6 +113,7 @@ PanelWindow {
                 spacing: 3
 
                 Text {
+                    textFormat: Text.PlainText
                     text: Qt.formatDate(root.today, "MMMM").toUpperCase()
                     color: root.red
                     font.family: root.fontFamily
@@ -126,6 +130,7 @@ PanelWindow {
                     Repeater {
                         model: ["S", "M", "T", "W", "T", "F", "S"]
                         Text {
+                            textFormat: Text.PlainText
                             required property string modelData
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
@@ -151,6 +156,7 @@ PanelWindow {
                                 visible: parent.isToday
                             }
                             Text {
+                                textFormat: Text.PlainText
                                 anchors.centerIn: parent
                                 text: parent.modelData > 0 ? parent.modelData : ""
                                 color: "#ffffff"

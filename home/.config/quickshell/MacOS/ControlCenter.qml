@@ -102,6 +102,18 @@ PanelWindow {
     readonly property bool sinkReady: root.sink !== null && root.sink.ready && root.sink.audio !== null
     PwObjectTracker { objects: root.sink ? [root.sink] : [] }
 
+    // Album art comes from the player. Local files show; web addresses only
+    // with System Settings > Privacy & Security > "Load album art from the
+    // internet", so a player cannot make the shell fetch URLs by default.
+    readonly property string artUrl: {
+        const url = root.player ? `${root.player.trackArtUrl || ""}` : ""
+        if (url.startsWith("file://"))
+            return url
+        if (/^https?:\/\//.test(url) && MacSettings.get("privacy", "albumArtOnline") === true)
+            return url
+        return ""
+    }
+
     // The player shown under Now Playing: a playing one if any.
     readonly property var player: {
         const list = Mpris.players.values
@@ -112,13 +124,13 @@ PanelWindow {
     Process {
         id: status
         command: ["sh", "-c",
-            "echo wifi=$(nmcli -t radio wifi 2>/dev/null);"
-            + "echo ssid=$(nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | sed -n 's/^yes://p' | head -n1);"
-            + "if command -v mullvad >/dev/null; then echo vpnkind=mullvad; echo vpn=$(mullvad status 2>/dev/null | head -n1);"
+            "echo \"wifi=$(nmcli -t radio wifi 2>/dev/null)\";"
+            + "echo \"ssid=$(nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | sed -n 's/^yes://p' | head -n1)\";"
+            + "if command -v mullvad >/dev/null; then echo vpnkind=mullvad; echo \"vpn=$(mullvad status 2>/dev/null | head -n1)\";"
             + "else c=$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | sed -n 's/:\\(vpn\\|wireguard\\)$//p' | head -n1);"
-            + " if [ -n \"$c\" ]; then echo vpnkind=nm; echo vpnname=$c;"
+            + " if [ -n \"$c\" ]; then echo vpnkind=nm; echo \"vpnname=$c\";"
             + "  nmcli -t -f NAME connection show --active | grep -qxF \"$c\" && echo vpn=Connected || echo vpn=Disconnected; fi; fi;"
-            + "echo dnd=$(swaync-client -D 2>/dev/null);"
+            + "echo \"dnd=$(swaync-client -D 2>/dev/null)\";"
             + "pgrep -x hyprsunset >/dev/null && echo night=1 || echo night=0"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -203,6 +215,7 @@ PanelWindow {
     }
 
     component Label: Text {
+        textFormat: Text.PlainText
         color: "#ffffff"
         font.family: root.fontFamily
         font.pixelSize: 13
@@ -211,6 +224,7 @@ PanelWindow {
     }
 
     component Detail: Text {
+        textFormat: Text.PlainText
         color: Qt.rgba(1, 1, 1, 0.55)
         font.family: root.fontFamily
         font.pixelSize: 11
@@ -514,7 +528,7 @@ PanelWindow {
                         color: Qt.rgba(1, 1, 1, 0.12)
                         Image {
                             anchors.fill: parent
-                            source: root.player && root.player.trackArtUrl ? root.player.trackArtUrl : ""
+                            source: root.artUrl
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             sourceSize.width: 88
@@ -522,7 +536,7 @@ PanelWindow {
                         }
                         Image {
                             anchors.centerIn: parent
-                            visible: !root.player || !root.player.trackArtUrl
+                            visible: root.artUrl === ""
                             source: "icons/play.svg"
                             width: 16; height: 16
                             sourceSize.width: 32; sourceSize.height: 32

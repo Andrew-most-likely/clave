@@ -56,3 +56,12 @@ end
 -- Hyprland must map them instantly.
 hl.layer_rule({ match = { namespace = "macos-genie" }, no_anim = true })
 hl.layer_rule({ match = { namespace = "macos-mission-control" }, no_anim = true })
+
+-- System Settings > Accessibility.
+local mac = require("macos.settings")
+if mac.reduce_transparency == true then
+    hl.config({ decoration = { blur = { enabled = false } } })
+end
+if mac.increase_contrast == true then
+    hl.config({ general = { col = { active_border = "rgba(ffffffb3)", inactive_border = "rgba(ffffff66)" } } })
+end

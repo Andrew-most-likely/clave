@@ -20,7 +20,8 @@ Every "get" prints JSON; everything else changes one setting.
   macos-prefs appearance mode light|dark   GTK 3/4, Qt (Kvantum), icons, flatpak
   macos-prefs appearance text-scale FACTOR
 
-Root-only changes go through pkexec /usr/local/bin/macos-admin and macos-usb.
+Root-only changes go through pkexec /usr/local/bin/macos-admin (charge limit) and
+macos-usb (asks for the password); time settings use systemd's own polkit rules.
 """
 import configparser
 import glob
@@ -87,7 +88,7 @@ def usb_name(vid):
 
 def usb():
     devs = []
-    for line in sh("pkexec", "/usr/local/bin/macos-admin", "usb-list").splitlines():
+    for line in sh("usbguard", "list-devices").splitlines():
         m = USB_RE.match(line)
         if not m or m.group(3).startswith("1d6b:"):  # Linux root hubs
             continue

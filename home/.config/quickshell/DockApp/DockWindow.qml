@@ -83,7 +83,8 @@ PanelWindow {
 
     // Append an app to the pinned list (it keeps its position from then on).
     function pinApp(key: string): void {
-        if (!key || root.isPinned(key))
+        // Only apps with an installed desktop entry (see DockItem.launch).
+        if (!key || root.isPinned(key) || !root.lookupEntry(key))
             return
         DockSettings.persistPinned(root.pinnedApps.concat([key]))
     }
@@ -169,7 +170,8 @@ PanelWindow {
         const pinned = root.pinnedApps
         for (let i = 0; i < pinned.length; i++) {
             const key = root.entryKey(pinned[i])
-            if (key === "" || byKey[key] !== undefined)
+            // Pinned ids without a desktop entry cannot be launched; skip them.
+            if (key === "" || byKey[key] !== undefined || !root.lookupEntry(pinned[i]))
                 continue
             byKey[key] = makeItem(key, pinned[i], true)
             order.push(key)

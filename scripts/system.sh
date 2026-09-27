@@ -149,6 +149,13 @@ if has harden; then
         chmod 600 /etc/usbguard/rules.conf
         echo "  generated /etc/usbguard/rules.conf from the devices plugged in now"
     fi
+    # Your account may watch and list USB devices (the notifier and System
+    # Settings need that) but not change the policy: allowing a device goes
+    # through macos-usb, which asks for the password.
+    install -d -m 755 /etc/usbguard/IPCAccessControl.d
+    printf 'Devices=list,listen\nExceptions=listen\n' > "/etc/usbguard/IPCAccessControl.d/$user"
+    chmod 600 "/etc/usbguard/IPCAccessControl.d/$user"
+    record "/etc/usbguard/IPCAccessControl.d/$user"
 
     say "Services"
     sysctl --system >/dev/null

@@ -11,7 +11,7 @@ Scope {
     id: root
 
     property bool open: false
-    property var apps: []           // [{ key, name, icon, pids: [] }]
+    property var apps: []           // [{ key, name, icon, addresses: [] }]
     property string selected: ""
 
     IpcHandler {
@@ -50,12 +50,12 @@ Scope {
                                 "key": cls,
                                 "name": e && e.name ? e.name : cls,
                                 "icon": Quickshell.iconPath(e && e.icon ? e.icon : cls, "application-x-executable"),
-                                "pids": []
+                                "addresses": []
                             }
                             order.push(cls)
                         }
-                        if (byKey[cls].pids.indexOf(c.pid) < 0)
-                            byKey[cls].pids.push(c.pid)
+                        if (/^0x[0-9a-f]+$/.test(`${c.address}`))
+                            byKey[cls].addresses.push(`${c.address}`)
                     }
                 } catch (e) {
                     console.warn("forcequit: cannot read hyprctl clients:", e)
@@ -69,7 +69,11 @@ Scope {
         const app = root.apps.find(a => a.key === root.selected)
         if (!app)
             return
-        Quickshell.execDetached(["kill", "-9"].concat(app.pids.map(p => `${p}`)))
+        // Hyprland kills the process behind each window it still has, so a PID
+        // that was reused since the list was read is never hit.
+        for (let i = 0; i < app.addresses.length; i++)
+            Quickshell.execDetached(["hyprctl", "dispatch",
+                `hl.dsp.window.kill({ window = "address:${app.addresses[i]}" })`])
         root.selected = ""
         refresh.restart()
     }
@@ -92,6 +96,7 @@ Scope {
                 spacing: 12
 
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: "If an app doesn't respond for a while, select its name and click Force Quit."
                     wrapMode: Text.WordWrap
@@ -131,6 +136,7 @@ Scope {
                                     Layout.preferredHeight: 20
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     Layout.fillWidth: true
                                     text: modelData.name
                                     color: "#ffffff"
@@ -149,6 +155,7 @@ Scope {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: "You can open this window by pressing Super-Alt-Escape."
                     color: Qt.rgba(1, 1, 1, 0.5)
@@ -164,6 +171,7 @@ Scope {
                     readonly property bool usable: root.selected !== ""
                     color: usable ? (fqMouse.pressed ? "#0063d1" : "#0a84ff") : Qt.rgba(1, 1, 1, 0.12)
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: "Force Quit"
                         color: parent.usable ? "#ffffff" : Qt.rgba(1, 1, 1, 0.4)

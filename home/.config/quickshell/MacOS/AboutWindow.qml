@@ -67,6 +67,7 @@ Scope {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 14
                     text: root.info.model || "MacBook Pro"
@@ -76,6 +77,7 @@ Scope {
                     font.weight: Font.Bold
                 }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     text: root.info.host || ""
                     color: Qt.rgba(1, 1, 1, 0.55)
@@ -99,6 +101,7 @@ Scope {
                         Layout.fillWidth: true
                         spacing: 10
                         Text {
+                            textFormat: Text.PlainText
                             text: modelData[0]
                             color: "#ffffff"
                             font.family: "SF Pro Text"
@@ -108,6 +111,7 @@ Scope {
                             horizontalAlignment: Text.AlignRight
                         }
                         Text {
+                            textFormat: Text.PlainText
                             text: modelData[1] || "…"
                             color: Qt.rgba(1, 1, 1, 0.7)
                             font.family: "SF Pro Text"
@@ -127,6 +131,7 @@ Scope {
                     radius: 6
                     color: moreMouse.pressed ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(1, 1, 1, 0.18)
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: "More Info…"
                         color: "#ffffff"

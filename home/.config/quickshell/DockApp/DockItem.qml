@@ -63,15 +63,12 @@ Item {
     implicitHeight: item.iconSize + 18
 
     // --- ACTIONS ---
+    // Only installed desktop entries are launched. A window's app id is chosen
+    // by the app itself (sandboxed ones included), so it is never run as a
+    // command: apps without an entry can be focused but not launched or pinned.
     function launch(): void {
-        if (item.desktopEntry) {
+        if (item.desktopEntry)
             item.desktopEntry.execute()
-            return
-        }
-        // No desktop entry (e.g. a pinned id inherited from nwg-dock whose app
-        // ships none): run the id as a command, which is what that id is.
-        if (item.entry && item.entry.appId)
-            Quickshell.execDetached(["bash", "-c", item.entry.appId])
     }
 
     // Brings back this app's windows that were minimized or hidden (they wait
@@ -129,11 +126,12 @@ Item {
         if (item.pinned)
             actions.push({ "label": "Unpin from Dock",
                            "callback": () => item.unpinRequested(item.entry.key) })
-        else
+        else if (item.desktopEntry)
             actions.push({ "label": "Pin to Dock",
                            "callback": () => item.pinRequested(item.entry.key) })
-        actions.push({ "label": item.running ? "New Window" : "Launch",
-                       "callback": () => item.launch() })
+        if (item.desktopEntry)
+            actions.push({ "label": item.running ? "New Window" : "Launch",
+                           "callback": () => item.launch() })
         if (item.running)
             actions.push({ "label": item.windows.length > 1
                                ? "Close All Windows" : "Close Window",
@@ -258,6 +256,7 @@ Item {
             border.color: Qt.rgba(1, 1, 1, 0.15)
 
             Text {
+                textFormat: Text.PlainText
                 id: tooltipText
                 anchors.centerIn: parent
                 text: item.windows.length > 1

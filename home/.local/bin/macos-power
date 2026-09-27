@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Lock, sleep, log out, restart, shut down.
-# Usage: macos-power -l|--lock -s|--suspend -e|--logout -r|--reboot -p|--poweroff
+# Usage: macos-power -l|--lock -d|--display-off -s|--suspend -e|--logout -r|--reboot -p|--poweroff
 set -u
 case "${1:-}" in
     -l|--lock)     pidof hyprlock >/dev/null || exec hyprlock ;;
+    # Lock first: a dark screen must never hide an unlocked session.
+    -d|--display-off)
+        pidof hyprlock >/dev/null || { hyprlock & sleep 1; }
+        exec hyprctl dispatch 'hl.dsp.dpms({ action = "disable" })' ;;
     -s|--suspend)  exec systemctl suspend ;;
     -e|--logout)   exec hyprctl dispatch 'hl.dsp.exit()' ;;
     -r|--reboot)   exec systemctl reboot ;;

@@ -469,6 +469,7 @@ Scope {
                                 }
 
                                 Text {
+                                    textFormat: Text.PlainText
                                     anchors.horizontalCenter: frame.horizontalCenter
                                     anchors.top: frame.bottom
                                     anchors.topMargin: 7
@@ -500,6 +501,7 @@ Scope {
                                 radius: 8
                                 color: addMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.16)
                                 Text {
+                                    textFormat: Text.PlainText
                                     anchors.centerIn: parent
                                     text: "+"
                                     color: "#ffffff"
@@ -615,6 +617,7 @@ Scope {
                                     }
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: tile.modelData.title || tile.modelData.appId
                                     color: "#ffffff"

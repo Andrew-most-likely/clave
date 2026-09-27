@@ -21,6 +21,13 @@ Scope {
         function help(appId: string): void { root.lookup(appId, "help") }
     }
 
+    // Homepages come from package metadata; open only web links, never a
+    // file:// or other scheme a package could name.
+    function webUrl(url: var): string {
+        const u = `${url || ""}`
+        return /^https?:\/\/[^\s]+$/.test(u) ? u : ""
+    }
+
     function lookup(appId: string, mode: string): void {
         root.appId = appId
         root.mode = mode
@@ -41,7 +48,7 @@ Scope {
                 })
                 root.info = out
                 if (root.mode === "help") {
-                    const url = out.url || ("https://duckduckgo.com/?q=" + encodeURIComponent((out.name || root.appId) + " help"))
+                    const url = root.webUrl(out.url) || ("https://duckduckgo.com/?q=" + encodeURIComponent((out.name || root.appId) + " help"))
                     Quickshell.execDetached(["xdg-open", url])
                 } else {
                     root.aboutOpen = true
@@ -80,6 +87,7 @@ Scope {
                     Layout.preferredHeight: 96
                 }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 10
                     text: root.info.name || root.appId
@@ -89,6 +97,7 @@ Scope {
                     font.weight: Font.Bold
                 }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     visible: (root.info.version || "") !== ""
                     text: "Version " + (root.info.version || "")
@@ -97,6 +106,7 @@ Scope {
                     font.pixelSize: 12
                 }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     Layout.topMargin: 8
                     text: root.info.description || ""
@@ -108,8 +118,9 @@ Scope {
                 }
                 Item { Layout.fillHeight: true }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
-                    visible: (root.info.url || "") !== ""
+                    visible: root.webUrl(root.info.url) !== ""
                     text: root.info.url || ""
                     color: "#0a84ff"
                     font.family: "SF Pro Text"
@@ -119,10 +130,11 @@ Scope {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Quickshell.execDetached(["xdg-open", root.info.url])
+                        onClicked: Quickshell.execDetached(["xdg-open", root.webUrl(root.info.url)])
                     }
                 }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     text: root.info.source === "flatpak" ? "Installed from Flathub"
                         : root.info.source === "pacman" ? "Installed with pacman" : ""

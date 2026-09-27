@@ -558,6 +558,7 @@ PanelWindow {
                 fillMode: Image.PreserveAspectFit
             }
             Text {
+                textFormat: Text.PlainText
                 visible: bi.label !== ""
                 text: bi.label
                 color: root.fg
@@ -838,6 +839,7 @@ PanelWindow {
                                 implicitHeight: 26
                                 implicitWidth: titleText.implicitWidth + detailText.implicitWidth + 40
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: titleText
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
@@ -849,6 +851,7 @@ PanelWindow {
                                     font.weight: Font.Bold
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: detailText
                                     anchors.right: parent.right
                                     anchors.rightMargin: 10
@@ -867,6 +870,7 @@ PanelWindow {
                                 implicitHeight: 22
                                 implicitWidth: headerText.implicitWidth + 20
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: headerText
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
@@ -888,6 +892,7 @@ PanelWindow {
                                 implicitWidth: toggleText.implicitWidth + 70
                                 readonly property bool on: row.modelData.get()
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: toggleText
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
@@ -978,6 +983,7 @@ PanelWindow {
                                 color: hot ? root.accent : "transparent"
 
                                 Text {
+                                    textFormat: Text.PlainText
                                     visible: row.modelData.checked === true
                                     anchors.left: parent.left
                                     anchors.leftMargin: 7
@@ -989,6 +995,7 @@ PanelWindow {
                                     font.weight: Font.Bold
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: itemLabel
                                     anchors.left: parent.left
                                     anchors.leftMargin: itemRow.gutter
@@ -1000,6 +1007,7 @@ PanelWindow {
                                     font.pixelSize: 13
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: itemHint
                                     anchors.right: parent.right
                                     anchors.rightMargin: 10

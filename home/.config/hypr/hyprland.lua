@@ -16,6 +16,7 @@ local function user_file(name)
 end
 
 require("macos.env")
+require("macos.security")
 user_file("monitors")
 require("macos.input")
 require("macos.gestures")

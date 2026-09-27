@@ -87,6 +87,7 @@ Scope {
             "echo \"wallpaper=$(cat ~/.config/macos-look/wallpaper 2>/dev/null)\";" +
             "for kv in $(~/.local/bin/macos-idle get); do echo \"idle_$kv\"; done;" +
             "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
+            "echo \"usbguard=$(systemctl is-active usbguard)\";" +
             "busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager" +
             " HandleLidSwitch HandleLidSwitchExternalPower HandleLidSwitchDocked 2>/dev/null" +
             " | awk '{ gsub(/\"/, \"\", $2); print \"lid_\" NR \"=\" $2 }'"]
@@ -347,6 +348,7 @@ Scope {
                 color: Qt.rgba(0.1, 0.1, 0.1, 0.85)
                 border.color: Qt.rgba(1, 1, 1, 0.2)
                 Text {
+                    textFormat: Text.PlainText
                     anchors.centerIn: parent
                     text: idWin.mon ? root.displayNumber(idWin.mon.description) : ""
                     color: "#ffffff"
@@ -590,7 +592,7 @@ Scope {
                 { "type": "switch", "label": "Play sound on startup",
                   "get": () => root.st.chime === "enabled",
                   "set": on => { root.setState("chime", on ? "enabled" : "disabled")
-                                 root.run(["pkexec", "systemctl", on ? "enable" : "disable", "macos-boot-chime.service"]) } },
+                                 root.run(["systemctl", on ? "enable" : "disable", "macos-boot-chime.service"]) } },
                 { "type": "switch", "label": "Play user interface sound effects",
                   "get": () => M.get("sound", "uiSounds"), "set": on => M.set("sound", "uiSounds", on) }
             ]},
@@ -704,12 +706,31 @@ Scope {
                 "sub": d.kind + " · " + d.vid + " · port " + d.port,
                 "value": "Allowed", "text": "Allow",
                 "action": () => root.change(["pkexec", "/usr/local/bin/macos-usb", "allow", `${d.id}`], "usb") })
+            const sw = (g, k, label, sub) => ({ "type": "switch", "label": label, "sub": sub,
+                "get": () => MacSettings.get(g, k) === true, "set": on => MacSettings.set(g, k, on) })
             let secs = [
-                { "title": "", "rows": [
-                    { "type": "info", "label": "USB accessories", "sub": "New devices stay blocked until you allow them here (USBGuard)",
-                      "value": blocked.length ? blocked.length + " blocked" : "None blocked" }
+                { "title": "Privacy", "rows": [
+                    sw("privacy", "clipboardHistory", "Clipboard history", "Super+V lists what you copied. Password manager copies are never kept"),
+                    sw("privacy", "clipboardKeep", "Keep clipboard history after logout", "Off: the history stays in memory only"),
+                    sw("privacy", "clipboardImages", "Keep copied images in the history", "Screenshots are copied too"),
+                    sw("privacy", "capturePrompt", "Ask before apps capture the screen", "Also before loading other Hyprland plugins. After logging in again"),
+                    { "type": "choice", "label": "Apps can set the wallpaper",
+                      "options": [{ "id": "ask", "label": "Ask" }, { "id": "never", "label": "Never" }, { "id": "always", "label": "Always" }],
+                      "get": () => MacSettings.get("privacy", "wallpaperApps"),
+                      "set": v => MacSettings.set("privacy", "wallpaperApps", v) },
+                    sw("privacy", "albumArtOnline", "Load album art from the internet", "Now Playing fetches cover images from the player's web addresses")
+                ]},
+                { "title": "Desktop features", "rows": [
+                    sw("features", "appSwitcher", "App switcher", "Super+Tab shows your open apps. Off: Super+Tab opens Mission Control"),
+                    sw("features", "windowTiling", "Window tiling", "Window > Move & Resize and Super+Shift+Arrows"),
+                    sw("features", "screenRecording", "Screen recording", "Record buttons in the screenshot toolbar (Shift+Super+5)")
                 ]}
             ]
+            if (devs.length || root.st.usbguard === "active")
+                secs.push({ "title": "USB accessories", "rows": [
+                    { "type": "info", "label": "USB accessories", "sub": "New devices stay blocked until you allow them here (USBGuard)",
+                      "value": blocked.length ? blocked.length + " blocked" : "None blocked" }
+                ]})
             if (blocked.length) secs.push({ "title": "Blocked accessories", "rows": blocked.map(devRow) })
             if (allowed.length) secs.push({ "title": "Allowed accessories", "rows": allowed.map(devRow) })
             secs.push({ "title": "Firewall", "rows": [
@@ -815,11 +836,11 @@ Scope {
                 { "title": "", "rows": [
                     { "type": "switch", "label": "Set time and date automatically", "sub": "From the internet (NTP)",
                       "get": () => (root.pd.time || {}).ntp !== false,
-                      "set": on => root.change(["pkexec", "/usr/local/bin/macos-admin", "ntp", on ? "on" : "off"], "time") },
+                      "set": on => root.change(["timedatectl", "set-ntp", on ? "true" : "false"], "time") },
                     { "type": "choice", "label": "Time zone",
                       "options": zones.map(z => ({ "id": z, "label": z.replace(/_/g, " ") })),
                       "get": () => (root.pd.time || {}).zone || "",
-                      "set": v => root.change(["pkexec", "/usr/local/bin/macos-admin", "timezone", v], "time") },
+                      "set": v => root.change(["timedatectl", "set-timezone", `${v}`], "time") },
                     { "type": "switch", "label": "24-hour time",
                       "get": () => M.get("menubar", "clock24h"), "set": on => M.set("menubar", "clock24h", on) }
                 ]}
@@ -889,6 +910,7 @@ Scope {
                 radius: 6
                 color: mbMouse.pressed ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.16)
                 Text {
+                    textFormat: Text.PlainText
                     id: mbText
                     anchors.centerIn: parent
                     text: mb.text
@@ -944,6 +966,7 @@ Scope {
                                 clip: true
                                 onTextChanged: root.search = text
                                 Text {
+                                    textFormat: Text.PlainText
                                     anchors.fill: parent
                                     text: "Search"
                                     color: Qt.rgba(1, 1, 1, 0.4)
@@ -985,6 +1008,7 @@ Scope {
                                                 border.width: modelData.color === "#2c2c2e" || modelData.color === "#3a3a3c" ? 1 : 0
                                                 border.color: Qt.rgba(1, 1, 1, 0.15)
                                                 Text {
+                                                    textFormat: Text.PlainText
                                                     anchors.centerIn: parent
                                                     text: modelData.glyph
                                                     color: "#ffffff"
@@ -993,6 +1017,7 @@ Scope {
                                                 }
                                             }
                                             Text {
+                                                textFormat: Text.PlainText
                                                 Layout.fillWidth: true
                                                 text: modelData.label
                                                 color: "#ffffff"
@@ -1033,6 +1058,7 @@ Scope {
                         spacing: 8
 
                         Text {
+                            textFormat: Text.PlainText
                             text: root.paneTitle
                             color: "#ffffff"
                             font.family: "SF Pro Display"
@@ -1051,6 +1077,7 @@ Scope {
                                 spacing: 6
 
                                 Text {
+                                    textFormat: Text.PlainText
                                     visible: section.modelData.title !== ""
                                     text: section.modelData.title
                                     color: Qt.rgba(1, 1, 1, 0.85)
@@ -1109,6 +1136,7 @@ Scope {
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     spacing: 2
                                                     Text {
+                                                        textFormat: Text.PlainText
                                                         width: parent.width
                                                         text: rowItem.r.label || ""
                                                         color: "#ffffff"
@@ -1117,6 +1145,7 @@ Scope {
                                                         elide: Text.ElideRight
                                                     }
                                                     Text {
+                                                        textFormat: Text.PlainText
                                                         visible: !!rowItem.r.sub
                                                         width: parent.width
                                                         text: rowItem.r.sub || ""
@@ -1164,6 +1193,7 @@ Scope {
                                                 Component {
                                                     id: infoComp
                                                     Text {
+                                                        textFormat: Text.PlainText
                                                         text: rowItem.r.value
                                                         color: Qt.rgba(1, 1, 1, 0.55)
                                                         font.family: "SF Pro Text"
@@ -1189,6 +1219,7 @@ Scope {
                                                         radius: 6
                                                         color: Qt.rgba(1, 1, 1, choiceMouse.pressed ? 0.24 : 0.14)
                                                         Text {
+                                                            textFormat: Text.PlainText
                                                             id: choiceText
                                                             anchors.left: parent.left
                                                             anchors.leftMargin: 10
@@ -1199,6 +1230,7 @@ Scope {
                                                             font.pixelSize: 13
                                                         }
                                                         Text {
+                                                            textFormat: Text.PlainText
                                                             anchors.right: parent.right
                                                             anchors.rightMargin: 8
                                                             anchors.verticalCenter: parent.verticalCenter
@@ -1296,6 +1328,7 @@ Scope {
                                                             Column {
                                                                 anchors.centerIn: parent
                                                                 Text {
+                                                                    textFormat: Text.PlainText
                                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                                     text: root.displayNumber(screenRect.modelData.description)
                                                                     color: "#ffffff"
@@ -1304,6 +1337,7 @@ Scope {
                                                                     font.weight: Font.Bold
                                                                 }
                                                                 Text {
+                                                                    textFormat: Text.PlainText
                                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                                     width: Math.min(implicitWidth, screenRect.width - 8)
                                                                     text: root.displayName(screenRect.modelData)
@@ -1341,6 +1375,7 @@ Scope {
                                                     }
 
                                                     Text {
+                                                        textFormat: Text.PlainText
                                                         anchors.left: parent.left
                                                         anchors.bottom: parent.bottom
                                                         anchors.bottomMargin: 4
@@ -1397,6 +1432,7 @@ Scope {
                                                                 }
                                                             }
                                                             Text {
+                                                                textFormat: Text.PlainText
                                                                 width: (contentCol.width - 24 - 36) / 4
                                                                 text: modelData.split("/").pop().replace(/\.[^.]+$/, "").replace(/[-_]/g, " ")
                                                                 color: Qt.rgba(1, 1, 1, 0.7)
@@ -1438,6 +1474,7 @@ Scope {
                         width: parent.width - 36
                         spacing: 8
                         Text {
+                            textFormat: Text.PlainText
                             width: parent.width
                             text: "Keep these display settings?"
                             color: "#ffffff"
@@ -1447,6 +1484,7 @@ Scope {
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Text {
+                            textFormat: Text.PlainText
                             width: parent.width
                             text: "Reverting to previous display settings in " + root.revertLeft + " seconds."
                             color: Qt.rgba(1, 1, 1, 0.7)
@@ -1466,6 +1504,7 @@ Scope {
                                 radius: 6
                                 color: keepMouse.pressed ? "#0070e0" : "#0a84ff"
                                 Text {
+                                    textFormat: Text.PlainText
                                     id: keepText
                                     anchors.centerIn: parent
                                     text: "Keep changes"
@@ -1517,6 +1556,7 @@ Scope {
                                 color: optMouse.containsMouse ? "#0a84ff" : "transparent"
                                 readonly property bool isCurrent: root.choiceRow && root.choiceRow.get() === modelData.id
                                 Text {
+                                    textFormat: Text.PlainText
                                     x: 6
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: parent.isCurrent ? "✓" : ""
@@ -1524,6 +1564,7 @@ Scope {
                                     font.pixelSize: 12
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     x: 22
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: modelData.label

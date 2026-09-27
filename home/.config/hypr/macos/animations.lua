@@ -22,3 +22,8 @@ hl.animation({ leaf = "fadeLayersIn",  enabled = true, speed = 1.5, bezier = "ma
 hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 1.2, bezier = "mac" })
 hl.animation({ leaf = "layersIn",      enabled = true, speed = 1.5, bezier = "mac",    style = "fade" })
 hl.animation({ leaf = "layersOut",     enabled = true, speed = 1.2, bezier = "mac",    style = "fade" })
+
+-- System Settings > Accessibility > Reduce motion.
+if require("macos.settings").reduce_motion == true then
+    hl.config({ animations = { enabled = false } })
+end

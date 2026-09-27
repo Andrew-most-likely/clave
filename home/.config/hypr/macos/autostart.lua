@@ -1,5 +1,4 @@
 -- Session startup.
-local mac = require("macos.settings")
 
 hl.on("hyprland.start", function()
     -- Hand the Wayland environment to systemd and D-Bus services, then restart
@@ -20,11 +19,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("swayosd-server")
     hl.exec_cmd("hypridle")
 
-    -- Clipboard history (Super+V). Turn off in System Settings > Privacy.
-    if mac.clipboard_history ~= false then
-        hl.exec_cmd("wl-paste --type text --watch cliphist store")
-        hl.exec_cmd("wl-paste --type image --watch cliphist store")
-    end
+    -- Clipboard history (Super+V). It checks its own switches in System
+    -- Settings > Privacy & Security.
+    hl.exec_cmd("macos-clipboard watch")
 
     -- Apps in ~/.config/autostart and /etc/xdg/autostart (systemd runs them).
     hl.exec_cmd("systemctl --user start xdg-desktop-autostart.target")

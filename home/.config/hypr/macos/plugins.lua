@@ -65,13 +65,13 @@ if bars then
 end
 
 -- Safety net for the pacman hook: if a plugin did not load at login (built for
--- another Hyprland), rebuild both and reload when ready.
+-- another Hyprland), offer a rebuild. It asks first, since it downloads code.
 hl.on("hyprland.start", function()
     local loaded = {}
     for _, p in ipairs(hl.get_loaded_plugins()) do
         loaded[p.name] = true
     end
     if not ((loaded["hyprbars"] or mac.traffic_lights == false) and loaded["hypr-minimize"]) then
-        hl.exec_cmd("~/.local/share/macos-look/rebuild-plugins.sh --reload")
+        hl.exec_cmd("~/.local/share/macos-look/rebuild-plugins.sh --ask --reload")
     end
 end)

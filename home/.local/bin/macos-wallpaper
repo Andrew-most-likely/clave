@@ -30,12 +30,22 @@ esac
 [ -n "${img:-}" ] && [ -f "$img" ] || { echo "macos-wallpaper: no image found" >&2; exit 1; }
 img=$(realpath "$img")
 
+# Pictures can come from other apps (the wallpaper portal): decode only JPEG,
+# PNG and WebP, told explicitly, so ImageMagick never guesses another coder.
+case "$(file --brief --mime-type -- "$img")" in
+    image/jpeg) coder=jpeg ;;
+    image/png)  coder=png ;;
+    image/webp) coder=webp ;;
+    *) echo "macos-wallpaper: not a JPEG, PNG or WebP picture" >&2; exit 1 ;;
+esac
+
 # Apps hand over temporary files; keep a copy so the picture survives a reboot.
 case "$img" in
     /tmp/*|"$HOME"/.cache/*|/run/*)
         mkdir -p "$saved"
-        cp -f "$img" "$saved/"
-        img="$saved/$(basename "$img")" ;;
+        copy="$saved/$(date +%Y%m%d-%H%M%S)-$(basename "$img")"
+        cp -n -- "$img" "$copy"
+        img=$copy ;;
 esac
 
 # awww-daemon may still be starting at login.
@@ -48,6 +58,6 @@ printf '%s\n' "$img" > "$state"
 # Lock screen: a blurred, darker copy for the background. Done in the
 # background because it takes a second on large pictures.
 (
-    magick "$img" -resize 50% -blur 0x30 -fill black -colorize 15% "png:$cache/lock.png.tmp" \
+    magick "$coder:$img" -resize 50% -blur 0x30 -fill black -colorize 15% "png:$cache/lock.png.tmp" \
         && mv -f "$cache/lock.png.tmp" "$cache/lock.png"
 ) >/dev/null 2>&1 &
