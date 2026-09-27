@@ -1,4 +1,4 @@
--- Your changes. Loads last, so anything here wins over macos/*.lua.
+-- Your changes. Loads last, so anything here wins over clave/*.lua.
 -- Updates never replace this file. More examples: examples/ in the repo.
 --
 -- A laptop panel at 1.5x:

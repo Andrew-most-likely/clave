@@ -18,11 +18,14 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Name check (PROJECT_PLAN.md 5.1)
+        run: scripts/name-check.sh
+
       - name: shellcheck
         run: |
           mapfile -t files < <(
             { ls *.sh lib/*.sh scripts/*.sh tests/*.sh
-              grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash' home/.local/bin home/.local/share/macos-look home/.config/hypr/scripts home/.config/quickshell
+              grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash' home/.local/bin home/.local/share/clave home/.config/hypr/scripts home/.config/quickshell
             } 2>/dev/null | sort -u)
           shellcheck -S warning -x "${files[@]}"
 
@@ -43,12 +46,12 @@ jobs:
 
       - name: JSON
         run: |
-          for f in home/.config/macos-look/*.json home/.config/swaync/config.json; do jq empty "$f"; done
+          for f in home/.config/clave/*.json home/.config/swaync/config.json; do jq empty "$f"; done
           # dock.json starts with a /* */ comment block, like the Dock reads it
           sed '1,/\*\//d' home/.config/quickshell/DockApp/dock.json | jq empty
 
       - name: Python
-        run: python -m py_compile home/.local/share/macos-look/wallpaper-portal.py home/.local/bin/macos-idle
+        run: python -m py_compile home/.local/share/clave/wallpaper-portal.py home/.local/bin/clave-idle
 
   install:
     runs-on: ubuntu-latest
@@ -58,9 +61,14 @@ jobs:
         run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland
 
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the migration test installs an older release first
 
       - name: Install and uninstall into a test user's home
         run: |
           useradd -m tester
           cp -r "$PWD" /home/tester/repo && chown -R tester: /home/tester/repo
           su tester -c 'bash /home/tester/repo/tests/install-test.sh'
+
+      - name: Update from the old names
+        run: su tester -c 'bash /home/tester/repo/tests/migrate-test.sh'

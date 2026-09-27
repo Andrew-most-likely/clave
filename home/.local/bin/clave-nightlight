@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Night Light: warmer screen colors (hyprsunset).
+#   clave-nightlight on|off|toggle|status
+set -u
+temp=$(jq -r '.display.nightLightTemp // 4500' ~/.config/clave/settings.json 2>/dev/null || echo 4500)
+running() { pgrep -x hyprsunset >/dev/null; }
+case "${1:-toggle}" in
+    on)     running || { hyprsunset -t "$temp" >/dev/null 2>&1 & disown; } ;;
+    off)    pkill -x hyprsunset ;;
+    toggle) if running; then "$0" off; else "$0" on; fi ;;
+    status) running && echo on || echo off ;;
+    *)      echo "Usage: clave-nightlight on|off|toggle|status"; exit 1 ;;
+esac

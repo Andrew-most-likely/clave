@@ -1,8 +1,8 @@
--- arch-macos-hyprland
+-- clave
 -- https://github.com/__GITHUB_REPO__
 --
--- Load order: macOS defaults (macos/*.lua), then your files.
--- Do not edit files in macos/: updates replace them. Put your changes in
+-- Load order: Clave defaults (clave/*.lua), then your files.
+-- Do not edit files in clave/: updates replace them. Put your changes in
 --   monitors.lua   screens (also written by nwg-displays)
 --   custom.lua     everything else; loads last, so it wins
 
@@ -15,16 +15,16 @@ local function user_file(name)
     end
 end
 
-require("macos.env")
-require("macos.security")
+require("clave.env")
+require("clave.security")
 user_file("monitors")
-require("macos.input")
-require("macos.gestures")
-require("macos.look")
-require("macos.animations")
-require("macos.layout")
-require("macos.rules")
-require("macos.binds")
-require("macos.autostart")
-require("macos.plugins")
+require("clave.input")
+require("clave.gestures")
+require("clave.look")
+require("clave.animations")
+require("clave.layout")
+require("clave.rules")
+require("clave.binds")
+require("clave.autostart")
+require("clave.plugins")
 user_file("custom")

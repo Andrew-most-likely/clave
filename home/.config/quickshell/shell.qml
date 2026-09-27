@@ -2,7 +2,7 @@
 
 import Quickshell
 import "DockApp"
-import "MacOS"
+import "Clave"
 
 ShellRoot {
     // List the IPC targets: qs ipc show
@@ -17,7 +17,7 @@ ShellRoot {
         }
     }
     NotificationCenter {}
-    MissionControl {}
+    Overview {}
     HotCorners {}
     ControlCenter {}
     AboutWindow {}

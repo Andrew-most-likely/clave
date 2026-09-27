@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Search (rofi). Pressing the shortcut again closes it.
+pkill -x rofi || exec rofi -show drun -replace -i -theme ~/.config/rofi/clave-search.rasi

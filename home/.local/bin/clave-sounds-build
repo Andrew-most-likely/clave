@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Builds a personal sound theme from sound files you supply
+# (install.sh --personal). Without one, clave-sound uses the freedesktop theme.
+#
+# Put the sound files in ~/.local/share/sounds/clave/source/ (names as listed
+# below, any case, any format ffmpeg reads), then run this. Each freedesktop
+# sound event below gets the first matching source file, converted to .oga in
+# the theme's stereo/ folder. Re-run it after adding more files.
+set -euo pipefail
+
+theme="$HOME/.local/share/sounds/clave"
+src="$theme/source"
+out="$theme/stereo"
+mkdir -p "$out"
+
+# event name | candidate source names, first match wins
+map=(
+    "desktop-login|startup|startup chime|chime|boot"
+    "message-new-instant|Glass|Boop"
+    "message|Glass|Boop"
+    "bell|Tink|Pebble"
+    "dialog-information|Tink|Pebble"
+    "dialog-warning|Funk|Bottle"
+    "dialog-error|Basso|Sosumi"
+    "complete|Hero|Glass"
+    "audio-volume-change|volume|Pop"
+    "screen-capture|Screen Capture|Grab"
+    "camera-shutter|Screen Capture|Grab"
+    "trash-empty|empty trash|Empty Trash"
+    "power-plug|connect_power|PowerChime"
+    "device-added|Volume Mount|Mount"
+    "device-removed|Volume Unmount|Unmount"
+)
+
+find_source() {
+    local name="$1" f
+    for f in "$src"/*; do
+        [ -f "$f" ] || continue
+        local base
+        base="$(basename "$f")"
+        base="${base%.*}"
+        if [ "${base,,}" = "${name,,}" ]; then
+            printf '%s' "$f"
+            return 0
+        fi
+    done
+    return 1
+}
+
+built=0
+missing=()
+for entry in "${map[@]}"; do
+    IFS='|' read -r event candidates <<< "$entry"
+    IFS='|' read -r -a names <<< "$candidates"
+    found=""
+    for n in "${names[@]}"; do
+        if found="$(find_source "$n")"; then
+            break
+        fi
+        found=""
+    done
+    if [ -z "$found" ]; then
+        missing+=("$event (${candidates//|/, })")
+        continue
+    fi
+    ffmpeg -loglevel error -y -i "$found" -ac 2 -c:a libvorbis -q:a 6 "$out/$event.oga"
+    echo "  $event  <-  $(basename "$found")"
+    built=$((built + 1))
+done
+
+echo "Built $built sounds into $out"
+if [ "${#missing[@]}" -gt 0 ]; then
+    echo "No source file for:"
+    printf '  %s\n' "${missing[@]}"
+fi

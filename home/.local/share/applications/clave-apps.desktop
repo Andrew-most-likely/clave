@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Apps
+Comment=Show all applications
+Exec=__HOME__/.local/bin/clave-apps
+Icon=clave-apps
+Categories=System;

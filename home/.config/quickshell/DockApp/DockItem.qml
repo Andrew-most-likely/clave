@@ -93,7 +93,7 @@ Item {
 
     // Focus the app: its only window, or — when it has several — the one after
     // the currently focused one, so repeated clicks cycle through them.
-    // Minimized windows come back first, as on macOS.
+    // Minimized windows come back first.
     function activate(): void {
         if (!item.running) {
             item.launch()
@@ -263,7 +263,7 @@ Item {
                     ? item.appName + " (" + item.windows.length + ")"
                     : item.appName
                 color: Theme.fg
-                font.family: "SF Pro Text"
+                font.family: "Inter"
                 font.pixelSize: 13
             }
         }

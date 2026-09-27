@@ -12,12 +12,12 @@
 # While the lid is closed with a second screen connected, the laptop screen is
 # off (what the laptop itself does on lid close is System Settings > Battery).
 # Position, orientation, resolution and scale of each screen come from
-# System Settings > Displays (macos-displays spec), when set there.
+# System Settings > Displays (clave-displays spec), when set there.
 
 # The built-in panel: eDP, LVDS or DSI. Empty on desktops.
 LAPTOP=$(hyprctl monitors all -j | jq -r '[.[].name | select(test("^(eDP|LVDS|DSI)-"))][0] // empty')
 STATE="${XDG_CACHE_HOME:-$HOME/.cache}/display-mode"
-THEME="$HOME/.config/rofi/macos-display.rasi"
+THEME="$HOME/.config/rofi/clave-display.rasi"
 CONFIRM_SECONDS=15
 
 monitors()  { hyprctl monitors all -j; }
@@ -54,7 +54,7 @@ scales_ok() {
 }
 
 # Saved settings for a screen shown on its own in mode $MODE.
-spec() { "$HOME/.local/bin/macos-displays" spec "$1" "${MODE:-extend}"; }
+spec() { "$HOME/.local/bin/clave-displays" spec "$1" "${MODE:-extend}"; }
 
 laptop_on() {
     monitor "output = \"$LAPTOP\", $(spec "$LAPTOP"), disabled = false, mirror = \"\""
@@ -150,7 +150,7 @@ hotplug() {
         want=extend
     fi
     lid_closed && want=external
-    if [ "$cur" != "$want" ] || { [ ! -s "$HOME/.config/macos-look/displays.json" ] && ! scales_ok; }; then
+    if [ "$cur" != "$want" ] || { [ ! -s "$HOME/.config/clave/displays.json" ] && ! scales_ok; }; then
         apply "$want"
     else
         fix_wallpaper

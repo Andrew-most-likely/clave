@@ -14,7 +14,7 @@ Singleton {
 
     // Two files:
     //
-    //   1. ~/.config/macos-look/dock.json — the user override. While this
+    //   1. ~/.config/clave/dock.json — the user override. While this
     //      file exists it is the master: the values it defines win, and the
     //      pin/unpin actions write their changes back into it.
     //   2. DockApp/dock.json (next to this file) — the shipped defaults,
@@ -60,7 +60,7 @@ Singleton {
 
     FileView {
         id: overrideFile
-        path: Quickshell.env("HOME") + "/.config/macos-look/dock.json"
+        path: Quickshell.env("HOME") + "/.config/clave/dock.json"
         blockLoading: true
         printErrors: false
         // The resolved flags are set last, after the values are in place: they

@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Launchpad
-Comment=Show all applications
-Exec=__HOME__/.local/bin/macos-launchpad
-Icon=macos-launchpad
-Categories=System;

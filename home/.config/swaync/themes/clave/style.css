@@ -1,0 +1,181 @@
+/* Notifications: glass layout + system colors */
+@import "../glass/notifications.css";
+@import "../glass/control_center.css";
+
+* {
+  font-family: "Inter", sans-serif;
+}
+
+.floating-notifications.background .notification-row .notification-background .notification,
+.control-center .notification-row .notification-background .notification,
+.notification {
+  background: rgba(44, 44, 46, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 16px;
+  /* No drop shadow: Hyprland blurs everything above ignore_alpha, so a soft
+     shadow turns into a square blurred halo around the rounded card. */
+  box-shadow: none;
+  color: #f2f2f7;
+  padding: 10px;
+}
+
+.summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.body {
+  font-size: 13px;
+  color: rgba(235, 235, 245, 0.75);
+}
+
+.time,
+.control-center .notification-content .time {
+  font-size: 11px;
+  color: rgba(235, 235, 245, 0.55);
+}
+
+.close-button,
+.control-center .notification-row .notification-background .close-button {
+  background: rgba(120, 120, 128, 0.6);
+  color: #ffffff;
+  border-radius: 100px;
+  border: none;
+}
+
+.notification-action {
+  background: rgba(255, 255, 255, 0.10);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.notification-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Notification Center has no panel behind it: the cards float over the
+   wallpaper. Everything around them stays fully transparent so the layer blur
+   (ignore_alpha) only lands behind the cards and their corners stay clean. */
+window,
+window.background,
+notificationwindow,
+blankwindow,
+#window,
+.blank-window,
+.control-center,
+.control-center .control-center-list,
+.control-center .control-center-list-placeholder,
+.control-center .notification-row,
+.control-center .notification-row .notification-background {
+  background: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+}
+
+.control-center {
+  margin: 0;
+  padding: 0;
+  color: #f2f2f7;
+}
+
+.control-center .control-center-list-placeholder {
+  color: rgba(235, 235, 245, 0.45);
+  font-size: 13px;
+}
+
+.control-center .widget-title {
+  background: transparent;
+  margin: 2px 6px 4px 6px;
+  padding: 0 4px;
+}
+
+.control-center .widget-title > label {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.control-center .widget-title > button {
+  background: rgba(60, 60, 64, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 100px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.control-center .widget-title > button:hover {
+  background: rgba(80, 80, 86, 0.85);
+}
+
+.widget-dnd,
+.widget-buttons-grid,
+.widget-volume,
+.widget-backlight,
+.widget-mpris {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  color: #f2f2f7;
+}
+
+.widget-title button,
+.widget-buttons-grid button {
+  background: rgba(255, 255, 255, 0.10);
+  border: none;
+  border-radius: 100px;
+  color: #ffffff;
+}
+
+.widget-buttons-grid button.toggle:checked,
+.widget-dnd > switch:checked {
+  background: #0a84ff;
+}
+
+.widget-volume trough highlight,
+.widget-backlight trough highlight,
+trough highlight {
+  background: #ffffff;
+}
+
+.notification-group-headers,
+.notification-group-icon {
+  color: rgba(235, 235, 245, 0.8);
+}
+
+/* Inter everywhere (the glass theme sets its own font on some widgets). */
+.control-center label,
+.control-center button,
+.floating-notifications label {
+  font-family: "Inter", sans-serif;
+}
+
+/* Heading sits on the left, no big empty-state artwork. */
+.control-center .widget-title > label {
+  margin-left: 4px;
+}
+
+.control-center .control-center-list-placeholder image {
+  opacity: 0;
+  -gtk-icon-size: 0;
+  min-height: 0;
+  min-width: 0;
+}
+
+.control-center .control-center-list-placeholder label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(235, 235, 245, 0.55);
+}
+
+/* The glass theme makes every label weight 900; body text is regular. */
+.body,
+.time,
+.control-center .notification-group-headers label {
+  font-weight: 400;
+}

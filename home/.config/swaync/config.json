@@ -24,8 +24,8 @@
   "hide-on-action": true,
   "script-fail-notify": true,
   "scripts": {
-    "macos-alert-sound": {
-      "exec": "__HOME__/.local/bin/macos-sound message-new-instant",
+    "clave-alert-sound": {
+      "exec": "__HOME__/.local/bin/clave-sound message-new-instant",
       "app-name": "^(?!Screenshot$).*"
     }
   },

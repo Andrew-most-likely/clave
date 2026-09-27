@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Software Update: system packages, Flatpaks, then this desktop itself.
+#
+#   clave-update           open a Terminal window and update everything
+#   clave-update --here    update in the current terminal
+#   clave-update --check   print the number of pending package updates
+set -uo pipefail
+
+repo=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/clave/repo" 2>/dev/null || echo "$HOME/.local/src/clave")
+signers=~/.config/clave/allowed_signers
+
+# Updates run code on this machine, so only releases signed by a key in
+# $signers are installed.
+verify() {  # verify tag|commit REF
+    git -C "$repo" -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$signers" \
+        "verify-$1" "$2" >/dev/null 2>&1
+}
+
+aur_helper() { command -v paru || command -v yay || true; }
+
+case "${1:-}" in
+    --check)
+        n=$(checkupdates 2>/dev/null | wc -l)
+        helper=$(aur_helper)
+        [ -n "$helper" ] && n=$(( n + $("$helper" -Qua 2>/dev/null | wc -l) ))
+        echo "$n"
+        exit 0 ;;
+    --here) ;;
+    *) exec kitty --class clave-floating --title "Software Update" "$0" --here ;;
+esac
+
+step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+
+step "System packages"
+helper=$(aur_helper)
+if [ -n "$helper" ]; then "$helper" -Syu; else sudo pacman -Syu; fi
+
+if command -v flatpak >/dev/null; then
+    step "Flatpak apps"
+    flatpak update -y
+fi
+
+if [ -d "$repo/.git" ]; then
+    step "clave"
+    before=$(git -C "$repo" rev-parse HEAD)
+    git -C "$repo" fetch -q --tags origin
+    if git -C "$repo" symbolic-ref -q HEAD >/dev/null; then
+        # Following a branch: its newest commit must be signed.
+        upstream=$(git -C "$repo" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo origin/main)
+        git -C "$repo" fetch -q origin
+        if verify commit "$upstream"; then
+            git -C "$repo" merge -q --ff-only "$upstream"
+        else
+            echo "Not updating: $upstream is not signed by a trusted key ($signers)."
+        fi
+    else
+        # Following releases: the newest release tag must be signed.
+        latest=$(git -C "$repo" describe --tags --abbrev=0 origin/main 2>/dev/null || true)
+        if [ -n "$latest" ] && verify tag "$latest"; then
+            git -C "$repo" checkout -q "$latest"
+        elif [ -n "$latest" ]; then
+            echo "Not updating: release $latest is not signed by a trusted key ($signers)."
+        fi
+    fi
+    if [ "$(git -C "$repo" rev-parse HEAD)" != "$before" ]; then
+        git -C "$repo" --no-pager log --oneline "$before"..HEAD
+        "$repo/install.sh" --update
+    else
+        echo "Already up to date."
+    fi
+fi
+
+step "Done"
+read -rn1 -p "Press any key to close."

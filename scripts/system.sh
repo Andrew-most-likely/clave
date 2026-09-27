@@ -2,7 +2,7 @@
 # Root half of the installer. Run through install.sh, or directly:
 #   sudo scripts/system.sh [look] [desktop] [harden]   (default: look desktop)
 # Every file it replaces is kept as <file>.bak-<date>. Files it wrote are
-# listed in /var/lib/macos-look/installed-files for uninstall.sh.
+# listed in /var/lib/clave/installed-files for uninstall.sh.
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "Run with sudo."; exit 1; }
 
@@ -12,11 +12,17 @@ user="${SUDO_USER:-${TARGET_USER:-}}"
 home="$(getent passwd "$user" | cut -d: -f6)"
 uid="$(id -u "$user")"
 stamp="$(date +%F)"
-state=/var/lib/macos-look
+state=/var/lib/clave
 mkdir -p "$state"
 groups=("$@"); [ ${#groups[@]} -gt 0 ] || groups=(look desktop)
 
 say() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+# shellcheck source=lib/migrate.sh
+source "$repo/lib/migrate.sh"
+# shellcheck source=lib/personal.sh
+source "$repo/lib/personal.sh"
+# An install under the old names moves first. `system.sh migrate` does only this.
+migrate_system "$state"
 has() { local g; for g in "${groups[@]}"; do [ "$g" = "$1" ] && return 0; done; return 1; }
 backup() { [ -e "$1" ] && [ ! -e "$1.bak-$stamp" ] && cp -a "$1" "$1.bak-$stamp"; return 0; }
 record() { grep -qxF "$1" "$state/installed-files" 2>/dev/null || echo "$1" >> "$state/installed-files"; }
@@ -66,13 +72,21 @@ need_initramfs=0
 
 # --------------------------------------------------------------------------
 if has look; then
-    say "macOS look: system files"
+    say "Clave look: system files"
     place_group look
 
     say "Plymouth boot splash"
-    install -d /usr/share/plymouth/themes/macos
-    install -m644 "$repo"/home/.local/share/macos-look/plymouth-macos/* /usr/share/plymouth/themes/macos/
-    record /usr/share/plymouth/themes/macos
+    install -d /usr/share/plymouth/themes/clave
+    install -m644 "$repo"/home/.local/share/clave/plymouth-clave/* /usr/share/plymouth/themes/clave/
+    # A logo the user supplies (FEAT-6) replaces the keystone. Converted as
+    # the user, so root never parses the file.
+    logo="$home/.config/clave/branding/logo.svg"
+    if [ -f "$logo" ] && png=$(runuser -u "$user" -- sh -c 't=$(mktemp) && rsvg-convert -h 394 "$1" -o "$t" && echo "$t"' sh "$logo"); then
+        install -m644 "$png" /usr/share/plymouth/themes/clave/logo.png
+        rm -f "$png"
+        echo "  boot logo from ~/.config/clave/branding/logo.svg"
+    fi
+    record /usr/share/plymouth/themes/clave
     backup /etc/mkinitcpio.conf
     if ! grep -qE '^HOOKS=.*\bplymouth\b' /etc/mkinitcpio.conf; then
         if grep -qE '^HOOKS=.*\bsystemd\b' /etc/mkinitcpio.conf || grep -qE '^HOOKS=.*\bkms\b' /etc/mkinitcpio.conf; then
@@ -87,15 +101,20 @@ if has look; then
     need_initramfs=1
 
     say "SDDM login theme"
-    rm -rf /usr/share/sddm/themes/macos
-    cp -r "$repo/home/.local/share/macos-look/sddm-macos" /usr/share/sddm/themes/macos
-    walls="$home/.local/share/macos-look/wallpapers"
-    bg=$(find "$walls" -maxdepth 1 -iname '*sonoma*dark*' 2>/dev/null | head -n1)
+    rm -rf /usr/share/sddm/themes/clave
+    cp -r "$repo/home/.local/share/clave/sddm-clave" /usr/share/sddm/themes/clave
+    walls="$home/.local/share/clave/wallpapers"
+    bg=$(find "$walls" -maxdepth 1 -iname 'whitesur-dark*' 2>/dev/null | head -n1)
     [ -n "$bg" ] || bg=$(find "$walls" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1)
-    if [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/macos/background.png
-    else magick -size 16x16 xc:'#1e1e22' /usr/share/sddm/themes/macos/background.png; fi
-    chmod -R u=rwX,go=rX /usr/share/sddm/themes/macos
-    record /usr/share/sddm/themes/macos
+    if [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/clave/background.png
+    else magick -size 16x16 xc:'#1e1e22' /usr/share/sddm/themes/clave/background.png; fi
+    if personal_on "$home"; then
+        personal_fill /usr/share/sddm/themes/clave/Main.qml
+        personal_fill /usr/share/plymouth/themes/clave/clave.script
+        personal_fill /usr/share/icons/default/index.theme
+    fi
+    chmod -R u=rwX,go=rX /usr/share/sddm/themes/clave
+    record /usr/share/sddm/themes/clave
     for face in "$home/.face" "$home/.face.icon"; do
         [ -f "$face" ] && install -Dm644 "$face" "/usr/share/sddm/faces/$user.face.icon" && break
     done
@@ -103,12 +122,6 @@ if has look; then
     mkdir -p /etc/sddm.conf.d.backup
     find /etc/sddm.conf.d -maxdepth 1 \( -name '*.bak*' -o -name '*~' \) -exec mv -t /etc/sddm.conf.d.backup/ {} +
     systemctl is-enabled -q display-manager.service 2>/dev/null || systemctl enable sddm.service
-
-    say "Boot chime"
-    install -Dm644 "$repo/home/.local/share/macos-look/boot-chime/chime.wav" /usr/local/share/sounds/macos-boot-chime.wav
-    record /usr/local/share/sounds/macos-boot-chime.wav
-    systemctl daemon-reload
-    systemctl enable macos-boot-chime.service
 fi
 
 # --------------------------------------------------------------------------
@@ -151,7 +164,7 @@ if has harden; then
     fi
     # Your account may watch and list USB devices (the notifier and System
     # Settings need that) but not change the policy: allowing a device goes
-    # through macos-usb, which asks for the password.
+    # through clave-usb, which asks for the password.
     install -d -m 755 /etc/usbguard/IPCAccessControl.d
     printf 'Devices=list,listen\nExceptions=listen\n' > "/etc/usbguard/IPCAccessControl.d/$user"
     chmod 600 "/etc/usbguard/IPCAccessControl.d/$user"

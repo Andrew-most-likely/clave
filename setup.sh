@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # One-line install:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/arch-macos-hyprland/main/setup.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)
 #
-# Clones the repo to ~/.local/share/arch-macos-hyprland (latest release tag,
+# Clones the repo to ~/.local/src/clave (latest release tag,
 # or main with --main) and runs install.sh. Extra arguments go to install.sh,
 # for example: ... setup.sh) --harden
 set -euo pipefail
 
-url=https://github.com/Andrew-most-likely/arch-macos-hyprland.git
+url=https://github.com/Andrew-most-likely/clave.git
 # Releases are signed with this key; setup refuses anything it did not sign.
 key="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMFbpQJHvTvtcU3WbHR719NH3/4ZWWAPaRkc3CrhnC8N"
-dest=${XDG_DATA_HOME:-$HOME/.local/share}/arch-macos-hyprland
+dest=$HOME/.local/src/clave
 branch=""
 args=()
 for a in "$@"; do
@@ -35,7 +35,7 @@ if [ -z "$branch" ]; then
 fi
 signers=$(mktemp)
 trap 'rm -f "$signers"' EXIT
-printf 'arch-macos-hyprland namespaces="git" %s\n' "$key" > "$signers"
+printf 'clave namespaces="git" %s\n' "$key" > "$signers"
 signed() { git -C "$dest" -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$signers" "$@" >/dev/null 2>&1; }
 
 if [ "$branch" = main ]; then
@@ -46,6 +46,6 @@ else
     signed verify-tag "$branch" || { echo "Release $branch is not signed by the project key. Stopping."; exit 1; }
     git -C "$dest" checkout -q "$branch"
 fi
-echo "arch-macos-hyprland $branch in $dest"
+echo "clave $branch in $dest"
 
 exec "$dest/install.sh" "${args[@]}"

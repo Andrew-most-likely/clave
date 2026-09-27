@@ -1,11 +1,11 @@
 name: Feature request
-description: A macOS feature or behavior you want
+description: A feature or behavior you want
 labels: [enhancement]
 body:
   - type: textarea
     id: what
     attributes:
       label: What should it do?
-      description: How it works on macOS, and how you would use it here.
+      description: How it should work, and how you would use it.
     validations:
       required: true

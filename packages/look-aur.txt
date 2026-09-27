@@ -1,5 +1,4 @@
-# macOS look (AUR). Apple fonts and cursor come from here, never from this repo.
-apple-fonts
-apple_cursor
+# Clave look (AUR)
+bibata-cursor-theme-bin
 whitesur-icon-theme
 kvantum-theme-whitesur-git

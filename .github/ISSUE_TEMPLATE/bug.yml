@@ -32,5 +32,5 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: ~/.cache/macos-look/install.log, ~/.cache/macos-look/rebuild-plugins.log, or the output of `qs log`
+      description: ~/.cache/clave/install.log, ~/.cache/clave/rebuild-plugins.log, or the output of `qs log`
       render: text

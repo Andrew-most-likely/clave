@@ -1,3 +1,0 @@
-[D-BUS Service]
-Name=org.freedesktop.impl.portal.desktop.macos
-Exec=__HOME__/.local/share/macos-look/wallpaper-portal.py

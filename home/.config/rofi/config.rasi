@@ -1,8 +1,8 @@
-/* rofi defaults. Spotlight, Launchpad and the pickers pass their own -theme;
-   anything else that opens rofi gets the Spotlight look. */
+/* rofi defaults. Search, Apps and the pickers pass their own -theme;
+   anything else that opens rofi gets the Search look. */
 configuration {
     modi:                "drun,run,window";
-    font:                "SF Pro Text 11";
+    font:                "Inter 11";
     show-icons:          true;
     drun-display-format: "{name}";
     window-format:       "{w} · {c} · {t}";
@@ -13,4 +13,4 @@ configuration {
     kb-cancel:           "Escape,MousePrimary";
 }
 
-@theme "macos-spotlight.rasi"
+@theme "clave-search.rasi"

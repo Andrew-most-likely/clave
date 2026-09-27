@@ -2,13 +2,13 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2154  # repo, packages, user_only, harden: set by install.sh
 
-GITHUB_REPO="Andrew-most-likely/arch-macos-hyprland"
-STATE="${XDG_STATE_HOME:-$HOME/.local/state}/macos-look"
+GITHUB_REPO="Andrew-most-likely/clave"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/clave"
 # Copies of files as they were before the first install, by path under $HOME.
 # Kept out of ~/.config: a stray copy in autostart/ or a *.d/ folder would be
 # read as a live file.
 BACKUPS="$STATE/backups"
-LOG="${XDG_CACHE_HOME:-$HOME/.cache}/macos-look/install.log"
+LOG="${XDG_CACHE_HOME:-$HOME/.cache}/clave/install.log"
 STAMP="$(date +%F)"
 DRY=${DRY:-0}
 YES=${YES:-0}
@@ -19,7 +19,7 @@ USER_OWNED=(
     .config/hypr/monitors.lua
     .config/hypr/hypridle.conf
     .config/kitty/custom.conf
-    ".config/macos-look/*"
+    ".config/clave/*"
 )
 
 # Directories that are replaced as a whole on first install. An existing one
@@ -38,6 +38,11 @@ ask()  {  # ask "Question" default(y|n): returns 0 for yes
     ans=${ans:-$def}
     [[ "$ans" =~ ^[Yy] ]]
 }
+# shellcheck source=lib/migrate.sh
+source "$repo/lib/migrate.sh"
+# shellcheck source=lib/personal.sh
+source "$repo/lib/personal.sh"
+
 pkgs() { grep -vhE '^\s*(#|$)' "$@" 2>/dev/null | tr -s ' \n' '\n' | grep -v '^$' || true; }
 
 log_start() {
@@ -79,7 +84,7 @@ show_plan() {
     done
     cat <<EOF
 
-  arch-macos-hyprland
+  clave
   -------------------
   Repo:        $repo
   Packages:    $([ "$packages" -eq 1 ] && echo "yes (AUR helper: ${helper:-paru, installed first})" || echo no)
@@ -120,7 +125,13 @@ install_packages() {  # install_packages GROUP...: packages/GROUP.txt, GROUP-aur
     fi
 }
 
-is_ours() { [ -f "$1/macos/binds.lua" ] || [ -f "$1/MacOS/MenuBar.qml" ]; }
+is_ours() {
+    local m
+    for m in clave/binds.lua Clave/MenuBar.qml "${OLD_OURS[@]}"; do
+        [ -f "$1/$m" ] && return 0
+    done
+    return 1
+}
 
 is_user_owned() {
     local rel=$1 p
@@ -173,7 +184,7 @@ move_aside_old_setup() {
 # Carry over what ML4W users set up: wallpapers, the current picture and the
 # pinned Dock apps. Nothing is removed from ML4W's folders.
 migrate_ml4w_data() {
-    local walls="$HOME/.local/share/macos-look/wallpapers" cur
+    local walls="$HOME/.local/share/clave/wallpapers" cur
     if [ -d "$HOME/.config/ml4w/wallpapers" ]; then
         run mkdir -p "$walls"
         run cp -n "$HOME"/.config/ml4w/wallpapers/*.{jpg,jpeg,png,webp} "$walls/" 2>/dev/null || true
@@ -182,14 +193,14 @@ migrate_ml4w_data() {
     cur=$(cat "$HOME/.cache/ml4w/hyprland-dotfiles/current_wallpaper" 2>/dev/null || true)
     # Point at the copy, so the picture survives removing ML4W.
     [ -f "$walls/$(basename "$cur")" ] && cur="$walls/$(basename "$cur")"
-    if [ -f "$cur" ] && [ ! -e "$HOME/.config/macos-look/wallpaper" ]; then
-        run mkdir -p "$HOME/.config/macos-look"
-        [ "$DRY" -eq 1 ] || printf '%s\n' "$cur" > "$HOME/.config/macos-look/wallpaper"
+    if [ -f "$cur" ] && [ ! -e "$HOME/.config/clave/wallpaper" ]; then
+        run mkdir -p "$HOME/.config/clave"
+        [ "$DRY" -eq 1 ] || printf '%s\n' "$cur" > "$HOME/.config/clave/wallpaper"
         echo "  kept your wallpaper"
     fi
-    if [ -f "$HOME/.config/ml4w-dock/dock.json" ] && [ ! -e "$HOME/.config/macos-look/dock.json" ]; then
-        run mkdir -p "$HOME/.config/macos-look"
-        run cp "$HOME/.config/ml4w-dock/dock.json" "$HOME/.config/macos-look/dock.json"
+    if [ -f "$HOME/.config/ml4w-dock/dock.json" ] && [ ! -e "$HOME/.config/clave/dock.json" ]; then
+        run mkdir -p "$HOME/.config/clave"
+        run cp "$HOME/.config/ml4w-dock/dock.json" "$HOME/.config/clave/dock.json"
         echo "  kept your Dock"
     fi
 }
@@ -197,6 +208,7 @@ migrate_ml4w_data() {
 fill_placeholders() {
     grep -Iq . "$1" || return 0
     sed -i -e "s|__HOME__|$HOME|g" -e "s|__REPO__|$repo|g" -e "s|__GITHUB_REPO__|$GITHUB_REPO|g" "$1"
+    if personal_on "$HOME"; then personal_fill "$1"; fi
 }
 
 install_home_files() {

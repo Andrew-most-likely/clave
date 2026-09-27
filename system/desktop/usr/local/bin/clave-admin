@@ -1,0 +1,35 @@
+#!/bin/bash
+# The one battery setting that needs root, for System Settings (Quickshell
+# Clave/SettingsWindow.qml). Installed as /usr/local/bin/clave-admin and run
+# through pkexec with no password (polkit action org.clave.admin), so
+# every argument is checked here.
+#
+#   clave-admin charge-limit PERCENT|off   stop charging at PERCENT (50-100)
+#
+# Time settings are not here: System Settings calls timedatectl, and systemd's
+# polkit rules decide (turning automatic time off asks for the password).
+set -eu
+
+# The laptop battery that supports a charge limit (BAT0, BAT1, CMB0, ...).
+BAT=$(for b in /sys/class/power_supply/*; do
+    [ "$(cat "$b/type" 2>/dev/null)" = Battery ] && [ -e "$b/charge_control_end_threshold" ] && { echo "$b/charge_control_end_threshold"; break; }
+done)
+CHARGE_CONF=/etc/tmpfiles.d/clave-charge-limit.conf
+
+case "${1:-}" in
+    charge-limit)
+        v=${2:-}
+        [ -n "$BAT" ] || { echo "clave-admin: this battery has no charge limit" >&2; exit 2; }
+        if [ "$v" = off ]; then
+            rm -f "$CHARGE_CONF"
+            echo 100 > "$BAT"
+        elif [[ "$v" =~ ^[0-9]+$ ]] && [ "$v" -ge 50 ] && [ "$v" -le 100 ]; then
+            # tmpfiles writes it again at every boot.
+            echo "w $BAT - - - - $v" > "$CHARGE_CONF"
+            echo "$v" > "$BAT"
+        else
+            echo "clave-admin: bad charge limit: $v" >&2; exit 2
+        fi ;;
+    *)
+        echo "usage: clave-admin charge-limit PERCENT|off" >&2; exit 2 ;;
+esac

@@ -1,7 +1,7 @@
 # Absolute paths captured into system/. Group tag decides which install step owns them.
 # group  path
-look     /etc/pacman.d/hooks/macos-look-plugins.hook
-look     /etc/systemd/system/macos-boot-chime.service
+look     /etc/pacman.d/hooks/clave-plugins.hook
+look     /etc/systemd/system/clave-boot-chime.service
 look     /etc/plymouth/plymouthd.conf
 look     /etc/sddm.conf.d/theme.conf
 look     /usr/share/icons/default/index.theme
@@ -36,9 +36,9 @@ harden   /usr/local/sbin/strip-suid
 harden   /etc/systemd/system/aide-refresh.service
 harden   /etc/systemd/system/arch-audit.service
 harden   /etc/systemd/system/arch-audit.timer
-desktop  /usr/local/bin/macos-admin
-desktop  /usr/local/bin/macos-lid
-desktop  /usr/share/polkit-1/actions/org.macos-look.admin.policy
-desktop  /usr/share/polkit-1/actions/org.macos-look.lid.policy
-harden   /usr/local/bin/macos-usb
-harden   /usr/share/polkit-1/actions/org.macos-look.usb.policy
+desktop  /usr/local/bin/clave-admin
+desktop  /usr/local/bin/clave-lid
+desktop  /usr/share/polkit-1/actions/org.clave.admin.policy
+desktop  /usr/share/polkit-1/actions/org.clave.lid.policy
+harden   /usr/local/bin/clave-usb
+harden   /usr/share/polkit-1/actions/org.clave.usb.policy

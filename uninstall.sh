@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Undoes install.sh.
 #   - every file it wrote is restored from the copy taken before the first
-#     install (~/.local/state/macos-look/backups), or removed when there was none
+#     install (~/.local/state/clave/backups), or removed when there was none
 #   - config directories it moved aside (an earlier ML4W or other setup) come
 #     back, and directories it turned from links into copies become links again
 #   - with --system, also undoes scripts/system.sh (sudo)
@@ -10,6 +10,10 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$repo/lib/common.sh"
+
+# An install under the old names is moved first, so one path undoes both.
+migrate_home
+[ "${1:-}" != "--system" ] || sudo "$repo/scripts/system.sh" migrate
 
 restore() {  # restore FILE [sudo]: oldest backup = the state before the first install
     local f="$1" s="${2:-}" bak
@@ -60,10 +64,9 @@ fi
 rm -f "$STATE/installed-commit" "$STATE/repo"
 
 if [ "${1:-}" = "--system" ]; then
-    sys_files=/var/lib/macos-look/installed-files
+    sys_files=/var/lib/clave/installed-files
     if sudo test -f "$sys_files"; then
         say "System files"
-        sudo systemctl disable macos-boot-chime.service 2>/dev/null || true
         while IFS= read -r f; do restore "$f" sudo; done < <(sudo cat "$sys_files")
         sudo rm -f "$sys_files"
         for f in /etc/mkinitcpio.conf /etc/kernel/cmdline /etc/pacman.conf; do

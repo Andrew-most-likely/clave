@@ -1,0 +1,15 @@
+#!/bin/bash
+# Allow or block a USB device in USBGuard, for System Settings > Privacy &
+# Security. Installed as /usr/local/bin/clave-usb and run through pkexec; it
+# asks for the password (polkit action org.clave.usb, auth_admin_keep).
+#
+#   clave-usb allow ID     allow now and every time it is plugged in
+#   clave-usb block ID     block now and every time it is plugged in
+set -eu
+id=${2:-}
+[[ "$id" =~ ^[0-9]+$ ]] || { echo "clave-usb: bad device id: $id" >&2; exit 2; }
+case "${1:-}" in
+    allow) usbguard allow-device -p "$id" ;;
+    block) usbguard block-device -p "$id" ;;
+    *) echo "usage: clave-usb allow|block ID" >&2; exit 2 ;;
+esac

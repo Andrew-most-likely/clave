@@ -4,4 +4,4 @@ filesystems=xdg-data/icons:ro;xdg-data/themes:ro;
 [Environment]
 GTK_THEME=WhiteSur-Dark
 XCURSOR_SIZE=24
-XCURSOR_THEME=macOS
+XCURSOR_THEME=Bibata-Modern-Classic

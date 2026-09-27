@@ -1,6 +1,7 @@
-# macOS look (pacman)
+# Clave look (pacman)
 quickshell swaync kitty fastfetch
+inter-font ttf-jetbrains-mono sound-theme-freedesktop
 qt5ct qt6ct kvantum kvantum-qt5 nwg-look gnome-themes-extra sassc
-plymouth sddm sushi ffmpeg alsa-utils imagemagick playerctl brightnessctl
+plymouth sddm sushi librsvg ffmpeg alsa-utils imagemagick playerctl brightnessctl
 qt6-shadertools
 cmake meson ninja gcc pkgconf git

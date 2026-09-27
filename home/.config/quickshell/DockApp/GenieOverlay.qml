@@ -4,10 +4,10 @@ import Quickshell.Io
 import QtQuick
 import qs.DockApp
 
-// Full-screen, click-through layer that plays the macOS genie animation: a
+// Full-screen, click-through layer that plays the genie animation: a
 // snapshot of the window pours into its dock icon on minimize, and back out of
 // it on restore. Mapped only while an animation runs. Hyprland must not animate
-// the layer itself (no_anim rule for "macos-genie" in hypr/custom.lua), or the
+// the layer itself (no_anim rule for "clave-genie" in hypr/custom.lua), or the
 // snapshot would fade in while the real window has already gone.
 PanelWindow {
     id: overlay
@@ -23,7 +23,7 @@ PanelWindow {
     property int running: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "macos-genie"
+    WlrLayershell.namespace: "clave-genie"
     exclusionMode: ExclusionMode.Ignore
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Clave
+Description=Black screen with the Clave logo and a thin progress bar
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/clave
+ScriptFile=/usr/share/plymouth/themes/clave/clave.script

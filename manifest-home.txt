@@ -3,32 +3,32 @@
 # "/home/<you>" inside files is stored as __HOME__ and restored on install.
 #
 # Not listed on purpose: files the user owns (hypr/custom.lua, hypr/monitors.lua,
-# hypr/hypridle.conf, kitty/custom.conf, macos-look/*). The repo keeps
+# hypr/hypridle.conf, kitty/custom.conf, clave/*). The repo keeps
 # templates for those; edit them in home/ directly.
 
 # Hyprland
 .config/hypr/hyprland.lua
-.config/hypr/macos
+.config/hypr/clave
 .config/hypr/hyprlock.conf
 .config/hypr/scripts/display-mode.sh
 
-# Quickshell: menu bar, dock, Mission Control, System Settings, genie
+# Quickshell: menu bar, dock, Overview, System Settings, genie
 .config/quickshell/shell.qml
-.config/quickshell/MacOS
+.config/quickshell/Clave
 .config/quickshell/DockApp
 .config/quickshell/CustomTheme
 
 # Launchers, notifications, terminal, fetch
 .config/rofi/config.rasi
-.config/rofi/macos-display.rasi
-.config/rofi/macos-launchpad.rasi
-.config/rofi/macos-spotlight.rasi
+.config/rofi/clave-display.rasi
+.config/rofi/clave-apps.rasi
+.config/rofi/clave-search.rasi
 .config/swaync/config.json
 .config/swaync/style.css
-.config/swaync/themes/macos
+.config/swaync/themes/clave
 .config/kitty/kitty.conf
 .config/fastfetch/config.jsonc
-.config/fastfetch/assets/apple-rainbow.png
+.config/fastfetch/assets/clave.txt
 
 # GTK / Qt / cursor / fonts theming
 .config/gtk-3.0/gtk.css
@@ -44,41 +44,41 @@
 .config/autostart/opensnitch_ui.desktop
 .local/share/flatpak/overrides/global
 
-# macOS helpers
-.local/bin/macos-app-info
-.local/bin/macos-clipboard
-.local/bin/macos-displays
-.local/bin/macos-emoji
-.local/bin/macos-gtk-apply
-.local/bin/macos-idle
-.local/bin/macos-keybinds
-.local/bin/macos-launchpad
-.local/bin/macos-nightshift
-.local/bin/macos-power
-.local/bin/macos-prefs
-.local/bin/macos-screenshot
-.local/bin/macos-sound
-.local/bin/macos-sounds-build
-.local/bin/macos-spotlight
-.local/bin/macos-update
-.local/bin/macos-wallpaper
-.local/share/applications/launchpad.desktop
-.local/share/icons/hicolor/scalable/apps/macos-launchpad.svg
-.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.macos.service
-.local/share/xdg-desktop-portal/portals/macos.portal
-.local/share/macos-look/wallpaper-portal.py
-.local/share/macos-look/rebuild-plugins.sh
-.local/share/macos-look/fix-sddm-theme.sh
-.local/share/macos-look/hypr-minimize/build.sh
-.local/share/macos-look/hypr-minimize/main.cpp
-.local/share/macos-look/hyprbars/build.sh
-.local/share/macos-look/hyprbars/README.md
-.local/share/macos-look/plymouth-macos
-.local/share/macos-look/sddm-macos/Main.qml
-.local/share/macos-look/sddm-macos/metadata.desktop
-.local/share/macos-look/sddm-macos/theme.conf
-.local/share/macos-look/sddm-macos/assets
-.local/share/macos-look/boot-chime/chime.wav
+# Clave helpers
+.local/bin/clave-app-info
+.local/bin/clave-clipboard
+.local/bin/clave-displays
+.local/bin/clave-emoji
+.local/bin/clave-gtk-apply
+.local/bin/clave-idle
+.local/bin/clave-keybinds
+.local/bin/clave-apps
+.local/bin/clave-nightlight
+.local/bin/clave-power
+.local/bin/clave-prefs
+.local/bin/clave-screenshot
+.local/bin/clave-sound
+.local/bin/clave-sounds-build
+.local/bin/clave-search
+.local/bin/clave-update
+.local/bin/clave-wallpaper
+.local/share/applications/clave-apps.desktop
+.local/share/icons/hicolor/scalable/apps/clave-apps.svg
+.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.clave.service
+.local/share/xdg-desktop-portal/portals/clave.portal
+.local/share/clave/wallpaper-portal.py
+.local/share/clave/rebuild-plugins.sh
+.local/share/clave/fix-sddm-theme.sh
+.local/share/clave/hypr-minimize/build.sh
+.local/share/clave/hypr-minimize/main.cpp
+.local/share/clave/hyprbars/build.sh
+.local/share/clave/hyprbars/README.md
+.local/share/clave/plymouth-clave
+.local/share/clave/sddm-clave/Main.qml
+.local/share/clave/sddm-clave/metadata.desktop
+.local/share/clave/sddm-clave/theme.conf
+.local/share/clave/sddm-clave/assets
+.local/share/clave/boot-chime/chime.wav
 
 # Housekeeping
 .local/bin/home-cleanup

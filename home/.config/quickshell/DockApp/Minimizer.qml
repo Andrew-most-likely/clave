@@ -4,14 +4,14 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import QtQuick
-import qs.MacOS
+import qs.Clave
 
-// Minimize and restore with the macOS genie animation.
+// Minimize and restore with the genie animation.
 //
 // Hyprland has no minimized state, so a minimized window waits on
 // special:minimized (the menu bar, the dock and "Show All" all use it). Apps ask
 // to be minimized with the yellow title bar button; Hyprland ignores that on its
-// own, and the hypr-minimize plugin (~/.local/share/macos-look/hypr-minimize,
+// own, and the hypr-minimize plugin (~/.local/share/clave/hypr-minimize,
 // loaded in hypr/custom.lua) forwards it as the IPC event
 // "minimized>>ADDRESS,1", handled below.
 //
@@ -125,7 +125,7 @@ Singleton {
         // System Settings > Desktop & Dock > "Minimize windows using": Genie
         // plays the dock animation, Scale leaves it to Hyprland's own.
         root.claimed = false
-        if (MacSettings.get("windows", "minimizeEffect") === "genie")
+        if (ClaveSettings.get("windows", "minimizeEffect") === "genie")
             root.minimizeRequested(ht, a)
         if (!root.claimed)
             root.moveTo(a, "special:minimized")
@@ -139,7 +139,7 @@ Singleton {
         if (!ht || root.busy[a])
             return
         root.claimed = false
-        if (MacSettings.get("windows", "minimizeEffect") === "genie")
+        if (ClaveSettings.get("windows", "minimizeEffect") === "genie")
             root.restoreRequested(ht, a, workspace, focus)
         if (!root.claimed) {
             if (focus)

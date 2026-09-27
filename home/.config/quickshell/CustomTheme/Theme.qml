@@ -6,7 +6,7 @@ import Quickshell.Io
 
 // The one place for colors, radii and type sizes of every Quickshell piece.
 // Light or dark and the accent color come from System Settings > Appearance
-// (appearance.mode, appearance.accent in ~/.config/macos-look/settings.json).
+// (appearance.mode, appearance.accent in ~/.config/clave/settings.json).
 // The rofi, swaync, swayosd and hyprlock styles copy these values by hand.
 Singleton {
     id: root
@@ -18,8 +18,8 @@ Singleton {
     readonly property bool dark: mode !== "light"
 
     // --- Type --------------------------------------------------------------
-    readonly property string fontFamily: "SF Pro Text"
-    readonly property string displayFamily: "SF Pro Display"
+    readonly property string fontFamily: "Inter"
+    readonly property string displayFamily: "Inter Display"
     readonly property int fontBody: 13
     readonly property int fontSecondary: 11
     readonly property int fontCaption: 10
@@ -61,7 +61,7 @@ Singleton {
     readonly property color popup: dark ? "#2f2f31" : "#ffffff"
     readonly property color shadow: Qt.rgba(0, 0, 0, dark ? 0.35 : 0.18)
 
-    // macOS system colors, dark and light variants.
+    // System colors, dark and light variants.
     readonly property var accents: ({
         "blue":     ["#0a84ff", "#007aff"], "purple": ["#bf5af2", "#af52de"],
         "pink":     ["#ff375f", "#ff2d55"], "red":    ["#ff453a", "#ff3b30"],
@@ -82,7 +82,7 @@ Singleton {
     readonly property color gray: "#8e8e93"
 
     FileView {
-        path: Quickshell.env("HOME") + "/.config/macos-look/settings.json"
+        path: Quickshell.env("HOME") + "/.config/clave/settings.json"
         watchChanges: true
         printErrors: false
         onFileChanged: reload()

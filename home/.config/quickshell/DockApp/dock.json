@@ -1,12 +1,12 @@
 /*
 Shipped Dock defaults. Do not edit: updates replace this file.
 
-The Dock reads this file, then ~/.config/macos-look/dock.json on top of it.
+The Dock reads this file, then ~/.config/clave/dock.json on top of it.
 System Settings > Desktop & Dock and pinning or unpinning apps write that
 second file. Values missing from both fall back to defaultSettings in
 DockSettings.qml.
 
-"launchpad" in the pinned list is the Launchpad button; the other entries are
+"clave-apps" in the pinned list is the Apps button; the other entries are
 desktop file IDs (the name of the .desktop file without the extension).
 */
 {
@@ -41,7 +41,7 @@ desktop file IDs (the name of the .desktop file without the extension).
     "apps": {
         "pinned": [
             "org.gnome.Nautilus",
-            "launchpad",
+            "clave-apps",
             "firefox",
             "kitty",
             "org.gnome.TextEditor",

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Emoji & Symbols (Ctrl+Super+Space). Types the emoji into the focused
+# window and copies it.
+set -euo pipefail
+if [ ! -e /usr/lib/rofi/emoji.so ]; then
+    notify-send -a "Emoji & Symbols" "Emoji picker not installed" "Install it with: sudo pacman -S rofi-emoji"
+    exit 1
+fi
+exec rofi -modi emoji -show emoji -emoji-mode copy -theme ~/.config/rofi/clave-search.rasi

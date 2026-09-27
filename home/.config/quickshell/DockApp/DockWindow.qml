@@ -14,7 +14,7 @@ PanelWindow {
     id: root
 
     // Pinned apps | running apps that are not pinned | Trash, with a thin
-    // separator between the groups, like the macOS dock.
+    // separator between the groups.
     component DockSeparator: Rectangle {
         Layout.alignment: Qt.AlignVCenter
         Layout.leftMargin: 4
@@ -27,8 +27,8 @@ PanelWindow {
 
     // --- WAYLAND CONFIGURATION ---
     WlrLayershell.layer: WlrLayer.Top
-    // Hyprland blurs this namespace (see hypr/custom.lua, macOS block).
-    WlrLayershell.namespace: "macos-dock"
+    // Hyprland blurs this namespace (see hypr/clave/look.lua).
+    WlrLayershell.namespace: "clave-dock"
     // The dock claims its strip of the screen so windows tile above it instead
     // of running underneath. Only the pill itself is reserved (the window is
     // taller to leave room for the shadow), see exclusiveZone below.
@@ -137,6 +137,10 @@ PanelWindow {
     // their themed icon. The provider prefix and query string a desktop entry
     // may carry are stripped, the same way the overview does it.
     function iconFor(entry: var, appId: string): string {
+        // File managers get a plain folder: some icon themes draw them as a
+        // face (PROJECT_PLAN.md BR-4).
+        if ((entry?.categories ?? []).includes("FileManager"))
+            return Quickshell.iconPath("folder", "system-file-manager")
         const raw = `${entry?.icon ?? ""}`.trim()
             .replace(/^image:\/\/icon\//, "").split("?")[0].trim()
         const name = raw.length > 0 ? raw : (appId ? appId : "")
@@ -338,7 +342,7 @@ PanelWindow {
     }
 
     // --- MAGNIFICATION ---
-    // macOS hover magnification: icons near the pointer grow and push their
+    // Hover magnification: icons near the pointer grow and push their
     // neighbours apart. The scale is worked out against each icon's resting
     // position (DockItem.baseCenter), not its live one, so growing icons never
     // feed back into the calculation and the row stays still under the pointer.
@@ -416,7 +420,7 @@ PanelWindow {
             color: Qt.rgba(0, 0, 0, 0.3)
         }
 
-        // macOS glass: translucent fill (Hyprland blurs behind it) with a
+        // Glass: translucent fill (Hyprland blurs behind it) with a
         // hairline light border.
         Rectangle {
             id: pillBg

@@ -22,9 +22,9 @@ run() { env -i HOME="$home" PATH="$PATH" USER="$(id -un)" TERM=dumb "$@"; }
 echo "==> install"
 run "$repo/install.sh" --user-only --no-packages --yes
 
-state="$home/.local/state/macos-look"
-for f in .config/hypr/hyprland.lua .config/hypr/macos/binds.lua .config/hypr/custom.lua \
-         .config/quickshell/shell.qml .local/bin/macos-wallpaper .local/share/applications/launchpad.desktop; do
+state="$home/.local/state/clave"
+for f in .config/hypr/hyprland.lua .config/hypr/clave/binds.lua .config/hypr/custom.lua \
+         .config/quickshell/shell.qml .local/bin/clave-wallpaper .local/share/applications/clave-apps.desktop; do
     [ -f "$home/$f" ] || fail "missing ~/$f"
 done
 [ -L "$home/.config/hypr.bak-$(date +%F)" ] || fail "old hypr link was not moved aside"
@@ -53,6 +53,6 @@ echo "==> uninstall"
 run "$repo/uninstall.sh"
 [ "$(readlink "$home/.config/hypr")" = "$ml4w/hypr" ] || fail "hypr link not restored"
 [ "$(readlink "$home/.config/rofi")" = "$ml4w/rofi" ] || fail "rofi link not restored"
-[ ! -e "$home/.local/bin/macos-wallpaper" ] || fail "installed file left behind"
+[ ! -e "$home/.local/bin/clave-wallpaper" ] || fail "installed file left behind"
 
 echo "PASS"

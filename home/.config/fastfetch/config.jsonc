@@ -2,9 +2,11 @@
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
-        "source": "~/.config/fastfetch/assets/apple-rainbow.png", // classic Apple logo
-        "type": "kitty",
-        "height": 14,
+        // Clave keystone as text: works in every terminal, and no image is left
+        // on screen after a full-screen program exits (ISSUE-3).
+        "source": "~/.config/fastfetch/assets/clave.txt",
+        "type": "file",
+        "color": { "1": "blue" },
         "padding": {
             "top": 1,
             "right": 4,
@@ -30,9 +32,6 @@
             "format": "{host-name}"
         },
         {
-            "condition": {                                    // Conditional module: only show on non-macOS
-                "!system": "macOS"
-            },
             "type": "disk",
             "keyIcon": "",
             "key": "│{#34} {icon} os age {#keys} │",

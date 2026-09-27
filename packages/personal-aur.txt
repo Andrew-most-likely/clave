@@ -1,0 +1,4 @@
+# Only with ./install.sh --personal (PROJECT_PLAN.md BR-10). Fonts and cursor
+# that the public build does not use. They come from the AUR, never this repo.
+apple-fonts
+apple_cursor

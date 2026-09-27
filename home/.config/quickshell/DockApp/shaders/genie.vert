@@ -1,5 +1,5 @@
 #version 440
-// macOS genie: the window's rows slide down into the dock icon while its sides
+// Genie: the window's rows slide down into the dock icon while its sides
 // bend in toward the icon, bottom rows first. The mesh is a tall grid over the
 // window texture; every vertex is placed from its texture coordinate alone,
 // in the coordinates of the full-screen ShaderEffect.
