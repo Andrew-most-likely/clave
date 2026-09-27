@@ -1,5 +1,6 @@
 # Shared by install.sh and uninstall.sh. Expects $repo.
 # shellcheck shell=bash
+# shellcheck disable=SC2154  # repo, packages, user_only, harden: set by install.sh
 
 GITHUB_REPO="Andrew-most-likely/arch-macos-hyprland"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/macos-look"

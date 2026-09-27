@@ -60,12 +60,12 @@ fi
 rm -f "$STATE/installed-commit" "$STATE/repo"
 
 if [ "${1:-}" = "--system" ]; then
-    list=/var/lib/macos-look/installed-files
-    if sudo test -f "$list"; then
+    sys_files=/var/lib/macos-look/installed-files
+    if sudo test -f "$sys_files"; then
         say "System files"
         sudo systemctl disable macos-boot-chime.service 2>/dev/null || true
-        while IFS= read -r f; do restore "$f" sudo; done < <(sudo cat "$list")
-        sudo rm -f "$list"
+        while IFS= read -r f; do restore "$f" sudo; done < <(sudo cat "$sys_files")
+        sudo rm -f "$sys_files"
         for f in /etc/mkinitcpio.conf /etc/kernel/cmdline /etc/pacman.conf; do
             b=$(ls -1 "$f".bak-* 2>/dev/null | sort | head -n1) && [ -n "$b" ] && sudo cp -a "$b" "$f" && echo "  restored $f"
         done

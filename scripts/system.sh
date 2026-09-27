@@ -82,6 +82,7 @@ if has look; then
         fi
         echo "  added plymouth to mkinitcpio HOOKS"
     fi
+    # shellcheck disable=SC2046  # one flag per word
     add_cmdline $(cat "$repo/extra/kernel-cmdline-look.txt") || true
     need_initramfs=1
 

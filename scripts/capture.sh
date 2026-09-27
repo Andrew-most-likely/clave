@@ -46,6 +46,8 @@ grep -vE '^\s*(#|$)' "$repo/manifest-system.txt" | while read -r group path; do
     dest="$repo/system/$group$path"
     mkdir -p "$(dirname "$dest")"
     if sudo test -e "$path"; then
+        # Only reading needs root; the repo copy belongs to you.
+        # shellcheck disable=SC2024
         sudo cat "$path" > "$dest"
         [ -x "$path" ] && chmod +x "$dest"
         scrub "$dest"

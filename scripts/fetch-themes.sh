@@ -34,4 +34,5 @@ wp="$HOME/.local/share/macos-look/wallpapers"
 mkdir -p "$wp"
 find "$cache/WhiteSur-wallpapers" -path '*4k*' \( -iname '*sonoma*' -o -iname '*ventura*' -o -iname '*monterey*' -o -iname 'WhiteSur*' \) \
      \( -iname '*.jpg' -o -iname '*.png' \) -exec cp -n {} "$wp/" \; 2>/dev/null || true
-ls "$wp" | grep -iE 'sonoma|ventura|monterey|whitesur' | sed 's/^/  /' || echo "  (no matching wallpapers found)"
+n=$(find "$wp" -maxdepth 1 -type f | wc -l)
+echo "  $n wallpapers in $wp"
