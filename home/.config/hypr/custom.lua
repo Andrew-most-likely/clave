@@ -29,6 +29,22 @@ hl.config({
     },
 })
 
+-- Mouse and keyboard (System Settings > Mouse, Keyboard). Tracking speed
+-- applies to every pointer; natural scrolling here is for mice only.
+local caps = mac.caps_lock or ""
+hl.config({
+    input = {
+        sensitivity    = mac.mouse_speed or 0,
+        accel_profile  = mac.mouse_accel == false and "flat" or "adaptive",
+        natural_scroll = mac.mouse_natural == true,
+        left_handed    = mac.left_handed == true,
+        repeat_rate    = mac.repeat_rate or 25,
+        repeat_delay   = mac.repeat_delay or 600,
+        kb_layout      = mac.kb_layout or "us",
+        kb_options     = "grp:alt_shift_toggle" .. (caps ~= "" and ("," .. caps) or ""),
+    },
+})
+
 -- -----------------------------------------------------
 -- Display: 2880x1800 on a 14.5" panel -> scale 1.5
 -- (1920x1200 effective; overrides monitors.lua, which
@@ -183,6 +199,11 @@ for _, ev in ipairs({ "monitor.added", "monitor.removed" }) do
         hl.exec_cmd("~/.config/hypr/scripts/display-mode.sh --hotplug")
     end)
 end
+
+-- Lid closed with a second screen: laptop screen off; opened: back on.
+-- Sleep / lock / shut down on lid close is logind's (System Settings > Battery).
+hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd("~/.config/hypr/scripts/display-mode.sh --hotplug"), { locked = true, description = "Lid closed" })
+hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("~/.config/hypr/scripts/display-mode.sh --hotplug"), { locked = true, description = "Lid opened" })
 
 -- Super+1..0 opens the workspace on the focused screen instead of jumping to
 -- the screen that has it (a workspace shown on the other screen swaps over).

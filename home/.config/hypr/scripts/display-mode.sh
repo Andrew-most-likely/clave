@@ -4,10 +4,15 @@
 #   display-mode.sh              show the menu
 #   display-mode.sh <mode>       apply a mode: extend | duplicate | external | laptop
 #   display-mode.sh --hotplug    run by Hyprland when a screen is plugged in or out
+#                                or the lid is opened or closed
 #
 # The chosen mode is saved and re-applied when a screen is plugged in, except
 # "second screen only": a new screen never turns the laptop screen off.
 # Unplugging the last second screen always turns the laptop screen back on.
+# While the lid is closed with a second screen connected, the laptop screen is
+# off (what the laptop itself does on lid close is System Settings > Battery).
+# Position, orientation, resolution and scale of each screen come from
+# System Settings > Displays (macos-displays spec), when set there.
 
 LAPTOP="eDP-1"
 LAPTOP_SCALE=1.5          # keep in sync with custom.lua
@@ -16,6 +21,7 @@ THEME="$HOME/.config/rofi/macos-display.rasi"
 CONFIRM_SECONDS=15
 
 monitors()  { hyprctl monitors all -j; }
+lid_closed() { grep -qs closed /proc/acpi/button/lid/*/state; }
 externals() { monitors | jq -r --arg l "$LAPTOP" '.[] | select(.name != $l) | .name'; }
 # Hyprland merges monitor rules, so every rule spells out disabled and mirror.
 monitor()   { hyprctl eval "hl.monitor({ $1 })" >/dev/null; }
@@ -47,8 +53,11 @@ scales_ok() {
             .scale == want_scale)' >/dev/null
 }
 
+# Saved settings for a screen shown on its own in mode $MODE.
+spec() { "$HOME/.local/bin/macos-displays" spec "$1" "${MODE:-extend}"; }
+
 laptop_on() {
-    monitor "output = \"$LAPTOP\", mode = \"preferred\", position = \"0x0\", scale = $LAPTOP_SCALE, disabled = false, mirror = \"\""
+    monitor "output = \"$LAPTOP\", $(spec "$LAPTOP"), disabled = false, mirror = \"\""
 }
 
 external_on() {  # name [mirror source]
@@ -58,7 +67,11 @@ external_on() {  # name [mirror source]
         monitor "output = \"$1\", disabled = true"
         sleep 1
     fi
-    monitor "output = \"$1\", mode = \"preferred\", position = \"auto-right\", scale = $(ext_scale "$1"), disabled = false, mirror = \"$2\""
+    if [ -n "$2" ]; then
+        monitor "output = \"$1\", mode = \"preferred\", position = \"auto-right\", scale = $(ext_scale "$1"), disabled = false, mirror = \"$2\""
+    else
+        monitor "output = \"$1\", $(spec "$1"), disabled = false, mirror = \"\""
+    fi
 }
 
 # awww paints new screens black. Give every visible screen that shows a plain
@@ -75,6 +88,7 @@ fix_wallpaper() {
 
 apply() {
     local e
+    MODE=$1
     # A mirrored screen shows a second, stuck cursor when the hardware cursor
     # is on. Draw the cursor in software while duplicating (1), auto otherwise (2).
     hyprctl eval "hl.config({ cursor = { no_hardware_cursors = $([ "$1" = duplicate ] && echo 1 || echo 2) } })" >/dev/null
@@ -135,7 +149,8 @@ hotplug() {
     if [ "$want" = external ] && [ "$cur" != external ]; then
         want=extend
     fi
-    if [ "$cur" != "$want" ] || ! scales_ok; then
+    lid_closed && want=external
+    if [ "$cur" != "$want" ] || { [ ! -s "$HOME/.config/macos-look/displays.json" ] && ! scales_ok; }; then
         apply "$want"
     else
         fix_wallpaper

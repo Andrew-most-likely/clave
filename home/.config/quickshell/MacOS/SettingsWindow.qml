@@ -8,7 +8,7 @@ import qs.DockApp
 // macOS-style System Settings for the Mac pieces of this desktop.
 //   qs ipc call settings open [PANE]     PANE: general, controlcenter, dock,
 //                                         displays, wallpaper, sound, lock,
-//                                         trackpad, network
+//                                         battery, trackpad, network
 // Panes are lists of rows (see paneRows). Each row reads its live value through
 // get() and writes through set(), so a row redraws by itself when the setting
 // changes. Quickshell-side settings live in MacSettings (settings.json); the
@@ -64,6 +64,8 @@ Scope {
     function probe(): void {
         statusProc.running = false
         statusProc.running = true
+        dispProc.running = false
+        dispProc.running = true
         wallProc.running = false
         wallProc.running = true
     }
@@ -83,7 +85,11 @@ Scope {
             "echo \"bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
             "echo \"chime=$(systemctl is-enabled macos-boot-chime.service 2>/dev/null)\";" +
             "echo \"wallpaper=$(cat ~/.cache/ml4w/hyprland-dotfiles/current_wallpaper 2>/dev/null)\";" +
-            "for kv in $(~/.local/bin/macos-idle get); do echo \"idle_$kv\"; done"]
+            "for kv in $(~/.local/bin/macos-idle get); do echo \"idle_$kv\"; done;" +
+            "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
+            "busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager" +
+            " HandleLidSwitch HandleLidSwitchExternalPower HandleLidSwitchDocked 2>/dev/null" +
+            " | awk '{ gsub(/\"/, \"\", $2); print \"lid_\" NR \"=\" $2 }'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let s = {}
@@ -108,6 +114,249 @@ Scope {
 
     function run(cmd: var): void { Quickshell.execDetached(cmd) }
 
+    // ==========================================
+    // DISPLAYS (arrangement, orientation, resolution, scale)
+    // ==========================================
+    // Everything goes through ~/.local/bin/macos-displays, which saves it per
+    // screen (displays.json) so display-mode.sh re-applies it on hotplug.
+    readonly property string laptop: "eDP-1"
+    property var displays: []
+    property string selDisplay: ""        // description of the selected screen
+    property bool arranging: false        // a screen is being dragged
+
+    // Screens with their own place on the desktop, numbered left to right.
+    readonly property var shownDisplays: root.displays
+        .filter(m => !m.disabled && m.mirrorOf === "none")
+        .sort((a, b) => a.x - b.x || a.y - b.y)
+    readonly property var selMon: root.shownDisplays.find(m => m.description === root.selDisplay)
+        || root.shownDisplays[0] || null
+
+    function displayNumber(desc: string): int {
+        return root.shownDisplays.findIndex(m => m.description === desc) + 1
+    }
+    function displayName(m: var): string {
+        return m.name === root.laptop ? "Built-in Display" : (m.model || m.name)
+    }
+
+    readonly property string displayMode: {
+        const lap = root.displays.find(m => m.name === root.laptop)
+        const ext = root.displays.filter(m => m.name !== root.laptop)
+        if (ext.length === 0) return "laptop"
+        if (lap && lap.disabled) return "external"
+        if (ext.every(m => m.disabled)) return "laptop"
+        if (ext.some(m => m.mirrorOf !== "none")) return "duplicate"
+        return "extend"
+    }
+
+    Process {
+        id: dispProc
+        command: [root.home + "/.local/bin/macos-displays", "get"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { root.displays = JSON.parse(this.text) } catch (e) { return }
+                if (root.pane === "displays" && !root.arranging && root.choiceRow === null)
+                    root.sections = root.paneRows(root.pane)
+            }
+        }
+    }
+    Timer { id: dispRefresh; interval: 900; onTriggered: { dispProc.running = false; dispProc.running = true } }
+
+    // ==========================================
+    // OTHER PANES' DATA (~/.local/bin/macos-prefs, JSON)
+    // ==========================================
+    // pd.usb, pd.battery, pd.time, pd.notify, pd.printers, pd.login,
+    // pd.appearance, pd.zones. A pane showing a list is rebuilt when its data
+    // arrives; single values redraw by themselves.
+    property var pd: ({})
+    readonly property string prefs: root.home + "/.local/bin/macos-prefs"
+    readonly property var paneData: ({ "security": "usb", "battery": "battery", "datetime": "time",
+        "notifications": "notify", "printers": "printers", "login": "login", "appearance": "appearance" })
+
+    component JsonProc: Process {
+        id: jp
+        property string key
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let v
+                try { v = JSON.parse(this.text) } catch (e) { return }
+                let d = Object.assign({}, root.pd)
+                d[jp.key] = v
+                root.pd = d
+                if (root.paneData[root.pane] === jp.key)
+                    root.refreshPane()
+            }
+        }
+    }
+    JsonProc { id: usbProc;      key: "usb";        command: [root.prefs, "usb"] }
+    JsonProc { id: batProc;      key: "battery";    command: [root.prefs, "battery"] }
+    JsonProc { id: timeProc;     key: "time";       command: [root.prefs, "time"] }
+    JsonProc { id: notifyProc;   key: "notify";     command: [root.prefs, "notify", "get"] }
+    JsonProc { id: printProc;    key: "printers";   command: [root.prefs, "printers", "get"] }
+    JsonProc { id: loginProc;    key: "login";      command: [root.prefs, "login", "get"] }
+    JsonProc { id: appearProc;   key: "appearance"; command: [root.prefs, "appearance", "get"] }
+
+    readonly property var dataProcs: ({ "usb": usbProc, "battery": batProc, "time": timeProc,
+        "notify": notifyProc, "printers": printProc, "login": loginProc, "appearance": appearProc })
+
+    function reload(key: string): void {
+        const p = root.dataProcs[key]
+        if (p) { p.running = false; p.running = true }
+    }
+    // Run a change, then read the pane's data again once it has landed.
+    function change(cmd: var, key: string): void {
+        root.run(cmd)
+        pendingKey = key
+        changeTimer.restart()
+    }
+    property string pendingKey: ""
+    Timer { id: changeTimer; interval: 700; onTriggered: root.reload(root.pendingKey) }
+
+    function refreshPane(): void {
+        if (!root.arranging && root.choiceRow === null)
+            root.sections = root.paneRows(root.pane)
+    }
+
+    // Apps for Notifications and Login Items: launcher-visible desktop entries.
+    readonly property var apps: DesktopEntries.applications.values
+        .filter(e => !e.noDisplay && e.name)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .filter((e, i, arr) => i === 0 || arr[i - 1].name !== e.name)
+
+    readonly property var commonZones: [
+        "America/New_York", "America/Chicago", "America/Denver", "America/Phoenix",
+        "America/Los_Angeles", "America/Anchorage", "Pacific/Honolulu", "America/Halifax",
+        "America/St_Johns", "America/Toronto", "America/Vancouver", "America/Mexico_City",
+        "America/Bogota", "America/Sao_Paulo", "America/Argentina/Buenos_Aires", "UTC",
+        "Europe/London", "Europe/Dublin", "Europe/Lisbon", "Europe/Paris", "Europe/Berlin",
+        "Europe/Madrid", "Europe/Rome", "Europe/Amsterdam", "Europe/Stockholm", "Europe/Athens",
+        "Europe/Istanbul", "Europe/Moscow", "Africa/Cairo", "Africa/Johannesburg", "Africa/Lagos",
+        "Asia/Dubai", "Asia/Kolkata", "Asia/Bangkok", "Asia/Singapore", "Asia/Shanghai",
+        "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Seoul", "Australia/Perth", "Australia/Sydney",
+        "Pacific/Auckland"
+    ]
+
+    // USBGuard blocks new USB devices silently. Watch the kernel log and say
+    // so, with a button that opens Privacy & Security.
+    Process {
+        running: true
+        command: ["journalctl", "-k", "-f", "-n0", "-o", "cat"]
+        stdout: SplitParser {
+            onRead: line => { if (line.indexOf("not authorized for usage") >= 0) usbNotice.restart() }
+        }
+    }
+    // Rules may still allow the device a moment later; check after the burst.
+    Timer {
+        id: usbNotice
+        interval: 2500
+        onTriggered: root.run(["sh", "-c",
+            "n=$(\"$HOME/.local/bin/macos-prefs\" usb | jq '[.[] | select(.state == \"block\" and .kind != \"Device\")] | length');" +
+            " [ \"${n:-0}\" -gt 0 ] || exit 0;" +
+            " a=$(notify-send -a 'Privacy & Security' -i security-high -A open='Review' 'USB accessory blocked'" +
+            " \"$n new USB device(s) are blocked until you allow them.\");" +
+            " [ \"$a\" = open ] && qs ipc call settings open security"])
+    }
+
+    // A change that can leave a screen unreadable (orientation, resolution,
+    // scale) asks "Keep these display settings?" and reverts after 15 seconds,
+    // like Windows.
+    property var revert: null             // { desc, key, value }
+    property int revertLeft: 0
+    Timer {
+        id: revertTimer
+        interval: 1000
+        repeat: true
+        onTriggered: { if (--root.revertLeft <= 0) root.revertDisplay() }
+    }
+
+    function setDisplay(m: var, key: string, value: var, old: var): void {
+        if (`${value}` === `${old}`)
+            return
+        root.run([root.home + "/.local/bin/macos-displays", "set", m.description, key, `${value}`])
+        root.revert = { "desc": m.description, "key": key, "value": `${old}` }
+        root.revertLeft = 15
+        revertTimer.restart()
+        dispRefresh.restart()
+    }
+    function keepDisplay(): void { revertTimer.stop(); root.revert = null }
+    function revertDisplay(): void {
+        revertTimer.stop()
+        const r = root.revert
+        root.revert = null
+        if (r) {
+            root.run([root.home + "/.local/bin/macos-displays", "set", r.desc, r.key, r.value])
+            dispRefresh.restart()
+        }
+    }
+
+    // Where a dragged screen lands: against the nearest edge of another
+    // screen, sharing at least 20 px of that edge, lined up with its top or
+    // bottom (left or right) when close, never overlapping.
+    function snapDisplay(desc: string, x: real, y: real, w: real, h: real): point {
+        const others = root.shownDisplays.filter(m => m.description !== desc)
+        if (others.length === 0)
+            return Qt.point(0, 0)
+        const near = 60
+        const overlaps = (cx, cy) => others.some(o =>
+            cx < o.x + o.lw && cx + w > o.x && cy < o.y + o.lh && cy + h > o.y)
+        let best = null, bestD = Infinity
+        others.forEach(o => {
+            let ay = Math.max(o.y - h + 20, Math.min(y, o.y + o.lh - 20))
+            if (Math.abs(ay - o.y) < near) ay = o.y
+            else if (Math.abs(ay + h - o.y - o.lh) < near) ay = o.y + o.lh - h
+            let ax = Math.max(o.x - w + 20, Math.min(x, o.x + o.lw - 20))
+            if (Math.abs(ax - o.x) < near) ax = o.x
+            else if (Math.abs(ax + w - o.x - o.lw) < near) ax = o.x + o.lw - w
+            ;[[o.x + o.lw, ay], [o.x - w, ay], [ax, o.y + o.lh], [ax, o.y - h]].forEach(c => {
+                const d = Math.hypot(c[0] - x, c[1] - y)
+                if (d < bestD && !overlaps(c[0], c[1])) { best = c; bestD = d }
+            })
+        })
+        return best ? Qt.point(Math.round(best[0]), Math.round(best[1])) : Qt.point(x, y)
+    }
+
+    function arrangeDisplays(desc: string, x: int, y: int): void {
+        let pos = {}
+        root.shownDisplays.forEach(m => pos[m.description] = m.description === desc ? [x, y] : [m.x, m.y])
+        root.run([root.home + "/.local/bin/macos-displays", "arrange", JSON.stringify(pos)])
+        dispRefresh.restart()
+    }
+
+    // Identify: a big number in the corner of each screen for three seconds.
+    property bool identifying: false
+    Timer { id: identifyTimer; interval: 3000; onTriggered: root.identifying = false }
+    function identify(): void { root.identifying = true; identifyTimer.restart() }
+
+    Variants {
+        model: Quickshell.screens
+        PanelWindow {
+            id: idWin
+            required property var modelData
+            readonly property var mon: root.shownDisplays.find(m => m.name === modelData.name) || null
+            screen: modelData
+            visible: root.identifying && mon !== null
+            anchors { left: true; bottom: true }
+            margins { left: 40; bottom: 40 }
+            exclusionMode: ExclusionMode.Ignore
+            implicitWidth: 180
+            implicitHeight: 180
+            color: "transparent"
+            Rectangle {
+                anchors.fill: parent
+                radius: 24
+                color: Qt.rgba(0.1, 0.1, 0.1, 0.85)
+                border.color: Qt.rgba(1, 1, 1, 0.2)
+                Text {
+                    anchors.centerIn: parent
+                    text: idWin.mon ? root.displayNumber(idWin.mon.description) : ""
+                    color: "#ffffff"
+                    font.family: "SF Pro Display"
+                    font.pixelSize: 110
+                    font.weight: Font.Bold
+                }
+            }
+        }
+    }
+
     // Settings the Hyprland config reads (hypr.lua) apply with a reload,
     // shortly after MacSettings has written the file.
     Timer { id: hyprReload; interval: 300; onTriggered: root.run(["hyprctl", "reload"]) }
@@ -128,6 +377,26 @@ Scope {
         root.setState("idle_" + key, `${seconds}`)
         root.run([root.home + "/.local/bin/macos-idle", "set", `${v.lock}`, `${v.display}`, `${v.sleep}`])
     }
+
+    // Lid actions go to logind through /usr/local/bin/macos-lid (pkexec, no
+    // password). lid_1/2/3 = on battery, plugged in, external display; an empty
+    // plugged-in value means "same as on battery".
+    function lidAction(n: int): string {
+        const v = root.st["lid_" + n] || ""
+        return v === "" && n === 2 ? (root.st.lid_1 || "suspend") : v
+    }
+
+    function setLid(n: int, action: string): void {
+        let v = [root.lidAction(1), root.lidAction(2), root.lidAction(3)]
+        v[n - 1] = action
+        root.setState("lid_" + n, action)
+        root.run(["pkexec", "/usr/local/bin/macos-lid", v[0], v[1], v[2]])
+    }
+
+    readonly property var lidChoices: [
+        { "id": "ignore",   "label": "Do nothing" }, { "id": "suspend",  "label": "Sleep" },
+        { "id": "lock",     "label": "Lock" },       { "id": "poweroff", "label": "Shut down" }
+    ]
 
     function durationLabel(sec: int): string {
         if (sec <= 0)
@@ -152,13 +421,22 @@ Scope {
     readonly property var panes: [
         { "id": "network",       "label": "Wi-Fi & Bluetooth", "glyph": "", "color": "#0a84ff" },
         { "id": "general",       "label": "General",           "glyph": "", "color": "#8e8e93" },
+        { "id": "appearance",    "label": "Appearance",        "glyph": "", "color": "#3a3a3c" },
         { "id": "controlcenter", "label": "Control Center",    "glyph": "", "color": "#636366" },
         { "id": "dock",          "label": "Desktop & Dock",    "glyph": "", "color": "#3a3a3c" },
         { "id": "displays",      "label": "Displays",          "glyph": "", "color": "#0a84ff" },
         { "id": "wallpaper",     "label": "Wallpaper",         "glyph": "", "color": "#32ade6" },
+        { "id": "notifications", "label": "Notifications",     "glyph": "", "color": "#ff3b30" },
         { "id": "sound",         "label": "Sound",             "glyph": "", "color": "#ff375f" },
         { "id": "lock",          "label": "Lock Screen",       "glyph": "", "color": "#2c2c2e" },
-        { "id": "trackpad",      "label": "Trackpad",          "glyph": "", "color": "#8e8e93" }
+        { "id": "security",      "label": "Privacy & Security", "glyph": "", "color": "#0a84ff" },
+        { "id": "login",         "label": "Login Items",       "glyph": "", "color": "#636366" },
+        { "id": "battery",       "label": "Battery",           "glyph": "", "color": "#30d158" },
+        { "id": "keyboard",      "label": "Keyboard",          "glyph": "", "color": "#8e8e93" },
+        { "id": "mouse",         "label": "Mouse",             "glyph": "󰍽", "color": "#8e8e93" },
+        { "id": "trackpad",      "label": "Trackpad",          "glyph": "", "color": "#8e8e93" },
+        { "id": "printers",      "label": "Printers & Scanners", "glyph": "", "color": "#8e8e93" },
+        { "id": "datetime",      "label": "Date & Time",       "glyph": "", "color": "#0a84ff" }
     ]
 
     readonly property var visiblePanes: root.search === "" ? root.panes
@@ -248,20 +526,61 @@ Scope {
                 ]}
             ]
         }
-        if (id === "displays") return [
-            { "title": "", "rows": [
+        if (id === "displays") {
+            const secs = [{ "title": "", "rows": [ { "type": "arrangement" } ] }]
+            const m = root.selMon
+            if (m) {
+                // Read the screen fresh: the list is replaced after every change.
+                const cur = () => root.displays.find(x => x.description === m.description) || m
+                const res = cur => `${cur.width}x${cur.height}`
+                const resolutions = [...new Set(m.availableModes.map(s => s.split("@")[0]))]
+                    .sort((a, b) => { const [aw, ah] = a.split("x"), [bw, bh] = b.split("x"); return bw * bh - aw * ah })
+                const ratesFor = r => [...new Set(m.availableModes.filter(s => s.startsWith(r + "@"))
+                    .map(s => parseFloat(s.split("@")[1]).toFixed(2)))].sort((a, b) => b - a)
+                const nearest = (list, v) => list.reduce((b, x) => Math.abs(x - v) < Math.abs(b - v) ? x : b, list[0])
+                const native = resolutions[0]
+                secs.push({ "title": root.displayNumber(m.description) + ". " + root.displayName(m), "rows": [
+                    { "type": "choice", "label": "Display orientation",
+                      "options": [{ "id": 0, "label": "Landscape" }, { "id": 1, "label": "Portrait" },
+                                  { "id": 2, "label": "Landscape (flipped)" }, { "id": 3, "label": "Portrait (flipped)" }],
+                      "get": () => cur().transform,
+                      "set": v => root.setDisplay(m, "transform", v, cur().transform) },
+                    { "type": "choice", "label": "Display resolution",
+                      "options": resolutions.map(r => ({ "id": r,
+                          "label": r.replace("x", " × ") + (r === native ? " (Recommended)" : "") })),
+                      "get": () => res(cur()),
+                      "set": v => root.setDisplay(m, "mode", `${v}@${ratesFor(v)[0]}`,
+                          `${res(cur())}@${cur().refreshRate.toFixed(2)}`) },
+                    { "type": "choice", "label": "Refresh rate",
+                      "options": ratesFor(res(m)).map(r => ({ "id": r, "label": parseFloat(r) + " Hz" })),
+                      "get": () => nearest(ratesFor(res(cur())), cur().refreshRate),
+                      "set": v => root.setDisplay(m, "mode", `${res(cur())}@${v}`,
+                          `${res(cur())}@${cur().refreshRate.toFixed(2)}`) },
+                    { "type": "choice", "label": "Scale",
+                      "options": [1, 1.25, 1.5, 1.75, 2].map(v => ({ "id": v, "label": (v * 100) + "%" })),
+                      "get": () => nearest([1, 1.25, 1.5, 1.75, 2], cur().scale),
+                      "set": v => root.setDisplay(m, "scale", v, cur().scale) }
+                ]})
+            }
+            if (root.displays.length > 1) secs.push({ "title": "Multiple displays", "rows": [
+                { "type": "choice", "label": "Show desktop on",
+                  "options": [{ "id": "extend", "label": "Extend these displays" },
+                              { "id": "duplicate", "label": "Duplicate these displays" },
+                              { "id": "laptop", "label": "Built-in display only" },
+                              { "id": "external", "label": "External displays only" }],
+                  "get": () => root.displayMode,
+                  "set": v => { root.run([root.home + "/.config/hypr/scripts/display-mode.sh", v]); dispRefresh.restart() } }
+            ]})
+            secs.push({ "title": "", "rows": [
                 { "type": "slider", "label": "Brightness", "from": 1, "to": 100,
                   "get": () => Number(root.st.brightness || 50),
                   "set": v => { root.setState("brightness", `${Math.round(v)}`); root.run(["brightnessctl", "set", Math.round(v) + "%"]) } },
                 { "type": "switch", "label": "Night Shift", "sub": "Warmer colors after dark",
                   "get": () => root.st.nightshift === "1",
                   "set": on => { root.setState("nightshift", on ? "1" : "0"); root.run([root.home + "/.config/ml4w/scripts/ml4w-toggle-hyprsunset"]) } }
-            ]},
-            { "title": "", "rows": [
-                { "type": "button", "label": "Resolution, scale and arrangement", "text": "Arrange…",
-                  "action": () => root.run(["nwg-displays"]) }
-            ]}
-        ]
+            ]})
+            return secs
+        }
         if (id === "wallpaper") return [
             { "title": "", "rows": [ { "type": "wallpapers" } ] }
         ]
@@ -296,6 +615,36 @@ Scope {
                   "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-l"]) }
             ]}
         ]
+        if (id === "battery") return [
+            { "title": "When I close the lid", "rows": [
+                { "type": "choice", "label": "On battery", "options": root.lidChoices,
+                  "get": () => root.lidAction(1), "set": v => root.setLid(1, v) },
+                { "type": "choice", "label": "Plugged in", "options": root.lidChoices,
+                  "get": () => root.lidAction(2), "set": v => root.setLid(2, v) },
+                { "type": "choice", "label": "With an external display connected", "options": root.lidChoices,
+                  "get": () => root.lidAction(3), "set": v => root.setLid(3, v) }
+            ]},
+            { "title": "", "rows": [
+                { "type": "info", "label": "Built-in display", "value": "Turns off while the lid is closed" }
+            ]},
+            { "title": "Energy Mode", "rows": [
+                { "type": "choice", "label": "Power mode",
+                  "options": [{ "id": "power-saver", "label": "Low Power" }, { "id": "balanced", "label": "Balanced" },
+                              { "id": "performance", "label": "High Performance" }],
+                  "get": () => (root.pd.battery || {}).profile || "balanced",
+                  "set": v => root.change(["powerprofilesctl", "set", v], "battery") }
+            ]},
+            { "title": "Battery Health", "rows": [
+                { "type": "info", "label": "Maximum capacity", "sub": "Compared with when it was new",
+                  "value": (root.pd.battery || {}).health ? root.pd.battery.health + "%" : "…" },
+                { "type": "info", "label": "Cycle count", "value": `${(root.pd.battery || {}).cycles || "…"}` },
+                { "type": "choice", "label": "Charge limit", "sub": "Stopping short of full slows battery wear",
+                  "options": [{ "id": 100, "label": "Off (charge to 100%)" }, { "id": 90, "label": "90%" },
+                              { "id": 80, "label": "80%" }, { "id": 60, "label": "60%" }],
+                  "get": () => (root.pd.battery || {}).limit || 100,
+                  "set": v => root.change(["pkexec", "/usr/local/bin/macos-admin", "charge-limit", v === 100 ? "off" : `${v}`], "battery") }
+            ]}
+        ]
         if (id === "trackpad") return [
             { "title": "", "rows": [
                 { "type": "switch", "label": "Tap to click", "sub": "Tap with one finger",
@@ -311,6 +660,170 @@ Scope {
                 { "type": "info", "label": "Launchpad", "value": "Pinch with four fingers" }
             ]}
         ]
+        if (id === "appearance") return [
+            { "title": "", "rows": [
+                { "type": "choice", "label": "Appearance", "sub": "Apps and windows (the menu bar and Dock stay dark)",
+                  "options": [{ "id": "light", "label": "Light" }, { "id": "dark", "label": "Dark" }],
+                  "get": () => (root.pd.appearance || {}).mode || "dark",
+                  "set": v => root.change([root.prefs, "appearance", "mode", v], "appearance") },
+                { "type": "choice", "label": "Text size",
+                  "options": [{ "id": 0.9, "label": "Small" }, { "id": 1, "label": "Default" },
+                              { "id": 1.15, "label": "Large" }, { "id": 1.3, "label": "Larger" },
+                              { "id": 1.5, "label": "Largest" }],
+                  "get": () => (root.pd.appearance || {}).textScale || 1,
+                  "set": v => root.change([root.prefs, "appearance", "text-scale", `${v}`], "appearance") }
+            ]},
+            { "title": "", "rows": [
+                { "type": "info", "label": "Qt apps", "value": "Pick up a change when reopened" }
+            ]}
+        ]
+        if (id === "notifications") {
+            const n = root.pd.notify || { "dnd": false, "muted": [], "timeout": 4 }
+            return [
+                { "title": "", "rows": [
+                    { "type": "switch", "label": "Do Not Disturb", "sub": "Silence notifications; they still collect in Notification Center",
+                      "get": () => !!(root.pd.notify || {}).dnd,
+                      "set": on => root.change([root.prefs, "notify", "dnd", on ? "on" : "off"], "notify") },
+                    { "type": "choice", "label": "Show banners for",
+                      "options": [3, 4, 5, 8, 10, 15].map(t => ({ "id": t, "label": t + " seconds" })),
+                      "get": () => (root.pd.notify || {}).timeout || 4,
+                      "set": v => root.change([root.prefs, "notify", "timeout", `${v}`], "notify") }
+                ]},
+                { "title": "Application Notifications", "rows": root.apps.map(e => ({
+                    "type": "switch", "label": e.name,
+                    "get": () => ((root.pd.notify || {}).muted || []).indexOf(e.name) < 0,
+                    "set": on => root.change([root.prefs, "notify", "app", e.name, on ? "on" : "off"], "notify") })) }
+            ]
+        }
+        if (id === "security") {
+            const devs = root.pd.usb || []
+            const blocked = devs.filter(d => d.state !== "allow")
+            const allowed = devs.filter(d => d.state === "allow")
+            const devRow = d => ({ "type": d.state === "allow" ? "info" : "button", "label": d.name,
+                "sub": d.kind + " · " + d.vid + " · port " + d.port,
+                "value": "Allowed", "text": "Allow",
+                "action": () => root.change(["pkexec", "/usr/local/bin/macos-usb", "allow", `${d.id}`], "usb") })
+            let secs = [
+                { "title": "", "rows": [
+                    { "type": "info", "label": "USB accessories", "sub": "New devices stay blocked until you allow them here (USBGuard)",
+                      "value": blocked.length ? blocked.length + " blocked" : "None blocked" }
+                ]}
+            ]
+            if (blocked.length) secs.push({ "title": "Blocked accessories", "rows": blocked.map(devRow) })
+            if (allowed.length) secs.push({ "title": "Allowed accessories", "rows": allowed.map(devRow) })
+            secs.push({ "title": "Firewall", "rows": [
+                { "type": "info", "label": "Network firewall (nftables)",
+                  "value": root.st.nftables === "active" ? "On" : "Off" },
+                { "type": "button", "label": "Application firewall (OpenSnitch)",
+                  "sub": root.st.opensnitch === "active" ? "On: asks before apps connect" : "Off",
+                  "text": "Open…", "action": () => root.run(["opensnitch-ui"]) }
+            ]})
+            return secs
+        }
+        if (id === "login") {
+            const items = root.pd.login || []
+            return [
+                { "title": "Open at Login", "rows": items.map(i => ({
+                    "type": "switch", "label": i.name, "sub": i.system ? "Installed by the system" : "",
+                    "get": () => (((root.pd.login || []).find(x => x.file === i.file)) || i).enabled,
+                    "set": on => root.change([root.prefs, "login", "set", i.file, on ? "on" : "off"], "login") })) },
+                { "title": "", "rows": [
+                    { "type": "choice", "label": "Add an app", "options": root.apps.map(e => ({ "id": e.id, "label": e.name })),
+                      "get": () => "", "set": v => root.change([root.prefs, "login", "add", v], "login") },
+                    { "type": "info", "label": "Changes apply", "value": "At next login" }
+                ]}
+            ]
+        }
+        if (id === "keyboard") return [
+            { "title": "", "rows": [
+                { "type": "slider", "label": "Key repeat rate", "sub": "Slow to fast", "from": 5, "to": 60,
+                  "get": () => M.get("keyboard", "repeatRate"),
+                  "set": v => { M.set("keyboard", "repeatRate", Math.round(v)); hyprReload.restart() } },
+                { "type": "slider", "label": "Delay until repeat", "sub": "Short to long", "from": 150, "to": 1000,
+                  "get": () => M.get("keyboard", "repeatDelay"),
+                  "set": v => { M.set("keyboard", "repeatDelay", Math.round(v / 50) * 50); hyprReload.restart() } }
+            ]},
+            { "title": "", "rows": [
+                { "type": "choice", "label": "Keyboard layout", "sub": "Alt+Shift switches when there are two",
+                  "options": [
+                      { "id": "us", "label": "U.S." }, { "id": "us(intl)", "label": "U.S. International" },
+                      { "id": "gb", "label": "British" }, { "id": "ca", "label": "Canadian French" },
+                      { "id": "de", "label": "German" }, { "id": "fr", "label": "French" },
+                      { "id": "es", "label": "Spanish" }, { "id": "latam", "label": "Latin American" },
+                      { "id": "it", "label": "Italian" }, { "id": "pt", "label": "Portuguese" },
+                      { "id": "br", "label": "Brazilian" }, { "id": "us,es", "label": "U.S. + Spanish" },
+                      { "id": "us,de", "label": "U.S. + German" }, { "id": "us,fr", "label": "U.S. + French" }],
+                  "get": () => M.get("keyboard", "layout"),
+                  "set": v => { M.set("keyboard", "layout", v); hyprReload.restart() } },
+                { "type": "choice", "label": "Caps Lock key",
+                  "options": [{ "id": "", "label": "Caps Lock" }, { "id": "ctrl:nocaps", "label": "Control" },
+                              { "id": "caps:escape", "label": "Escape" }, { "id": "caps:backspace", "label": "Backspace" },
+                              { "id": "caps:none", "label": "No Action" }],
+                  "get": () => M.get("keyboard", "capsLock"),
+                  "set": v => { M.set("keyboard", "capsLock", v); hyprReload.restart() } }
+            ]},
+            { "title": "", "rows": [
+                { "type": "button", "label": "Keyboard Shortcuts", "text": "Show…",
+                  "action": () => root.run([root.home + "/.config/hypr/scripts/keybindings.sh"]) }
+            ]}
+        ]
+        if (id === "mouse") return [
+            { "title": "", "rows": [
+                { "type": "slider", "label": "Tracking speed", "sub": "Also used by the trackpad", "from": -1, "to": 1,
+                  "get": () => M.get("mouse", "speed"),
+                  "set": v => { M.set("mouse", "speed", Math.round(v * 20) / 20); hyprReload.restart() } },
+                { "type": "switch", "label": "Pointer acceleration", "sub": "Faster movement goes farther",
+                  "get": () => M.get("mouse", "acceleration"),
+                  "set": on => { M.set("mouse", "acceleration", on); hyprReload.restart() } },
+                { "type": "switch", "label": "Natural scrolling", "sub": "Content tracks the wheel like a trackpad",
+                  "get": () => M.get("mouse", "naturalScroll"),
+                  "set": on => { M.set("mouse", "naturalScroll", on); hyprReload.restart() } },
+                { "type": "choice", "label": "Primary mouse button",
+                  "options": [{ "id": false, "label": "Left" }, { "id": true, "label": "Right" }],
+                  "get": () => M.get("mouse", "leftHanded"),
+                  "set": v => { M.set("mouse", "leftHanded", v); hyprReload.restart() } }
+            ]}
+        ]
+        if (id === "printers") {
+            const pr = root.pd.printers || { "printers": [], "jobs": 0 }
+            let secs = []
+            if (pr.printers.length) {
+                secs.push({ "title": "Printers", "rows": pr.printers.map(x => ({
+                    "type": "info", "label": x.name, "value": x.state.charAt(0).toUpperCase() + x.state.slice(1) })) })
+                secs.push({ "title": "", "rows": [
+                    { "type": "choice", "label": "Default printer",
+                      "options": pr.printers.map(x => ({ "id": x.name, "label": x.name })),
+                      "get": () => ((((root.pd.printers || {}).printers || []).find(x => x.default)) || {}).name || "",
+                      "set": v => root.change([root.prefs, "printers", "default", v], "printers") },
+                    { "type": "info", "label": "Print jobs", "value": pr.jobs ? pr.jobs + " waiting" : "None" }
+                ]})
+            } else {
+                secs.push({ "title": "", "rows": [
+                    { "type": "info", "label": "No printers", "value": "Network printers show up here once added" } ] })
+            }
+            secs.push({ "title": "", "rows": [
+                { "type": "button", "label": "Printers and scanners", "text": "Add Printer…",
+                  "action": () => root.run(["system-config-printer"]) }
+            ]})
+            return secs
+        }
+        if (id === "datetime") {
+            const t = root.pd.time || { "zone": "", "ntp": true }
+            const zones = root.commonZones.indexOf(t.zone) < 0 && t.zone ? [t.zone].concat(root.commonZones) : root.commonZones
+            return [
+                { "title": "", "rows": [
+                    { "type": "switch", "label": "Set time and date automatically", "sub": "From the internet (NTP)",
+                      "get": () => (root.pd.time || {}).ntp !== false,
+                      "set": on => root.change(["pkexec", "/usr/local/bin/macos-admin", "ntp", on ? "on" : "off"], "time") },
+                    { "type": "choice", "label": "Time zone",
+                      "options": zones.map(z => ({ "id": z, "label": z.replace(/_/g, " ") })),
+                      "get": () => (root.pd.time || {}).zone || "",
+                      "set": v => root.change(["pkexec", "/usr/local/bin/macos-admin", "timezone", v], "time") },
+                    { "type": "switch", "label": "24-hour time",
+                      "get": () => M.get("menubar", "clock24h"), "set": on => M.set("menubar", "clock24h", on) }
+                ]}
+            ]
+        }
         return []
     }
 
@@ -319,7 +832,12 @@ Scope {
     PwObjectTracker { objects: Pipewire.defaultAudioSink ? [Pipewire.defaultAudioSink] : [] }
 
     property var sections: root.paneRows(root.pane)
-    onPaneChanged: root.sections = root.paneRows(root.pane)
+    onPaneChanged: {
+        root.sections = root.paneRows(root.pane)
+        if (root.paneData[root.pane])
+            root.reload(root.paneData[root.pane])
+    }
+    onSelDisplayChanged: root.sections = root.paneRows(root.pane)
 
     // ==========================================
     // CHOICE POPUP STATE
@@ -338,7 +856,7 @@ Scope {
             title: "System Settings"
             color: "#1e1e1e"
             implicitWidth: 860
-            implicitHeight: 620
+            implicitHeight: 680
             onVisibleChanged: if (!visible) root.open = false
 
             // --- Controls ---
@@ -434,51 +952,64 @@ Scope {
                             }
                         }
 
-                        Repeater {
-                            model: root.visiblePanes
-                            delegate: Rectangle {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                implicitHeight: 30
-                                radius: 6
-                                color: root.pane === modelData.id ? "#0a84ff"
-                                    : (paneMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 8
-                                    spacing: 8
-                                    Rectangle {
-                                        implicitWidth: 22; implicitHeight: 22
+                        // Pane list scrolls when the window is too short for it.
+                        Flickable {
+                            id: paneList
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            contentHeight: paneCol.implicitHeight
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            ColumnLayout {
+                                id: paneCol
+                                width: paneList.width
+                                spacing: 2
+                                Repeater {
+                                    model: root.visiblePanes
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        Layout.fillWidth: true
+                                        implicitHeight: 30
                                         radius: 6
-                                        color: modelData.color
-                                        border.width: modelData.color === "#2c2c2e" || modelData.color === "#3a3a3c" ? 1 : 0
-                                        border.color: Qt.rgba(1, 1, 1, 0.15)
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.glyph
-                                            color: "#ffffff"
-                                            font.family: "Symbols Nerd Font"
-                                            font.pixelSize: 12
+                                        color: root.pane === modelData.id ? "#0a84ff"
+                                            : (paneMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 8
+                                            spacing: 8
+                                            Rectangle {
+                                                implicitWidth: 22; implicitHeight: 22
+                                                radius: 6
+                                                color: modelData.color
+                                                border.width: modelData.color === "#2c2c2e" || modelData.color === "#3a3a3c" ? 1 : 0
+                                                border.color: Qt.rgba(1, 1, 1, 0.15)
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: modelData.glyph
+                                                    color: "#ffffff"
+                                                    font.family: "Symbols Nerd Font"
+                                                    font.pixelSize: 12
+                                                }
+                                            }
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.label
+                                                color: "#ffffff"
+                                                font.family: "SF Pro Text"
+                                                font.pixelSize: 13
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+                                        MouseArea {
+                                            id: paneMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onClicked: { root.choiceRow = null; root.pane = modelData.id }
                                         }
                                     }
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: modelData.label
-                                        color: "#ffffff"
-                                        font.family: "SF Pro Text"
-                                        font.pixelSize: 13
-                                        elide: Text.ElideRight
-                                    }
-                                }
-                                MouseArea {
-                                    id: paneMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: { root.choiceRow = null; root.pane = modelData.id }
                                 }
                             }
                         }
-                        Item { Layout.fillHeight: true }
                     }
                 }
 
@@ -552,6 +1083,7 @@ Scope {
                                                 readonly property var r: modelData
                                                 Layout.fillWidth: true
                                                 implicitHeight: r.type === "wallpapers" ? wallGrid.implicitHeight + 24
+                                                    : r.type === "arrangement" ? 270
                                                     : (r.sub ? 52 : 40)
 
                                                 // hairline between rows
@@ -568,7 +1100,7 @@ Scope {
 
                                                 // label (+ sub label)
                                                 Column {
-                                                    visible: rowItem.r.type !== "wallpapers"
+                                                    visible: rowItem.r.type !== "wallpapers" && rowItem.r.type !== "arrangement"
                                                     anchors.left: parent.left
                                                     anchors.leftMargin: 14
                                                     anchors.right: control.left
@@ -646,6 +1178,8 @@ Scope {
                                                             const o = rowItem.r.options.find(o => o.id === current)
                                                             if (o)
                                                                 return o.label
+                                                            if (current === "")
+                                                                return "Choose…"
                                                             // A value set outside System Settings (e.g. 11 minutes)
                                                             return typeof current === "number" ? root.durationLabel(current) : `${current}`
                                                         }
@@ -719,6 +1253,110 @@ Scope {
                                                     }
                                                 }
 
+                                                // Display arrangement (displays pane): drag a screen
+                                                // to move it, click to select it.
+                                                Item {
+                                                    id: arrange
+                                                    visible: rowItem.r.type === "arrangement"
+                                                    anchors.fill: parent
+                                                    anchors.margins: 12
+                                                    readonly property var mons: visible ? root.shownDisplays : []
+                                                    readonly property real minX: Math.min(...mons.map(m => m.x))
+                                                    readonly property real minY: Math.min(...mons.map(m => m.y))
+                                                    readonly property real bw: Math.max(...mons.map(m => m.x + m.lw)) - minX
+                                                    readonly property real bh: Math.max(...mons.map(m => m.y + m.lh)) - minY
+                                                    readonly property real area: height - 40
+                                                    // Room around the screens to drag one to any side.
+                                                    readonly property real f: mons.length ? Math.min((width - 60) / bw, (area - 40) / bh, 0.1) : 1
+                                                    readonly property real ox: (width - bw * f) / 2
+                                                    readonly property real oy: (area - bh * f) / 2
+
+                                                    Rectangle {
+                                                        width: parent.width; height: arrange.area
+                                                        radius: 8
+                                                        color: Qt.rgba(0, 0, 0, 0.25)
+                                                    }
+
+                                                    Repeater {
+                                                        model: arrange.mons
+                                                        delegate: Rectangle {
+                                                            id: screenRect
+                                                            required property var modelData
+                                                            readonly property bool sel: root.selMon && root.selMon.description === modelData.description
+                                                            x: arrange.ox + (modelData.x - arrange.minX) * arrange.f
+                                                            y: arrange.oy + (modelData.y - arrange.minY) * arrange.f
+                                                            width: modelData.lw * arrange.f
+                                                            height: modelData.lh * arrange.f
+                                                            radius: 6
+                                                            color: sel ? "#0a84ff" : "#4a4a4e"
+                                                            border.width: 2
+                                                            border.color: sel ? "#5eb0ff" : Qt.rgba(1, 1, 1, 0.25)
+                                                            z: dragArea.drag.active ? 2 : 1
+                                                            Column {
+                                                                anchors.centerIn: parent
+                                                                Text {
+                                                                    anchors.horizontalCenter: parent.horizontalCenter
+                                                                    text: root.displayNumber(screenRect.modelData.description)
+                                                                    color: "#ffffff"
+                                                                    font.family: "SF Pro Display"
+                                                                    font.pixelSize: 28
+                                                                    font.weight: Font.Bold
+                                                                }
+                                                                Text {
+                                                                    anchors.horizontalCenter: parent.horizontalCenter
+                                                                    width: Math.min(implicitWidth, screenRect.width - 8)
+                                                                    text: root.displayName(screenRect.modelData)
+                                                                    color: Qt.rgba(1, 1, 1, 0.8)
+                                                                    font.family: "SF Pro Text"
+                                                                    font.pixelSize: 10
+                                                                    elide: Text.ElideRight
+                                                                }
+                                                            }
+                                                            MouseArea {
+                                                                id: dragArea
+                                                                anchors.fill: parent
+                                                                cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                                                drag.target: arrange.mons.length > 1 ? screenRect : null
+                                                                drag.threshold: 4
+                                                                onPressed: root.arranging = true
+                                                                onReleased: {
+                                                                    // Selecting rebuilds the pane (and this delegate),
+                                                                    // so it comes last.
+                                                                    const m = screenRect.modelData
+                                                                    if (drag.active || screenRect.x !== arrange.ox + (m.x - arrange.minX) * arrange.f) {
+                                                                        const p = root.snapDisplay(m.description,
+                                                                            (screenRect.x - arrange.ox) / arrange.f + arrange.minX,
+                                                                            (screenRect.y - arrange.oy) / arrange.f + arrange.minY, m.lw, m.lh)
+                                                                        screenRect.x = arrange.ox + (p.x - arrange.minX) * arrange.f
+                                                                        screenRect.y = arrange.oy + (p.y - arrange.minY) * arrange.f
+                                                                        if (p.x !== m.x || p.y !== m.y)
+                                                                            root.arrangeDisplays(m.description, p.x, p.y)
+                                                                    }
+                                                                    root.arranging = false
+                                                                    root.selDisplay = m.description
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Text {
+                                                        anchors.left: parent.left
+                                                        anchors.bottom: parent.bottom
+                                                        anchors.bottomMargin: 4
+                                                        text: arrange.mons.length > 1 ? "Drag displays to match how they sit on your desk"
+                                                            : "Select a display to change its settings"
+                                                        color: Qt.rgba(1, 1, 1, 0.5)
+                                                        font.family: "SF Pro Text"
+                                                        font.pixelSize: 11
+                                                    }
+                                                    MacButton {
+                                                        anchors.right: parent.right
+                                                        anchors.bottom: parent.bottom
+                                                        text: "Identify"
+                                                        onClicked: root.identify()
+                                                    }
+                                                }
+
                                                 // Wallpaper grid (wallpaper pane)
                                                 Grid {
                                                     id: wallGrid
@@ -779,6 +1417,68 @@ Scope {
                 }
             }
 
+            // ---------- Keep display settings? (drawn over the window) ----------
+            Item {
+                anchors.fill: parent
+                z: 10
+                visible: root.revert !== null
+                MouseArea { anchors.fill: parent }
+                Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.45) }
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 340
+                    height: keepCol.implicitHeight + 36
+                    radius: 12
+                    color: "#2f2f31"
+                    border.color: Qt.rgba(1, 1, 1, 0.14)
+                    Column {
+                        id: keepCol
+                        anchors.centerIn: parent
+                        width: parent.width - 36
+                        spacing: 8
+                        Text {
+                            width: parent.width
+                            text: "Keep these display settings?"
+                            color: "#ffffff"
+                            font.family: "SF Pro Text"
+                            font.pixelSize: 14
+                            font.weight: Font.DemiBold
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                        Text {
+                            width: parent.width
+                            text: "Reverting to previous display settings in " + root.revertLeft + " seconds."
+                            color: Qt.rgba(1, 1, 1, 0.7)
+                            font.family: "SF Pro Text"
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            topPadding: 6
+                            spacing: 10
+                            MacButton { text: "Revert"; onClicked: root.revertDisplay() }
+                            Rectangle {
+                                implicitWidth: keepText.implicitWidth + 28
+                                implicitHeight: 24
+                                radius: 6
+                                color: keepMouse.pressed ? "#0070e0" : "#0a84ff"
+                                Text {
+                                    id: keepText
+                                    anchors.centerIn: parent
+                                    text: "Keep changes"
+                                    color: "#ffffff"
+                                    font.family: "SF Pro Text"
+                                    font.pixelSize: 13
+                                }
+                                MouseArea { id: keepMouse; anchors.fill: parent; onClicked: root.keepDisplay() }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ---------- Choice popup (drawn over the window) ----------
             Item {
                 id: overlay
@@ -790,16 +1490,22 @@ Scope {
                 Rectangle {
                     x: Math.min(root.choicePos.x, overlay.width - width - 8)
                     y: Math.min(root.choicePos.y, overlay.height - height - 8)
-                    width: 210
-                    height: choiceList.implicitHeight + 10
+                    width: 240
+                    height: Math.min(choiceList.implicitHeight + 10, 380, overlay.height - 16)
                     radius: 8
                     color: "#2f2f31"
                     border.color: Qt.rgba(1, 1, 1, 0.14)
+                    clip: true
 
+                    // Long lists (apps, time zones) scroll.
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.margins: 5
+                        contentHeight: choiceList.implicitHeight
+                        boundsBehavior: Flickable.StopAtBounds
                     Column {
                         id: choiceList
-                        x: 5; y: 5
-                        width: parent.width - 10
+                        width: parent.width
                         Repeater {
                             model: root.choiceRow ? root.choiceRow.options : []
                             delegate: Rectangle {
@@ -829,13 +1535,17 @@ Scope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     onClicked: {
+                                        // Closing the popup destroys this delegate:
+                                        // read everything first.
                                         const row = root.choiceRow
+                                        const id = modelData.id
                                         root.choiceRow = null
-                                        row.set(modelData.id)
+                                        row.set(id)
                                     }
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

@@ -8,7 +8,8 @@ import QtQuick
 //
 //   ~/.config/macos-look/settings.json  read here and by the Quickshell parts
 //   ~/.config/macos-look/hypr.lua       generated for hypr/custom.lua (trackpad,
-//                                       traffic lights); applied with a reload
+//                                       mouse, keyboard, traffic lights); applied
+//                                       with a reload
 //
 // Values missing from the file fall back to the defaults below.
 Singleton {
@@ -23,6 +24,8 @@ Singleton {
                         "bottomLeft": "launchpad", "bottomRight": "none" },
         "windows":    { "minimizeEffect": "genie", "trafficLights": true },
         "trackpad":   { "tapToClick": true, "naturalScroll": true },
+        "mouse":      { "speed": 0, "acceleration": true, "naturalScroll": false, "leftHanded": false },
+        "keyboard":   { "repeatRate": 25, "repeatDelay": 600, "layout": "us", "capsLock": "" },
         "sound":      { "uiSounds": true }
     })
 
@@ -62,7 +65,7 @@ Singleton {
         d[group][key] = value
         root.data = d
         settingsFile.setText(JSON.stringify(d, null, 4) + "\n")
-        if (group === "trackpad" || group === "windows")
+        if (["trackpad", "mouse", "keyboard", "windows"].includes(group))
             root.writeHypr()
         if (group === "sound")
             root.writeSoundFlag()
@@ -91,6 +94,14 @@ Singleton {
             + "    tap_to_click   = " + b(root.get("trackpad", "tapToClick")) + ",\n"
             + "    natural_scroll = " + b(root.get("trackpad", "naturalScroll")) + ",\n"
             + "    traffic_lights = " + b(root.get("windows", "trafficLights")) + ",\n"
+            + "    mouse_speed    = " + Number(root.get("mouse", "speed")) + ",\n"
+            + "    mouse_accel    = " + b(root.get("mouse", "acceleration")) + ",\n"
+            + "    mouse_natural  = " + b(root.get("mouse", "naturalScroll")) + ",\n"
+            + "    left_handed    = " + b(root.get("mouse", "leftHanded")) + ",\n"
+            + "    repeat_rate    = " + Math.round(root.get("keyboard", "repeatRate")) + ",\n"
+            + "    repeat_delay   = " + Math.round(root.get("keyboard", "repeatDelay")) + ",\n"
+            + "    kb_layout      = " + JSON.stringify(`${root.get("keyboard", "layout")}`) + ",\n"
+            + "    caps_lock      = " + JSON.stringify(`${root.get("keyboard", "capsLock")}`) + ",\n"
             + "}\n")
     }
 
