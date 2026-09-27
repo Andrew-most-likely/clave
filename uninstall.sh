@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Undoes install.sh.
-#   - every file it wrote is restored from its oldest <file>.bak-<date>, or
-#     removed when there was no earlier version
+#   - every file it wrote is restored from the copy taken before the first
+#     install (~/.local/state/macos-look/backups), or removed when there was none
 #   - config directories it moved aside (an earlier ML4W or other setup) come
 #     back, and directories it turned from links into copies become links again
 #   - with --system, also undoes scripts/system.sh (sudo)
@@ -18,13 +18,21 @@ restore() {  # restore FILE [sudo]: oldest backup = the state before the first i
     else $s rm -rf "$f"; echo "  removed  $f"; fi
 }
 
+restore_home() {  # restore_home FILE: put back the pre-install copy, or remove
+    local f="$1" b="$BACKUPS/${1#"$HOME/"}"
+    if [ -e "$b" ] || [ -L "$b" ]; then rm -rf "$f"; mv "$b" "$f"; echo "  restored $f"
+    elif compgen -G "$f.bak-*" >/dev/null; then restore "$f"   # installs before backups/ existed
+    else rm -rf "$f"; echo "  removed  $f"; fi
+}
+
 if [ -f "$STATE/installed-files" ]; then
     say "Files in $HOME"
-    while IFS= read -r f; do restore "$f"; done < "$STATE/installed-files"
+    while IFS= read -r f; do restore_home "$f"; done < "$STATE/installed-files"
     # Directories the install created and that are now empty.
     while IFS= read -r f; do dirname "$f"; done < "$STATE/installed-files" | sort -ru \
         | while IFS= read -r d; do rmdir -p --ignore-fail-on-non-empty "$d" 2>/dev/null || true; done
     rm -f "$STATE/installed-files"
+    rm -rf "$BACKUPS"
     systemctl --user disable --now home-cleanup.timer 2>/dev/null || true
 else
     echo "Nothing recorded in $STATE/installed-files"

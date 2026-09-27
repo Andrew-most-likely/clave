@@ -3,6 +3,10 @@
 
 GITHUB_REPO="Andrew-most-likely/arch-macos-hyprland"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/macos-look"
+# Copies of files as they were before the first install, by path under $HOME.
+# Kept out of ~/.config: a stray copy in autostart/ or a *.d/ folder would be
+# read as a live file.
+BACKUPS="$STATE/backups"
 LOG="${XDG_CACHE_HOME:-$HOME/.cache}/macos-look/install.log"
 STAMP="$(date +%F)"
 DRY=${DRY:-0}
@@ -175,6 +179,8 @@ migrate_ml4w_data() {
         echo "  copied ML4W wallpapers"
     fi
     cur=$(cat "$HOME/.cache/ml4w/hyprland-dotfiles/current_wallpaper" 2>/dev/null || true)
+    # Point at the copy, so the picture survives removing ML4W.
+    [ -f "$walls/$(basename "$cur")" ] && cur="$walls/$(basename "$cur")"
     if [ -f "$cur" ] && [ ! -e "$HOME/.config/macos-look/wallpaper" ]; then
         run mkdir -p "$HOME/.config/macos-look"
         [ "$DRY" -eq 1 ] || printf '%s\n' "$cur" > "$HOME/.config/macos-look/wallpaper"
@@ -209,8 +215,9 @@ install_home_files() {
         changed=$((changed + 1))
         if [ "$DRY" -eq 1 ]; then echo "  [dry-run] ~/$rel"; continue; fi
         mkdir -p "$(dirname "$dest")"
-        if [ -e "$dest" ] && [ ! -e "$dest.bak-$STAMP" ]; then
-            cp -a "$dest" "$dest.bak-$STAMP"
+        if [ -e "$dest" ] && [ ! -e "$BACKUPS/$rel" ]; then
+            mkdir -p "$(dirname "$BACKUPS/$rel")"
+            cp -a "$dest" "$BACKUPS/$rel"
         fi
         cp "$tmp" "$dest"
         if [ -x "$src" ]; then chmod 755 "$dest"; else chmod 644 "$dest"; fi

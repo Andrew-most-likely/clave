@@ -34,6 +34,8 @@ grep -q 'scale = 2' "$home/.config/hypr/monitors.lua" || fail "monitors.lua was 
 ! grep -rl '__HOME__\|__REPO__\|__GITHUB_REPO__' "$home/.config" "$home/.local" 2>/dev/null | grep -v '\.bak-' \
     || fail "placeholders left unfilled"
 [ -s "$state/installed-files" ] || fail "no install record"
+! find "$home/.config" "$home/.local" -name '*.bak-*' -not -name 'hypr.bak-*' | grep . \
+    || fail "backup files left next to live files"
 
 if command -v Hyprland >/dev/null; then
     echo "==> Hyprland --verify-config"

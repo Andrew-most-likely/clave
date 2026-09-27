@@ -130,7 +130,7 @@ login, it is rebuilt then.
 ~/.local/share/arch-macos-hyprland/uninstall.sh --system   # also the login screen, boot splash, hardening
 ```
 
-Every file that the installer replaced comes back from `<file>.bak-<date>`. The config directories that were moved
+Every file that the installer replaced comes back from the copy it kept in `~/.local/state/macos-look/backups`. The config directories that were moved
 aside come back too. Packages stay installed.
 
 ## Not included, on purpose

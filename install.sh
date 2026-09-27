@@ -12,7 +12,8 @@
 #
 # Files you own are installed once and never replaced: hypr/custom.lua,
 # hypr/monitors.lua, hypr/hypridle.conf, kitty/custom.conf, macos-look/*.
-# Every other file that is replaced is kept as <file>.bak-<date>.
+# Every other file that is replaced is first copied to
+# ~/.local/state/macos-look/backups.
 # An existing ML4W or other Hyprland setup is moved aside, not deleted.
 # Undo with ./uninstall.sh.
 set -euo pipefail

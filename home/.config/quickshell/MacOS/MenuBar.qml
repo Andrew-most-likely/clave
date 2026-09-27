@@ -35,7 +35,7 @@ PanelWindow {
     readonly property color fg: "#ffffff"
     readonly property color accent: "#0a84ff"
     readonly property string home: Quickshell.env("HOME")
-    readonly property var hiddenTrayIds: ["nm-applet"]
+    readonly property var hiddenTrayIds: ["nm-applet", "blueman"]
 
     // ==========================================
     // ACTIVE APP
