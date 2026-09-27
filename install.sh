@@ -23,7 +23,7 @@ repo="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$repo/lib/common.sh"
 
-harden=1 extras=0 personal=0 user_only=0 packages=1 update=0
+harden=1 extras=0 personal=0 user_only=0 packages=1 update=0 encrypt=0
 for a in "$@"; do
     case "$a" in
         --harden) harden=1 ;;   # the default; kept for old scripts
@@ -107,6 +107,7 @@ if [ "$user_only" -eq 0 ]; then
     [ "$harden" -eq 1 ] && confirm_harden && groups+=(harden)
     say "System part (sudo): ${groups[*]}"
     run sudo "$repo/scripts/system.sh" "${groups[@]}"
+    [ "$update" -eq 1 ] || { confirm_encryption && encrypt=1; } || true
 fi
 
 record_install
@@ -119,4 +120,5 @@ else
     echo "Log out and back in (or reboot) to start Clave."
     echo "Log: $LOG"
     echo "Undo: $repo/uninstall.sh"
+    [ "$encrypt" -eq 0 ] || [ "$DRY" -eq 1 ] || "$HOME/.local/bin/clave-encrypt" setup
 fi

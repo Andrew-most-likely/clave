@@ -44,28 +44,65 @@ fun progress_callback(duration, progress) {
 }
 Plymouth.SetBootProgressFunction(progress_callback);
 
-# Password prompt (only used if a disk is ever encrypted): a row of dots.
+# Disk Encryption passphrase (SEC-5): the lock screen's pill-shaped field
+# under the logo, with the prompt as a caption and one dot per character.
+field_h = Math.Int(sh * 0.032);
+if (field_h < 28) field_h = 28;
+field_w = Math.Int(field_h * 380 / 64);
+field_x = ox + Math.Int((sw - field_w) / 2);
+field_y = logo_y + logo_h + Math.Int(sh * 0.07);
+field = Sprite(Image("field.png").Scale(field_w, field_h));
+field.SetPosition(field_x, field_y, 29);
+field.SetOpacity(0);
 prompt = Sprite();
 bullets = Sprite();
-fun display_password_callback(text, count) {
-    prompt.SetImage(Image.Text(text, 1, 1, 1, 1, "Inter 12"));
-    prompt.SetPosition(ox + Math.Int((sw - prompt.GetImage().GetWidth()) / 2), bar_y + bar_h * 6, 30);
-    dots = "";
-    for (i = 0; i < count; i++) dots += "●";
-    bullets.SetImage(Image.Text(dots, 1, 1, 1, 1, "Inter 14"));
-    bullets.SetPosition(ox + Math.Int((sw - bullets.GetImage().GetWidth()) / 2), bar_y + bar_h * 12, 30);
+answer = Sprite();
+
+fun show_field(caption) {
+    prompt.SetImage(Image.Text(caption, 1, 1, 1, 0.8, "Inter 11"));
+    prompt.SetPosition(ox + Math.Int((sw - prompt.GetImage().GetWidth()) / 2),
+                       field_y + field_h + Math.Int(field_h * 0.5), 30);
+    field.SetOpacity(1);
+    prompt.SetOpacity(1);
     track.SetOpacity(0);
     fill.SetOpacity(0);
 }
+fun centre_in_field(sprite) {
+    sprite.SetPosition(ox + Math.Int((sw - sprite.GetImage().GetWidth()) / 2),
+                       field_y + Math.Int((field_h - sprite.GetImage().GetHeight()) / 2), 31);
+}
+fun display_password_callback(text, count) {
+    if (text == "") text = "Enter Disk Password";
+    show_field(text);
+    answer.SetOpacity(0);
+    dots = "";
+    for (i = 0; i < count; i++) dots += "●";
+    if (dots == "") dots = " ";
+    bullets.SetImage(Image.Text(dots, 1, 1, 1, 1, "Inter 10"));
+    centre_in_field(bullets);
+    bullets.SetOpacity(1);
+}
+# Plain-text questions (rare: for example a key file path).
+fun display_question_callback(text, entry) {
+    show_field(text);
+    bullets.SetOpacity(0);
+    if (entry == "") entry = " ";
+    answer.SetImage(Image.Text(entry, 1, 1, 1, 1, "Inter 11"));
+    centre_in_field(answer);
+    answer.SetOpacity(1);
+}
 fun display_normal_callback() {
+    field.SetOpacity(0);
     prompt.SetOpacity(0);
     bullets.SetOpacity(0);
+    answer.SetOpacity(0);
     if (Plymouth.GetMode() == "boot" || Plymouth.GetMode() == "updates") {
         track.SetOpacity(1);
         fill.SetOpacity(1);
     }
 }
 Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetDisplayQuestionFunction(display_question_callback);
 Plymouth.SetDisplayNormalFunction(display_normal_callback);
 
 message = Sprite();

@@ -73,3 +73,6 @@ jobs:
 
       - name: Update from the old names
         run: su tester -c 'bash /home/tester/repo/tests/migrate-test.sh'
+
+      - name: Disk Encryption config writers (SEC-5)
+        run: su tester -c 'bash /home/tester/repo/tests/encrypt-unit.sh'

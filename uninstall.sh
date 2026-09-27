@@ -76,8 +76,14 @@ if [ "${1:-}" = "--system" ]; then
         while IFS= read -r f; do restore "$f" sudo; done < <(sudo cat "$sys_files")
         sudo rm -f "$sys_files"
         for f in /etc/mkinitcpio.conf /etc/kernel/cmdline /etc/default/grub /etc/pacman.conf; do
-            b=$(ls -1 "$f".bak-* 2>/dev/null | sort | head -n1) && [ -n "$b" ] && sudo cp -a "$b" "$f" && echo "  restored $f"
+            b=$(ls -1 "$f".bak-[0-9]* 2>/dev/null | sort | head -n1) && [ -n "$b" ] && sudo cp -a "$b" "$f" && echo "  restored $f"
         done
+        # Those copies are from before the install. An encrypted disk still
+        # needs its unlock hook and kernel parameters, or it no longer boots.
+        if [ "$("$repo/home/.local/bin/clave-encrypt" status)" != Off ]; then
+            say "Disk Encryption stays: unlock settings kept"
+            sudo "$repo/home/.local/bin/clave-encrypt" reapply
+        fi
         sudo sysctl --system >/dev/null
         say "Rebuilding initramfs"
         sudo mkinitcpio -P

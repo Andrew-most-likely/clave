@@ -90,6 +90,7 @@ Scope {
             "for kv in $(~/.local/bin/clave-idle get); do echo \"idle_$kv\"; done;" +
             "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
             "echo \"usbguard=$(systemctl is-active usbguard)\";" +
+            "echo \"encrypt=$(~/.local/bin/clave-encrypt status 2>/dev/null)\";" +
             "busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager" +
             " HandleLidSwitch HandleLidSwitchExternalPower HandleLidSwitchDocked 2>/dev/null" +
             " | awk '{ gsub(/\"/, \"\", $2); print \"lid_\" NR \"=\" $2 }'"]
@@ -280,6 +281,24 @@ Scope {
             " a=$(notify-send -a 'Privacy & Security' -i security-high -A open='Review' 'USB accessory blocked'" +
             " \"$n new USB device(s) are blocked until you allow them.\");" +
             " [ \"$a\" = open ] && qs ipc call settings open security"])
+    }
+
+    // Disk Encryption (SEC-5): one notice at the first login after the
+    // install when the disk is not encrypted. Checked once and never again:
+    // any answer, or an encrypted disk, writes the flag file (PERF-1).
+    Process {
+        running: true
+        command: ["sh", "-c",
+            "f=\"${XDG_STATE_HOME:-$HOME/.local/state}/clave/encrypt-noticed\";" +
+            " [ -e \"$f\" ] && exit 0; mkdir -p \"${f%/*}\";" +
+            " st=$(\"$HOME/.local/bin/clave-encrypt\" status) || exit 0;" +
+            " [ \"$st\" = On ] && { echo on > \"$f\"; exit 0; };" +
+            " a=$(notify-send -a 'Privacy & Security' -i security-medium -u critical" +
+            " -A setup='Set Up…' -A later='Not Now' -A never=\"Don't Ask Again\"" +
+            " 'Disk Encryption is off'" +
+            " 'Anyone who takes this computer can read your files. Set up Disk Encryption to protect them.');" +
+            " echo \"${a:-later}\" > \"$f\";" +
+            " [ \"$a\" = setup ] && qs ipc call settings open security"]
     }
 
     // A change that can leave a screen unreadable (orientation, resolution,
@@ -783,6 +802,19 @@ Scope {
                 ]})
             if (blocked.length) secs.push({ "title": "Blocked accessories", "rows": blocked.map(devRow) })
             if (allowed.length) secs.push({ "title": "Allowed accessories", "rows": allowed.map(devRow) })
+            const enc = root.st.encrypt || ""
+            secs.push({ "title": "Disk Encryption", "rows": [
+                { "type": "info", "label": "Disk Encryption",
+                  "sub": enc === "On" ? "Your files can be read only after the passphrase is typed at startup"
+                       : enc === "Partly" ? "Part of the disk is not encrypted. Anyone who takes this computer can read that part"
+                       : "Anyone who takes this computer can read your files",
+                  "value": enc || "…" },
+                { "type": "button", "label": enc === "On" ? "Disk Encryption details" : "Set Up Disk Encryption…",
+                  "sub": "Encrypts this install in place after a backup, or explains a reinstall. Opens a terminal",
+                  "text": enc === "On" ? "Open…" : "Set Up…",
+                  "action": () => root.run(["kitty", "--title", "Disk Encryption", "-e",
+                      root.home + "/.local/bin/clave-encrypt", "setup"]) }
+            ]})
             secs.push({ "title": "Firewall", "rows": [
                 { "type": "info", "label": "Network firewall (nftables)",
                   "value": root.st.nftables === "active" ? "On" : "Off" },

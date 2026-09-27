@@ -299,6 +299,22 @@ recovery USB at hand."
     ask "Apply hardening?" y
 }
 
+# Disk Encryption (SEC-5): says so when / or /home is not on LUKS and offers
+# the guided setup. Unless --yes: then the warning is only printed. Returns 0
+# when the user wants the setup now.
+confirm_encryption() {
+    local st
+    st=$("$repo/home/.local/bin/clave-encrypt" status 2>/dev/null) || return 1
+    [ "$st" = On ] && return 1
+    warn "
+Disk Encryption is ${st}. Without it, anyone who takes this computer can
+read your files, whatever the hardening does. The setup can encrypt this
+install in place (after a backup) or explain a reinstall with encryption.
+Later: System Settings > Privacy & Security > Disk Encryption, or
+clave-encrypt setup. See docs/ENCRYPTION.md."
+    ask "Set up Disk Encryption now?" n
+}
+
 record_install() {
     [ "$DRY" -eq 1 ] && return
     printf '%s\n' "$repo" > "$STATE/repo"

@@ -62,6 +62,56 @@ the old files as `<file>.bak-<date>`.
 2. Or from the Arch ISO in `arch-chroot`: copy `/etc/kernel/cmdline.bak-<date>` back to
    `/etc/kernel/cmdline`, then run `mkinitcpio -P`.
 
+## Disk Encryption
+
+See [ENCRYPTION.md](ENCRYPTION.md) for how the setup works. `/boot` is never encrypted: it holds the kernel
+and the unlock prompt, so the machine can ask for the passphrase. Someone with the laptop could change those
+files. Secure Boot would stop that, and it is not part of Clave yet.
+
+**Forgotten passphrase.** Type the recovery key at the passphrase prompt instead. It is the 64-character
+key shown once during the setup. After logging in, set a new passphrase:
+
+```sh
+sudo cryptsetup luksChangeKey /dev/disk/by-partuuid/ROOT_PARTUUID
+```
+
+Without the passphrase and the recovery key, the files cannot be read. This is the point of the encryption,
+and there is no way around it.
+
+**Encryption was interrupted** (power cut, closed lid, crash). LUKS2 re-encryption can be resumed. Boot the
+Arch live USB, mount the boot partition, and run the same script again:
+
+```sh
+mount /dev/BOOT_PARTITION /mnt
+bash /mnt/clave-encrypt-offline.sh
+```
+
+The script sees the unfinished encryption and continues it with `cryptsetup reencrypt --resume-only`. Do not
+run `mkfs`, `fsck` or a partition editor on that partition in between.
+
+**Stopped after the prepare step.** Nothing on the disk has changed yet. The normal boot entry starts the
+system as before. The extra entry "Clave (encrypted)" does not work until the offline step has run. To undo
+the prepare step, restore `/etc/mkinitcpio.conf.bak-encrypt`, remove the extra entry (GRUB:
+`/etc/grub.d/41_clave-encrypted`, then `grub-mkconfig -o /boot/grub/grub.cfg`; systemd-boot:
+`loader/entries/clave-encrypted.conf`; Limine: the `/Clave (encrypted)` block in `limine.conf`), and delete
+`/var/lib/clave/encrypt.conf` and `/boot/clave-encrypt-offline.sh`.
+
+**"Clave (encrypted)" does not start after the offline step.** Use the Arch live USB:
+
+```sh
+cryptsetup open /dev/disk/by-partuuid/ROOT_PARTUUID croot
+mount /dev/mapper/croot /mnt          # btrfs: add -o subvol=@ (or your root subvolume)
+mount /dev/BOOT_PARTITION /mnt/boot
+arch-chroot /mnt
+grep ^HOOKS /etc/mkinitcpio.conf      # needs "encrypt" or "sd-encrypt" after "block"
+mkinitcpio -P
+```
+
+The boot entry needs `root=/dev/mapper/croot` plus `cryptdevice=UUID=LUKS_UUID:croot` (`encrypt` hook) or
+`rd.luks.name=LUKS_UUID=croot` (`sd-encrypt` hook). `cryptsetup luksUUID /dev/disk/by-partuuid/ROOT_PARTUUID`
+prints the LUKS UUID. `clave-encrypt finish` writes these into every entry, so after it has run, the normal
+entries work again.
+
 ## `su` does not work
 
 `su` is limited to members of the `wheel` group. Use `sudo`, or add the user with `gpasswd -a NAME wheel`.

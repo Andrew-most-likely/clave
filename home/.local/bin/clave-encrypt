@@ -1,0 +1,449 @@
+#!/usr/bin/env bash
+# Disk Encryption (SEC-5). Upstream tools do the work (cryptsetup,
+# systemd-cryptenroll, e2fsprogs, btrfs-progs, mkinitcpio, the boot loader's
+# own tool); this script checks, guides and writes config. It never logs or
+# stores a passphrase and makes no network calls.
+#
+#   clave-encrypt status [--json]  On, Partly or Off (no root needed)
+#   clave-encrypt setup            guided setup (asks for sudo when needed)
+#   clave-encrypt finish           after the first boot of "Clave (encrypted)"
+#
+# Encrypting in place runs in stages: checks, prepare (in this system, which
+# still boots as before), encrypt (offline, from the Arch live USB) and finish.
+# See docs/ENCRYPTION.md.
+set -euo pipefail
+
+STATE_FILE=/var/lib/clave/encrypt.conf
+OFFLINE_NAME=clave-encrypt-offline.sh
+ENTRY_TITLE="Clave (encrypted)"
+ENTRY_ID=clave-encrypted
+# Room at the start of each partition for the LUKS2 header.
+HEADER_MIB=32
+# The tests point R at a scratch copy of / to exercise the config writers.
+R="${CLAVE_ENCRYPT_ROOT:-}"
+
+say()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33m%s\033[0m\n' "$*" >&2; }
+die()  { printf '\033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
+ask()  { local a; read -rp "$1 [y/N] " a; [[ "$a" =~ ^[Yy] ]]; }
+
+# --------------------------------------------------------------------------
+# Status
+
+# lsblk as a tree; CLAVE_LSBLK_JSON points at a saved copy for the tests.
+lsblk_json() {
+    if [ -n "${CLAVE_LSBLK_JSON:-}" ]; then cat "$CLAVE_LSBLK_JSON"
+    else lsblk -J -o NAME,TYPE,FSTYPE,MOUNTPOINTS; fi
+}
+
+# One object per device that is mounted or used as swap, with "crypt" true
+# when it sits on a LUKS mapping at any level (LVM on LUKS counts).
+# zram swap is in memory and needs nothing.
+mounts() {
+    lsblk_json | jq -c '
+        def walk_dev($enc):
+            ($enc or .type == "crypt") as $e
+            | ({ name, type, crypt: $e, mps: [(.mountpoints // [])[] | select(. != null)] }),
+              (.children[]? | walk_dev($e));
+        [ .blockdevices[] | walk_dev(false) | select(.mps | length > 0)
+          | select(.name | startswith("zram") | not) ]'
+}
+
+status_json() {
+    mounts | jq -c '
+        def on($mp): [.[] | select(.mps | index($mp))] | (length > 0 and all(.crypt));
+        (on("/")) as $root
+        | (if any(.[]; .mps | index("/home")) then on("/home") else $root end) as $home
+        | ([.[] | select((.mps | index("[SWAP]")) and (.crypt | not)) | .name]) as $plainswap
+        | { root: $root, home: $home, plain_swap: $plainswap,
+            status: (if $root and $home and ($plainswap | length == 0) then "On"
+                     elif $root or $home then "Partly" else "Off" end) }'
+}
+status() { status_json | jq -r .status; }
+
+# --------------------------------------------------------------------------
+# Config writers. Pure text edits on files under $R, so the tests can run
+# them on scratch copies.
+
+# hooks_add: the unlock hook after "block", with "keyboard" before it and
+# after "plymouth" when both are there, so the prompt is graphical. systemd
+# based HOOKS take sd-encrypt, busybox based ones take encrypt.
+hooks_add() {
+    local f="$R/etc/mkinitcpio.conf" hook
+    hooks_style_systemd && hook=sd-encrypt || hook=encrypt
+    grep -qE "^HOOKS=.*\b$hook\b" "$f" && return 0
+    grep -qE '^HOOKS=.*\bkeyboard\b' "$f" || sed -i -E '/^HOOKS=/ s/\bblock\b/keyboard block/' "$f"
+    sed -i -E "/^HOOKS=/ s/\bblock\b/block $hook/" "$f"
+    grep -qE "^HOOKS=.*\bblock $hook\b" "$f" || die "Could not add $hook to HOOKS in $f"
+}
+hooks_style_systemd() { grep -qE '^HOOKS=.*\bsystemd\b' "$R/etc/mkinitcpio.conf"; }
+
+# crypt_params LUKS_UUID: kernel parameters that unlock the root partition.
+crypt_params() {
+    if hooks_style_systemd; then echo "rd.luks.name=$1=croot root=/dev/mapper/croot"
+    else echo "cryptdevice=UUID=$1:croot root=/dev/mapper/croot"; fi
+}
+
+# patch_cmdline "CMDLINE" "PARAMS": drop root=, cryptdevice= and rd.luks.*,
+# then add PARAMS.
+patch_cmdline() {
+    local out=() w
+    for w in $1; do
+        case "$w" in root=*|cryptdevice=*|rd.luks.*|BOOT_IMAGE=*|initrd=*) ;; *) out+=("$w") ;; esac
+    done
+    echo "${out[*]} $2" | sed 's/^ //'
+}
+
+detect_loader() {
+    if [ -f "$R/etc/kernel/cmdline" ]; then echo uki
+    elif [ -n "$(limine_conf)" ]; then echo limine
+    elif [ -d "$(sdboot_dir)/loader/entries" ] && compgen -G "$(sdboot_dir)/loader/entries/*.conf" >/dev/null; then echo systemd-boot
+    elif [ -f "$R/etc/default/grub" ] && [ -f "$R/boot/grub/grub.cfg" ]; then echo grub
+    else echo unknown; fi
+}
+sdboot_dir() {
+    if [ -z "$R" ] && command -v bootctl >/dev/null; then
+        bootctl -x 2>/dev/null || bootctl -p 2>/dev/null || echo /boot
+    else echo "$R/boot"; fi
+}
+limine_conf() {
+    local f
+    for f in "$R/boot/limine.conf" "$R/boot/limine/limine.conf" "$R/boot/EFI/BOOT/limine.conf" \
+             "$R/boot/EFI/limine/limine.conf" "$R/efi/limine.conf" "$R/efi/EFI/limine/limine.conf"; do
+        [ -f "$f" ] && { echo "$f"; return; }
+    done
+}
+
+# entry_add LOADER PARAMS: a second boot entry with PARAMS on the command
+# line. The old entry stays the default, so the machine boots as before
+# until the encryption is done.
+entry_add() {
+    local loader=$1 params=$2 cmd
+    case "$loader" in
+        grub)
+            # A menuentry like the one that booted this system. The kernel and
+            # initramfs paths come from /proc/cmdline (BOOT_IMAGE).
+            local image initrd kbase bootuuid f="$R/etc/grub.d/41_$ENTRY_ID" ucode=""
+            image=$(tr ' ' '\n' < "${CLAVE_PROC_CMDLINE:-/proc/cmdline}" | sed -n 's/^BOOT_IMAGE=//p')
+            [ -n "$image" ] || die "No BOOT_IMAGE in /proc/cmdline: cannot find the kernel GRUB boots."
+            image=${image#(*)}
+            kbase=${image##*/vmlinuz-}
+            initrd="${image%/*}/initramfs-$kbase.img"
+            for f2 in intel-ucode.img amd-ucode.img; do
+                [ -f "$R/boot/$f2" ] && ucode+="${image%/*}/$f2 "
+            done
+            if [ -n "$R" ]; then bootuuid=${CLAVE_BOOT_UUID:-}
+            else bootuuid=$(findmnt -nvo UUID /boot); fi
+            [ -n "$bootuuid" ] || die "No filesystem UUID for /boot."
+            cmd=$(patch_cmdline "$(cat "${CLAVE_PROC_CMDLINE:-/proc/cmdline}")" "$params")
+            cat > "$f" <<EOF
+#!/bin/sh
+# Written by clave-encrypt; removed by clave-encrypt finish.
+exec tail -n +4 "\$0"
+menuentry '$ENTRY_TITLE' --id $ENTRY_ID {
+    insmod part_gpt
+    insmod part_msdos
+    search --no-floppy --fs-uuid --set=root $bootuuid
+    linux $image $cmd
+    initrd $ucode$initrd
+}
+EOF
+            chmod 755 "$f" ;;
+        systemd-boot)
+            local dir src
+            dir="$(sdboot_dir)/loader/entries"
+            src=$(sdboot_current "$dir") || die "No systemd-boot entry matches the running system."
+            cmd=$(sed -n 's/^options[[:space:]]\+//p' "$src")
+            { grep -vE '^(title|options|sort-key)[[:space:]]' "$src"
+              echo "title   $ENTRY_TITLE"
+              echo "options $(patch_cmdline "$cmd" "$params")"
+            } > "$dir/$ENTRY_ID.conf" ;;
+        limine)
+            local conf block
+            conf=$(limine_conf)
+            block=$(limine_first_entry "$conf")
+            [ -n "$block" ] || die "No boot entry found in $conf."
+            {
+                echo
+                echo "/$ENTRY_TITLE"
+                printf '%s\n' "$block" | tail -n +2 | while IFS= read -r line; do
+                    if [[ "$line" =~ ^([[:space:]]*)(kernel_)?cmdline:[[:space:]]*(.*)$ ]]; then
+                        echo "${BASH_REMATCH[1]}${BASH_REMATCH[2]}cmdline: $(patch_cmdline "${BASH_REMATCH[3]}" "$params")"
+                    else echo "$line"; fi
+                done
+            } >> "$conf" ;;
+        *) die "Boot loader $loader is not supported for encryption in place." ;;
+    esac
+}
+
+# The systemd-boot entry of the running system: same root= as /proc/cmdline,
+# not a fallback entry.
+sdboot_current() {
+    local root e
+    root=$(tr ' ' '\n' < "${CLAVE_PROC_CMDLINE:-/proc/cmdline}" | grep '^root=' | head -n1)
+    for e in "$1"/*.conf; do
+        [ "${e##*/}" = "$ENTRY_ID.conf" ] && continue
+        grep -q fallback "$e" && continue
+        grep -qE "^options[[:space:]]+(.*[[:space:]])?${root//./\\.}([[:space:]]|\$)" "$e" && { echo "$e"; return 0; }
+    done
+    return 1
+}
+
+# The first top-level entry of a limine.conf ("/Name" up to the next "/").
+limine_first_entry() {
+    awk '/^\/[^\/]/ { if (n++) exit } n' "$1"
+}
+
+# entries_finish LOADER PARAMS: the encrypted settings become the normal ones
+# (every existing entry, fallback included) and the extra entry goes.
+entries_finish() {
+    local loader=$1 params=$2
+    case "$loader" in
+        grub)
+            local f="$R/etc/default/grub" crypt
+            crypt=$(echo "$params" | tr ' ' '\n' | grep -v '^root=')
+            cp -a "$f" "$f.bak-encrypt"
+            grep -q '^GRUB_CMDLINE_LINUX=' "$f" || echo 'GRUB_CMDLINE_LINUX=""' >> "$f"
+            grep -qF "$crypt" "$f" || sed -i -E "s|^(GRUB_CMDLINE_LINUX=\"[^\"]*)\"|\1 $crypt\"|; s|^GRUB_CMDLINE_LINUX=\" |GRUB_CMDLINE_LINUX=\"|" "$f"
+            rm -f "$R/etc/grub.d/41_$ENTRY_ID" ;;
+        systemd-boot)
+            local dir e cmd
+            dir="$(sdboot_dir)/loader/entries"
+            for e in "$dir"/*.conf; do
+                [ "${e##*/}" = "$ENTRY_ID.conf" ] && continue
+                cmd=$(sed -n 's/^options[[:space:]]\+//p' "$e")
+                cp -a "$e" "$e.bak-encrypt"
+                sed -i "s|^options[[:space:]].*|options $(patch_cmdline "$cmd" "$params")|" "$e"
+            done
+            rm -f "$dir/$ENTRY_ID.conf" ;;
+        limine)
+            local conf tmp
+            conf=$(limine_conf)
+            cp -a "$conf" "$conf.bak-encrypt"
+            tmp=$(mktemp)
+            awk -v t="/$ENTRY_TITLE" '/^\// { skip = ($0 == t) } !skip' "$conf" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$tmp"
+            while IFS= read -r line; do
+                if [[ "$line" =~ ^([[:space:]]*)(kernel_)?cmdline:[[:space:]]*(.*)$ ]]; then
+                    echo "${BASH_REMATCH[1]}${BASH_REMATCH[2]}cmdline: $(patch_cmdline "${BASH_REMATCH[3]}" "$params")"
+                else echo "$line"; fi
+            done < "$tmp" > "$conf"
+            rm -f "$tmp" ;;
+    esac
+}
+
+# --------------------------------------------------------------------------
+# Stage 1: checks (as the user)
+
+dev_of() { findmnt -nvo SOURCE "$1" 2>/dev/null | head -n1; }
+
+checks() {
+    local ok=1 p cap online=0 bat=0
+    say "Checks"
+    for p in /sys/class/power_supply/*; do
+        [ -e "$p/type" ] || continue
+        case "$(cat "$p/type")" in
+            Mains) [ "$(cat "$p/online" 2>/dev/null)" = 1 ] && online=1 ;;
+            Battery) bat=1; cap=$(cat "$p/capacity" 2>/dev/null || echo 0)
+                     [ "$cap" -ge 50 ] || { warn "  Battery at $cap%: charge to 50% or more."; ok=0; } ;;
+        esac
+    done
+    [ "$bat" -eq 0 ] || [ "$online" -eq 1 ] || { warn "  Connect the power supply."; ok=0; }
+
+    local rootdev homedev bootdev
+    rootdev=$(dev_of /); homedev=$(dev_of /home); bootdev=$(dev_of /boot)
+    [ "$homedev" = "$rootdev" ] && homedev=""
+    for p in $rootdev $homedev; do
+        [ "$(lsblk -dno TYPE "$p")" = part ] || { warn "  $p is not a plain partition (LVM, RAID or already encrypted): use the reinstall path."; ok=0; }
+        case "$(lsblk -dno FSTYPE "$p")" in ext4|btrfs) ;; *) warn "  $p is not ext4 or btrfs."; ok=0 ;; esac
+    done
+    for p in / ${homedev:+/home}; do
+        [ "$(df --output=avail -B1M "$p" | tail -n1 | tr -d ' ')" -ge $((HEADER_MIB * 2)) ] \
+            || { warn "  $p needs at least $((HEADER_MIB * 2)) MiB free."; ok=0; }
+    done
+    if [ -z "$bootdev" ] || [ "$bootdev" = "$rootdev" ] || ! compgen -G "/boot/vmlinuz-*" >/dev/null; then
+        warn "  /boot is not its own partition with the kernels on it. It must stay readable before the"
+        warn "  disk is unlocked: use the reinstall path."
+        ok=0
+    fi
+    local loader
+    loader=$(detect_loader)
+    case "$loader" in
+        grub|systemd-boot|limine) echo "  Boot loader: $loader" ;;
+        uki) warn "  Unified kernel images (/etc/kernel/cmdline): use the reinstall path."; ok=0 ;;
+        *) warn "  Boot loader not recognised (supported: systemd-boot, GRUB, Limine): use the reinstall path."; ok=0 ;;
+    esac
+    [ "$ok" -eq 1 ] || return 1
+
+    echo
+    echo "  Encrypting rewrites every block of the disk. A power cut is survivable"
+    echo "  (it can be resumed), but a failing disk or a mistake is not."
+    local conf where
+    read -rp "  Type 'I have a full backup' to confirm: " conf
+    [ "$conf" = "I have a full backup" ] || { warn "  Make a full backup first."; return 1; }
+    read -rp "  Where is it (for example: USB disk 'Backup', or Timeshift on /dev/sdb1)? " where
+    [ -n "$where" ] || { warn "  Say where the backup is."; return 1; }
+    echo "  Backup: $where"
+}
+
+# --------------------------------------------------------------------------
+# Stage 2: prepare (root, in the running system)
+
+prepare() {
+    [ "$(id -u)" -eq 0 ] || die "Run with sudo."
+    local loader rootdev homedev swapdev root_luks home_luks="" params
+    loader=$(detect_loader)
+    rootdev=$(dev_of /); homedev=$(dev_of /home)
+    [ "$homedev" = "$rootdev" ] && homedev=""
+    swapdev=$(swapon --noheadings --raw --show=NAME,TYPE | awk '$2 == "partition" && $1 !~ /zram/ {print $1}' | head -n1)
+    root_luks=$(uuidgen)
+    [ -z "$homedev" ] || home_luks=$(uuidgen)
+
+    say "Initramfs: unlock hook"
+    cp -a /etc/mkinitcpio.conf /etc/mkinitcpio.conf.bak-encrypt
+    hooks_add
+    grep '^HOOKS=' /etc/mkinitcpio.conf
+    mkinitcpio -P
+
+    say "Boot entry \"$ENTRY_TITLE\""
+    params=$(crypt_params "$root_luks")
+    entry_add "$loader" "$params"
+    case "$loader" in
+        grub) grub-mkconfig -o /boot/grub/grub.cfg ;;
+    esac
+
+    install -d -m 755 /var/lib/clave
+    {
+        echo "LOADER=$loader"
+        echo "PARAMS='$params'"
+        echo "ROOT_PARTUUID=$(lsblk -dno PARTUUID "$rootdev")"
+        echo "ROOT_FSTYPE=$(lsblk -dno FSTYPE "$rootdev")"
+        echo "ROOT_LUKS=$root_luks"
+        echo "ROOT_SUBVOL=$(findmnt -nvo FSROOT /)"
+        echo "HOME_PARTUUID=${homedev:+$(lsblk -dno PARTUUID "$homedev")}"
+        echo "HOME_FSTYPE=${homedev:+$(lsblk -dno FSTYPE "$homedev")}"
+        echo "HOME_LUKS=$home_luks"
+        echo "SWAP_PARTUUID=${swapdev:+$(lsblk -dno PARTUUID "$swapdev")}"
+        echo "HEADER_MIB=$HEADER_MIB"
+    } > "$STATE_FILE"
+    chmod 600 "$STATE_FILE"
+
+    say "Offline script"
+    local src="${CLAVE_OFFLINE_TEMPLATE:-$(dirname "$(readlink -f "$0")")/../share/clave/$OFFLINE_NAME}"
+    [ -f "$src" ] || src="$(getent passwd "${SUDO_USER:-root}" | cut -d: -f6)/.local/share/clave/$OFFLINE_NAME"
+    { echo '#!/usr/bin/env bash'
+      echo "# Generated by clave-encrypt prepare on $(date '+%F %T')."
+      cat "$STATE_FILE"
+      tail -n +2 "$src"
+    } > "/boot/$OFFLINE_NAME"
+    chown root:root "/boot/$OFFLINE_NAME"
+    chmod 700 "/boot/$OFFLINE_NAME"
+    local bootpart
+    bootpart=$(dev_of /boot)
+    echo
+    echo "  Written: /boot/$OFFLINE_NAME"
+    echo "  SHA-256: $(sha256sum "/boot/$OFFLINE_NAME" | cut -d' ' -f1)"
+    echo "  Write the first 8 characters down and compare them before you run it."
+    cat <<EOF
+
+  Next:
+    1. Boot the Arch live USB.
+    2. mount $bootpart /mnt            (the boot partition; check with lsblk)
+    3. sha256sum /mnt/$OFFLINE_NAME     (compare with the line above)
+    4. bash /mnt/$OFFLINE_NAME
+    5. Reboot and choose "$ENTRY_TITLE". After logging in: clave-encrypt finish
+
+  Until step 5, "$ENTRY_TITLE" does not work yet, and the normal entry boots as before.
+EOF
+}
+
+# --------------------------------------------------------------------------
+# Stage 4: finish (root, after booting the encrypted entry)
+
+finish() {
+    [ "$(id -u)" -eq 0 ] || exec sudo "$0" finish
+    [ -f "$STATE_FILE" ] || die "Nothing to finish: clave-encrypt prepare was not run."
+    # shellcheck disable=SC1090
+    . "$STATE_FILE"
+    local st
+    st=$(status)
+    [ "$st" = On ] || { status_json; die "Disk Encryption is $st, not On. Boot \"$ENTRY_TITLE\" first."; }
+    say "Boot entries"
+    entries_finish "$LOADER" "$PARAMS"
+    [ "$LOADER" = grub ] && grub-mkconfig -o /boot/grub/grub.cfg
+    rm -f "/boot/$OFFLINE_NAME" "$STATE_FILE"
+    say "Disk Encryption is On."
+    echo "  Keep the recovery key somewhere safe: it is the only way in without the passphrase."
+}
+
+# reapply: put the unlock hook and the kernel parameters of the running
+# system back after config files were restored (uninstall.sh). Only the
+# files that the uninstaller restores: mkinitcpio.conf, /etc/default/grub
+# and /etc/kernel/cmdline. It does not rebuild; the caller does.
+reapply() {
+    [ -n "$R" ] || [ "$(id -u)" -eq 0 ] || die "Run with sudo."
+    local crypt
+    crypt=$(tr ' ' '\n' < "${CLAVE_PROC_CMDLINE:-/proc/cmdline}" | grep -E '^(cryptdevice=|rd\.luks\.)' | tr '\n' ' ' | sed 's/ $//')
+    [ -n "$crypt" ] || { echo "  No unlock parameters on the running kernel's command line: nothing to keep."; return 0; }
+    hooks_add
+    echo "  HOOKS: $(grep '^HOOKS=' "$R/etc/mkinitcpio.conf")"
+    if [ -f "$R/etc/kernel/cmdline" ]; then
+        grep -qF "$crypt" "$R/etc/kernel/cmdline" || sed -i "s|\$| $crypt|" "$R/etc/kernel/cmdline"
+    elif [ -f "$R/etc/default/grub" ]; then
+        local f="$R/etc/default/grub"
+        grep -q '^GRUB_CMDLINE_LINUX=' "$f" || echo 'GRUB_CMDLINE_LINUX=""' >> "$f"
+        grep -qF "$crypt" "$f" || sed -i -E "s|^(GRUB_CMDLINE_LINUX=\"[^\"]*)\"|\1 $crypt\"|; s|^GRUB_CMDLINE_LINUX=\" |GRUB_CMDLINE_LINUX=\"|" "$f"
+    fi
+    echo "  kernel parameters kept: $crypt"
+}
+
+# --------------------------------------------------------------------------
+# Setup (as the user)
+
+setup() {
+    local st
+    st=$(status)
+    echo "Disk Encryption: $st"
+    status_json | jq -r '"  / encrypted: \(.root)\n  /home encrypted: \(.home)" + (if (.plain_swap|length) > 0 then "\n  Swap not encrypted: \(.plain_swap|join(", "))" else "" end)'
+    if [ "$st" = On ]; then
+        [ -f "$STATE_FILE" ] && { echo; echo "The last step is still open."; ask "Run clave-encrypt finish now?" && finish; }
+        read -rp "Press Enter to close. " _ ; return 0
+    fi
+    cat <<'EOF'
+
+Without Disk Encryption, anyone who takes this computer can read its files.
+Two ways to turn it on:
+
+  1. Reinstall with encryption (recommended on a new machine): install Arch
+     with LUKS2 (archinstall's disk encryption option), then Clave.
+  2. Encrypt this install in place: keeps your files. Needs a full backup,
+     the Arch live USB, and about an hour for a 500 GB disk.
+  q. Quit
+EOF
+    local c
+    read -rp "Choose 1, 2 or q: " c
+    case "$c" in
+        1)  local doc
+            doc="$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/clave/repo" 2>/dev/null)/docs/ENCRYPTION.md"
+            if [ -f "$doc" ]; then ${PAGER:-less} "$doc"
+            else echo "See docs/ENCRYPTION.md in the Clave repository."; fi ;;
+        2)  checks || { read -rp "Press Enter to close. " _; return 1; }
+            echo
+            ask "Prepare this system for encryption now (sudo)?" || return 0
+            sudo "$(readlink -f "$0")" prepare
+            read -rp "Press Enter to close. " _ ;;
+        *)  return 0 ;;
+    esac
+}
+
+[ "${CLAVE_ENCRYPT_LIB:-0}" = 1 ] && return 0
+
+case "${1:-}" in
+    status)
+        if [ "${2:-}" = --json ]; then status_json; else status; fi ;;
+    setup)   setup ;;
+    checks)  checks ;;
+    prepare) prepare ;;
+    finish)  finish ;;
+    reapply) reapply ;;
+    *) sed -n '7,9p' "$0" | cut -c3-; exit 1 ;;
+esac

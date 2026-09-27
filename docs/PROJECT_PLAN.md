@@ -160,14 +160,20 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
     2. **Encrypt in place.** For an existing install. It runs in three stages:
        - **Checks.** Stops when any of these fails: power supply connected and battery at 50% or more;
          the user types a confirmation that a full backup exists and where it is; the filesystems are ext4
-         or btrfs; each partition has 32 MiB free for the LUKS2 header; the boot loader is systemd-boot,
-         GRUB or Limine (anything else: reinstall path only).
+         or btrfs on plain partitions (not LVM or RAID); each has 64 MiB free (32 MiB for the LUKS2 header,
+         plus room); `/boot` is its own partition with the kernels, so it stays readable before the unlock;
+         the boot loader is systemd-boot, GRUB or Limine (unified kernel images and anything else: reinstall
+         path only).
        - **Prepare, in the running system.** Choose the LUKS UUIDs in advance (`cryptsetup reencrypt
-         --uuid`). Add `encrypt` after `block` to the mkinitcpio hooks (after `plymouth`, so the prompt is
-         graphical) and rebuild the initramfs. Write `/etc/crypttab` and a **second** boot entry, "Clave
-         (encrypted)", with `cryptdevice=UUID=…`. The old entry stays the default, so the machine still boots
-         if the user stops here. When `/home` is on its own partition, it unlocks with a key file inside the
-         encrypted root (`/etc/cryptsetup-keys.d/`), so there is one prompt at boot.
+         --uuid`). Add the unlock hook after `block` to the mkinitcpio hooks (after `plymouth`, so the prompt
+         is graphical) and rebuild the initramfs: `sd-encrypt` with `rd.luks.name=…` for systemd-based
+         HOOKS (the Arch default since 2024), `encrypt` with `cryptdevice=UUID=…` otherwise. Write a
+         **second** boot entry, "Clave (encrypted)". The old entry stays the default, so the machine still
+         boots if the user stops here. When `/home` is on its own partition, it unlocks with a key file inside
+         the encrypted root (`/etc/cryptsetup-keys.d/chome.key`), so there is one prompt at boot. The offline
+         stage makes that key and writes `/etc/crypttab`, after `/` is encrypted: the key is never on the
+         disk in the clear, and a stop after this stage leaves no crypttab entry that waits for a missing
+         device. A swap partition gets a random key at each boot (hibernation to it stops working).
        - **Encrypt, offline.** Boot the Arch live USB and run the copy of the script that stage 2 put on
          the boot partition (`/boot/clave-encrypt-offline.sh`, root-owned, printed with its SHA-256 so the
          user can compare). It shrinks each filesystem by 32 MiB (`e2fsck`, `resize2fs`), runs
@@ -175,8 +181,12 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
          enrolls a recovery key with `systemd-cryptenroll --recovery-key`. The recovery key is shown once and
          never stored: the user writes it down. LUKS2 re-encryption survives interruption: `cryptsetup
          reencrypt --resume-only` continues it, and the script says so.
-       - **Finish.** Boot the new entry. `clave-encrypt finish` checks that the status is *On*, makes the new
-         entry the default and removes the old one.
+       - **Finish.** Boot the new entry. `clave-encrypt finish` checks that the status is *On*, writes the
+         unlock parameters into every existing entry (so the fallback entry works too) and removes the extra
+         one. For GRUB this goes into `GRUB_CMDLINE_LINUX`, so kernel updates keep it.
+  - **Uninstall.** `uninstall.sh --system` restores the pre-install `mkinitcpio.conf` and `/etc/default/grub`.
+    On an encrypted disk it then puts the unlock hook and parameters back (`clave-encrypt reapply`), or the
+    machine would no longer boot.
   - **Engines.** Only upstream tools do the work: `cryptsetup`, `systemd-cryptenroll`, `e2fsprogs` or
     `btrfs-progs`, `mkinitcpio`, and the boot loader's own tool. Clave's script checks, guides and writes
     config (section 5.8). It never logs or stores a passphrase and makes no network calls.
@@ -187,8 +197,10 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
     for now; `/boot` stays unencrypted, which RECOVERY.md explains.
   - **Recovery.** RECOVERY.md gets a section: forgotten passphrase (use the recovery key), interrupted
     encryption (resume from the live USB), and booting the old entry if the new one fails before *Finish*.
-  - **Tests.** A VM test in virt-manager: in-place encryption of `/` alone and of `/` plus `/home`, with each
-    supported boot loader, and one run where the VM is powered off during `reencrypt` and then resumed.
+  - **Tests.** `tests/encrypt-unit.sh` (CI): the status on saved `lsblk` output and every config writer on
+    scratch files. `tests/vm-encrypt.sh` (qemu, UEFI): in-place encryption of `/` alone and of `/` plus
+    `/home`, with each supported boot loader, and one run where the VM is powered off during `reencrypt`
+    and then resumed.
 
 ### 5.3 Performance and background work
 
