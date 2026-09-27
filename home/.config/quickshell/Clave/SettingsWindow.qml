@@ -311,6 +311,21 @@ Scope {
             " [ \"$a\" = setup ] && qs ipc call settings open security"]
     }
 
+    // The pacman hook (COMP-9) leaves /var/lib/clave/compat-notice when an
+    // upgrade needs a newer Clave. Shown once per notice: the file is root's,
+    // so the copy in ~/.local/state marks it as seen.
+    Process {
+        running: true
+        command: ["sh", "-c",
+            "f=/var/lib/clave/compat-notice; s=\"${XDG_STATE_HOME:-$HOME/.local/state}/clave/compat-notice-seen\";" +
+            " [ -s \"$f\" ] || exit 0; cmp -s \"$f\" \"$s\" && exit 0; mkdir -p \"${s%/*}\"; cp \"$f\" \"$s\";" +
+            " a=$(notify-send -a 'Software Update' -i system-software-update -u critical" +
+            " -A check='Check…' 'Clave may need an update'" +
+            " \"A system update changed software Clave depends on: $(head -n 2 \"$f\" | cut -d: -f1 | paste -sd, -)\");" +
+            " [ \"$a\" = check ] && kitty --class clave-floating --title 'Clave Doctor' sh -c" +
+            " '\"$HOME/.local/bin/clave-doctor\" --fetch; read -rn1 -p \"Press any key to close.\"'"]
+    }
+
     // A change that can leave a screen unreadable (orientation, resolution,
     // scale) asks "Keep these display settings?" and reverts after 15 seconds,
     // like Windows.

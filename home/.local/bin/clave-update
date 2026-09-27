@@ -9,12 +9,9 @@ set -uo pipefail
 repo=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/clave/repo" 2>/dev/null || echo "$HOME/.local/src/clave")
 signers=~/.config/clave/allowed_signers
 
-# Updates run code on this machine, so only releases signed by a key in
-# $signers are installed.
-verify() {  # verify tag|commit REF
-    git -C "$repo" -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$signers" \
-        "verify-$1" "$2" >/dev/null 2>&1
-}
+# verify(): only releases signed by a key in $signers are installed.
+# shellcheck source=home/.local/share/clave/verify.sh
+. "$HOME/.local/share/clave/verify.sh"
 
 aur_helper() { command -v paru || command -v yay || true; }
 
@@ -68,6 +65,12 @@ if [ -d "$repo/.git" ]; then
     else
         echo "Already up to date."
     fi
+fi
+
+# Does this Clave release work with the packages just installed? (COMP-8)
+if [ -x "$HOME/.local/bin/clave-doctor" ]; then
+    step "Compatibility"
+    "$HOME/.local/bin/clave-doctor" || true
 fi
 
 step "Done"

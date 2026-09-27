@@ -1,0 +1,31 @@
+{
+  "clave": "1.1.1",
+  "tested": {
+    "1.1.1": {
+      "hyprland": "0.56.2-3",
+      "hyprlock": "0.9.6-3",
+      "hypridle": "0.1.8-2",
+      "hyprsunset": "0.4.0-3",
+      "xdg-desktop-portal-hyprland": "1.4.1-2",
+      "quickshell": "0.3.1-1",
+      "qt6-declarative": "6.11.2-2",
+      "swaync": "0.12.6-1",
+      "swayosd": "0.3.2-1",
+      "rofi": "2.0.0-1",
+      "sddm": "0.21.0-7",
+      "plymouth": "26.134.222-2",
+      "cryptsetup": "2.8.8-1",
+      "gtk4": "1:4.22.5-1",
+      "libadwaita": "1:1.9.4-1",
+      "whitesur-icon-theme": "2026.09.10-1",
+      "kvantum-theme-whitesur-git": "r157.cf4df59-1",
+      "grim": "1.5.0-2",
+      "slurp": "1.5.0-2",
+      "wf-recorder": "0.6.0-2",
+      "satty": "0.22.0-1",
+      "python-icalendar": "7.3.0-1",
+      "python-vobject": "0.9.9-3"
+    }
+  },
+  "breaks": []
+}

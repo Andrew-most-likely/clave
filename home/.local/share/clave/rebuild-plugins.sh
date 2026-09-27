@@ -84,6 +84,8 @@ fi
 "$look/hypr-minimize/build.sh" || failed+=(hypr-minimize)
 
 if [ ${#failed[@]} -eq 0 ]; then
+    # The Hyprland commit the plugins match, for clave-doctor.
+    echo "$hash" > "$look/plugins-hyprland"
     if [ "$reload" -eq 1 ]; then
         hyprctl reload >/dev/null
         notify "Clave plugins rebuilt" "Traffic lights and genie minimize are back."

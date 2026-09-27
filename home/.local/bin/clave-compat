@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Is each installed package one this Clave release works with?
+# (PROJECT_PLAN.md COMP-7 to COMP-9)
+#
+#   clave-compat [-f COMPAT] [-r NEWER_COMPAT] [PACKAGE...]
+#   clave-compat --hook          the pacman hook: package names on stdin
+#
+# Reads compat.json: the Clave release it belongs to ("clave"), the versions
+# each release was tested with ("tested") and the known breaks ("breaks":
+# package, from, fixed_in_clave, issue). -r adds the known breaks of a newer
+# compat.json (clave-doctor --fetch). Without PACKAGE, every package tested
+# with this release. Prints one line per installed package:
+#   RESULT<TAB>PACKAGE<TAB>INSTALLED VERSION<TAB>DETAIL
+# RESULT is OK, Untested (newer than tested, no known break), Update (a
+# known break that a later Clave release fixes) or Broken (a known break
+# with no fix yet; DETAIL is the issue).
+#
+# --hook reads /usr/share/clave/compat.json, prints a warning per package
+# that is not OK, and for Update and Broken writes /var/lib/clave/compat-notice,
+# which the shell shows once at the next login. It never stops the pacman
+# transaction: a stopped upgrade leaves a partial upgrade, which is worse.
+# The hook runs a root-owned copy of this file, never the checkout.
+set -uo pipefail
+
+compat="" newer="" hook=0
+repo=${CLAVE_REPO:-$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/clave/repo" 2>/dev/null || echo "$HOME/.local/src/clave")}
+system_compat="${CLAVE_SYSTEM_COMPAT:-/usr/share/clave/compat.json}"
+notice="${CLAVE_COMPAT_NOTICE:-/var/lib/clave/compat-notice}"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -f) compat=$2; shift 2 ;;
+        -r) newer=$2; shift 2 ;;
+        --hook) hook=1; shift ;;
+        -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+        --) shift; break ;;
+        -*) echo "clave-compat: unknown option $1" >&2; exit 2 ;;
+        *) break ;;
+    esac
+done
+if [ "$hook" -eq 1 ]; then
+    compat=$system_compat
+elif [ -z "$compat" ]; then
+    compat="$repo/compat.json"
+    [ -f "$compat" ] || compat=$system_compat
+fi
+[ -f "$compat" ] || { echo "clave-compat: $compat not found" >&2; exit 1; }
+jq -e . "$compat" >/dev/null 2>&1 || { echo "clave-compat: $compat is not valid JSON" >&2; exit 1; }
+if [ -n "$newer" ] && ! jq -e . "$newer" >/dev/null 2>&1; then
+    echo "clave-compat: $newer is not valid JSON" >&2; exit 1
+fi
+
+clave=$(jq -r '.clave // empty' "$compat")
+[ -n "$clave" ] || { echo "clave-compat: no \"clave\" release in $compat" >&2; exit 1; }
+
+# One break per line: package, from, fixed_in_clave (or -), issue (or -).
+breaks=$(jq -r '.breaks[]? | [.package, .from, (.fixed_in_clave // "-"), (.issue // "-")] | @tsv' \
+    "$compat" ${newer:+"$newer"} | sort -u)
+
+if [ "$hook" -eq 1 ]; then
+    mapfile -t pkgs < <(tr -s '[:space:]' '\n' | sed '/^$/d')
+elif [ $# -gt 0 ]; then
+    pkgs=("$@")
+else
+    mapfile -t pkgs < <(jq -r --arg c "$clave" '.tested[$c] // {} | keys[]' "$compat")
+fi
+
+ver_ge() { [ "$(vercmp "$1" "$2")" -ge 0 ]; }
+
+classify() {  # classify PACKAGE INSTALLED: the result line
+    local p=$1 v=$2 b_pkg b_from b_fix b_issue tested
+    while IFS=$'\t' read -r b_pkg b_from b_fix b_issue; do
+        if [ "$b_pkg" != "$p" ] || ! ver_ge "$v" "$b_from"; then continue; fi
+        if [ "$b_fix" = - ]; then
+            printf 'Broken\t%s\t%s\tKnown break since %s, no fix yet: %s\n' "$p" "$v" "$b_from" "$b_issue"; return
+        elif ! ver_ge "$clave" "$b_fix"; then
+            printf 'Update\t%s\t%s\tClave %s works with it: run clave-update\n' "$p" "$v" "$b_fix"; return
+        fi
+    done <<< "$breaks"
+    tested=$(jq -r --arg c "$clave" --arg p "$p" '.tested[$c][$p] // empty' "$compat")
+    if [ -n "$tested" ] && ! ver_ge "$tested" "$v"; then
+        printf 'Untested\t%s\t%s\tClave %s was tested with %s\n' "$p" "$v" "$clave" "$tested"
+    else
+        printf 'OK\t%s\t%s\t\n' "$p" "$v"
+    fi
+}
+
+out=""
+for p in "${pkgs[@]}"; do
+    v=$(pacman -Q "$p" 2>/dev/null | awk '{ print $2 }')
+    [ -n "$v" ] || continue
+    out+=$(classify "$p" "$v")$'\n'
+done
+out=${out%$'\n'}
+
+if [ "$hook" -eq 0 ]; then
+    [ -z "$out" ] || echo "$out"
+    exit 0
+fi
+
+# --- pacman hook ---------------------------------------------------------
+warn=$(awk -F'\t' '$1 != "OK" && NF { printf "%s %s: %s\n", $2, $3, $4 }' <<< "$out")
+[ -n "$warn" ] || exit 0
+echo "Clave $clave:"
+sed 's/^/  /' <<< "$warn"
+act=$(awk -F'\t' '$1 == "Update" || $1 == "Broken" { printf "%s %s: %s\n", $2, $3, $4 }' <<< "$out")
+if [ -n "$act" ]; then
+    mkdir -p "$(dirname "$notice")"
+    printf '%s\n' "$act" > "$notice"
+    chmod 644 "$notice"
+    echo "  Run clave-doctor for details."
+fi
+exit 0

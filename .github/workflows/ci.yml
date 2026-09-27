@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
-  schedule:
-    - cron: "0 6 * * 1" # weekly: catch breakage from Hyprland/Quickshell updates in Arch
   workflow_dispatch:
+  # upstream.yml runs these jobs when a watched package changes (COMP-5).
+  workflow_call:
 
 jobs:
   lint:
@@ -24,7 +24,7 @@ jobs:
       - name: shellcheck
         run: |
           mapfile -t files < <(
-            { ls *.sh lib/*.sh scripts/*.sh tests/*.sh
+            { ls *.sh lib/*.sh scripts/*.sh tests/*.sh ci/*.sh
               grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash' home/.local/bin home/.local/share/clave home/.config/hypr/scripts home/.config/quickshell
             } 2>/dev/null | sort -u)
           shellcheck -S warning -x "${files[@]}"
@@ -61,7 +61,7 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Install tools
-        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil
+        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil openssh
 
       - uses: actions/checkout@v4
         with:
@@ -87,3 +87,6 @@ jobs:
           su tester -c 'bash /home/tester/repo/tests/displays-test.sh'
           su tester -c 'bash /home/tester/repo/tests/apps-test.sh'
           su tester -c 'bash /home/tester/repo/tests/pim-test.sh'
+
+      - name: Compatibility check, pacman hook, clave-doctor, upstream diff (COMP-5 to COMP-9)
+        run: su tester -c 'bash /home/tester/repo/tests/compat-test.sh'
