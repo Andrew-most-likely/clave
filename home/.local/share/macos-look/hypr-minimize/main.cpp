@@ -84,7 +84,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->m_isMapped)
             watch(w);
 
-    return {"hypr-minimize", "Forwards app minimize requests as the IPC event minimized>>ADDRESS,1", "andrew", "1.0"};
+    return {"hypr-minimize", "Forwards app minimize requests as the IPC event minimized>>ADDRESS,1", "arch-macos-hyprland", "1.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {

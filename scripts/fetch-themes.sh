@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Downloads the third-party theme pieces that this repo does not ship:
-#   - WhiteSur GTK theme (+ libadwaita/GTK4 link) and its Firefox theme
+#   - WhiteSur GTK theme and its Firefox theme (GTK4 apps get it through
+#     ~/.config/gtk-4.0/gtk.css and the assets link that install.sh makes)
 #     https://github.com/vinceliuice/WhiteSur-gtk-theme
 #   - WhiteSur wallpapers (Sonoma/Ventura/Monterey style)
 #     https://github.com/vinceliuice/WhiteSur-wallpapers
@@ -18,7 +19,7 @@ fetch() {  # fetch NAME URL: shallow clone or update
 
 echo "==> WhiteSur GTK theme"
 fetch WhiteSur-gtk-theme https://github.com/vinceliuice/WhiteSur-gtk-theme
-(cd "$cache/WhiteSur-gtk-theme" && ./install.sh -c dark -c light -l --silent-mode 2>&1 | tail -n 3)
+(cd "$cache/WhiteSur-gtk-theme" && ./install.sh -d "$HOME/.local/share/themes" -c dark -c light </dev/null 2>&1 | tail -n 3)
 
 echo "==> WhiteSur Firefox theme"
 if [ -d "$HOME/.config/mozilla/firefox" ] || [ -d "$HOME/.mozilla/firefox" ]; then

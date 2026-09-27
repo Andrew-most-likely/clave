@@ -226,7 +226,9 @@ fetch_themes() {
     say "Third-party themes (WhiteSur GTK, Firefox, wallpapers)"
     run "$repo/scripts/fetch-themes.sh" || warn "Theme download failed; re-run install.sh later"
     # GTK4/libadwaita assets come from the WhiteSur theme just installed.
-    run ln -sfn "$HOME/.local/share/themes/WhiteSur-Dark/gtk-4.0/assets" "$HOME/.config/gtk-4.0/assets"
+    local assets="$HOME/.config/gtk-4.0/assets"
+    if [ -d "$assets" ] && [ ! -L "$assets" ]; then run mv "$assets" "$assets.bak-$STAMP"; fi
+    run ln -sfn "$HOME/.local/share/themes/WhiteSur-Dark/gtk-4.0/assets" "$assets"
     local prof
     for prof in "$HOME"/.config/mozilla/firefox/*.default* "$HOME"/.mozilla/firefox/*.default*; do
         [ -d "$prof" ] || continue
