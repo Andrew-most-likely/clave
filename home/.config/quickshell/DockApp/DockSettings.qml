@@ -12,15 +12,14 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Same two-file scheme as the status bar:
+    // Two files:
     //
-    //   1. ~/.config/ml4w-dock/dock.json     — the user override. While this
+    //   1. ~/.config/macos-look/dock.json — the user override. While this
     //      file exists it is the master: the values it defines win, and the
     //      pin/unpin actions write their changes back into it.
-    //   2. ~/.config/ml4w/settings/dock.json — the shipped fallback. It carries
-    //      the dynamic state (enabled, autohide and the pinned app list) and is
-    //      always read: values it defines apply unless the override overrides
-    //      them.
+    //   2. DockApp/dock.json (next to this file) — the shipped defaults,
+    //      including the default pinned apps. Always read: values it defines
+    //      apply unless the override overrides them.
     //
     // Both files are merged over the built-in defaults — fallback first, master
     // on top — so a partial or entirely missing file still leaves every value
@@ -61,7 +60,7 @@ Singleton {
 
     FileView {
         id: overrideFile
-        path: Quickshell.env("HOME") + "/.config/ml4w-dock/dock.json"
+        path: Quickshell.env("HOME") + "/.config/macos-look/dock.json"
         blockLoading: true
         printErrors: false
         // The resolved flags are set last, after the values are in place: they
@@ -80,7 +79,7 @@ Singleton {
 
     FileView {
         id: settingsFile
-        path: Quickshell.env("HOME") + "/.config/ml4w/settings/dock.json"
+        path: Quickshell.shellDir + "/DockApp/dock.json"
         blockLoading: true
         onLoaded: { root.applySettings(); root.settingsResolved = true }
         onLoadFailed: { root.applySettings(); root.settingsResolved = true }

@@ -88,8 +88,9 @@ if has look; then
     say "SDDM login theme"
     rm -rf /usr/share/sddm/themes/macos
     cp -r "$repo/home/.local/share/macos-look/sddm-macos" /usr/share/sddm/themes/macos
-    bg=$(find "$home/.config/ml4w/wallpapers" -maxdepth 1 -iname 'sonoma*dark*' 2>/dev/null | head -n1)
-    [ -n "$bg" ] || bg=$(find "$home/.config/ml4w/wallpapers" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1)
+    walls="$home/.local/share/macos-look/wallpapers"
+    bg=$(find "$walls" -maxdepth 1 -iname '*sonoma*dark*' 2>/dev/null | head -n1)
+    [ -n "$bg" ] || bg=$(find "$walls" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1)
     if [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/macos/background.png
     else magick -size 16x16 xc:'#1e1e22' /usr/share/sddm/themes/macos/background.png; fi
     chmod -R u=rwX,go=rX /usr/share/sddm/themes/macos
@@ -113,6 +114,14 @@ fi
 if has desktop; then
     say "Desktop essentials: system files"
     place_group desktop
+
+    # pacman: colors, parallel downloads and the multilib repo (Steam, Wine).
+    # Edited in place so other repos and options stay as they are.
+    backup /etc/pacman.conf
+    sed -i -e 's/^#Color$/Color/' -e 's/^#ParallelDownloads = .*/ParallelDownloads = 5/' /etc/pacman.conf
+    if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+        sed -i '/^#\[multilib\]$/{s/^#//;n;s/^#//}' /etc/pacman.conf
+    fi
     systemctl daemon-reload
     systemctl enable --now cups.socket avahi-daemon.service bluetooth.service paccache.timer
     systemctl restart systemd-resolved.service 2>/dev/null || true

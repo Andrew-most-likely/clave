@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Software Update: system packages, Flatpaks, then this desktop itself.
+#
+#   macos-update           open a Terminal window and update everything
+#   macos-update --here    update in the current terminal
+#   macos-update --check   print the number of pending package updates
+set -uo pipefail
+
+repo=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/macos-look/repo" 2>/dev/null || echo "$HOME/.local/share/arch-macos-hyprland")
+
+aur_helper() { command -v paru || command -v yay || true; }
+
+case "${1:-}" in
+    --check)
+        n=$(checkupdates 2>/dev/null | wc -l)
+        helper=$(aur_helper)
+        [ -n "$helper" ] && n=$(( n + $("$helper" -Qua 2>/dev/null | wc -l) ))
+        echo "$n"
+        exit 0 ;;
+    --here) ;;
+    *) exec kitty --class macos-floating --title "Software Update" "$0" --here ;;
+esac
+
+step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+
+step "System packages"
+helper=$(aur_helper)
+if [ -n "$helper" ]; then "$helper" -Syu; else sudo pacman -Syu; fi
+
+if command -v flatpak >/dev/null; then
+    step "Flatpak apps"
+    flatpak update -y
+fi
+
+if [ -d "$repo/.git" ]; then
+    step "arch-macos-hyprland"
+    before=$(git -C "$repo" rev-parse HEAD)
+    git -C "$repo" pull --ff-only
+    if [ "$(git -C "$repo" rev-parse HEAD)" != "$before" ]; then
+        git -C "$repo" --no-pager log --oneline "$before"..HEAD
+        "$repo/install.sh" --update
+    else
+        echo "Already up to date."
+    fi
+fi
+
+step "Done"
+read -rn1 -p "Press any key to close."

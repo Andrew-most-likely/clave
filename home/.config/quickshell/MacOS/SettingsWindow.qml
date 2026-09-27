@@ -12,7 +12,7 @@ import qs.DockApp
 // Panes are lists of rows (see paneRows). Each row reads its live value through
 // get() and writes through set(), so a row redraws by itself when the setting
 // changes. Quickshell-side settings live in MacSettings (settings.json); the
-// dock in DockSettings (ml4w-dock/dock.json); the rest go through commands.
+// dock in DockSettings (macos-look/dock.json); the rest go through commands.
 Scope {
     id: root
 
@@ -84,7 +84,7 @@ Scope {
             "echo \"wifi=$(nmcli radio wifi 2>/dev/null)\";" +
             "echo \"bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
             "echo \"chime=$(systemctl is-enabled macos-boot-chime.service 2>/dev/null)\";" +
-            "echo \"wallpaper=$(cat ~/.cache/ml4w/hyprland-dotfiles/current_wallpaper 2>/dev/null)\";" +
+            "echo \"wallpaper=$(cat ~/.config/macos-look/wallpaper 2>/dev/null)\";" +
             "for kv in $(~/.local/bin/macos-idle get); do echo \"idle_$kv\"; done;" +
             "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
             "busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager" +
@@ -105,7 +105,7 @@ Scope {
 
     Process {
         id: wallProc
-        command: ["bash", "-c", "find ~/.config/ml4w/wallpapers -maxdepth 2 -type f "
+        command: ["bash", "-c", "find ~/.local/share/macos-look/wallpapers ~/Pictures/Wallpapers -maxdepth 2 -type f "
             + "\\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) | sort"]
         stdout: StdioCollector {
             onStreamFinished: root.wallpapers = this.text.split("\n").filter(l => l !== "")
@@ -475,15 +475,15 @@ Scope {
                 { "type": "button", "label": "About", "text": "About This Mac",
                   "action": () => root.run(["qs", "ipc", "call", "about", "toggle"]) },
                 { "type": "button", "label": "Software Update", "text": "Check for Updates…",
-                  "action": () => root.run(["bash", "-c", "eval \"$(cat ~/.config/ml4w/settings/installupdates.sh)\""]) },
+                  "action": () => root.run([root.home + "/.local/bin/macos-update"]) },
                 { "type": "button", "label": "App Store", "text": "Open…",
                   "action": () => root.run(["flatpak", "run", "io.github.kolunmi.Bazaar"]) }
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Keyboard Shortcuts", "text": "Show…",
-                  "action": () => root.run([root.home + "/.config/hypr/scripts/keybindings.sh"]) },
-                { "type": "button", "label": "Advanced (ML4W dotfiles settings)", "text": "Open…",
-                  "action": () => root.run(["ml4w-dotfiles-settings"]) }
+                  "action": () => root.run([root.home + "/.local/bin/macos-keybinds"]) },
+                { "type": "button", "label": "Advanced (Hyprland custom.lua)", "text": "Edit…",
+                  "action": () => root.run(["xdg-open", root.home + "/.config/hypr/custom.lua"]) }
             ]}
         ]
         if (id === "controlcenter") return [
@@ -577,7 +577,7 @@ Scope {
                   "set": v => { root.setState("brightness", `${Math.round(v)}`); root.run(["brightnessctl", "set", Math.round(v) + "%"]) } },
                 { "type": "switch", "label": "Night Shift", "sub": "Warmer colors after dark",
                   "get": () => root.st.nightshift === "1",
-                  "set": on => { root.setState("nightshift", on ? "1" : "0"); root.run([root.home + "/.config/ml4w/scripts/ml4w-toggle-hyprsunset"]) } }
+                  "set": on => { root.setState("nightshift", on ? "1" : "0"); root.run([root.home + "/.local/bin/macos-nightshift", on ? "on" : "off"]) } }
             ]})
             return secs
         }
@@ -612,7 +612,7 @@ Scope {
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Lock the screen now", "text": "Lock Screen",
-                  "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-l"]) }
+                  "action": () => root.run([root.home + "/.local/bin/macos-power", "-l"]) }
             ]}
         ]
         if (id === "battery") return [
@@ -764,7 +764,7 @@ Scope {
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Keyboard Shortcuts", "text": "Show…",
-                  "action": () => root.run([root.home + "/.config/hypr/scripts/keybindings.sh"]) }
+                  "action": () => root.run([root.home + "/.local/bin/macos-keybinds"]) }
             ]}
         ]
         if (id === "mouse") return [
@@ -1391,7 +1391,7 @@ Scope {
                                                                     cursorShape: Qt.PointingHandCursor
                                                                     onClicked: {
                                                                         root.setState("wallpaper", modelData)
-                                                                        root.run([root.home + "/.config/ml4w/scripts/ml4w-wallpaper", modelData, "--skip-theming"])
+                                                                        root.run([root.home + "/.local/bin/macos-wallpaper", modelData])
                                                                     }
                                                                 }
                                                             }

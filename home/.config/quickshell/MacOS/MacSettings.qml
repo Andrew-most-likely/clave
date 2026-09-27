@@ -36,11 +36,11 @@ Singleton {
         { "id": "none",           "label": "—",                    "cmd": [] },
         { "id": "missioncontrol", "label": "Mission Control",      "cmd": ["qs", "ipc", "call", "missioncontrol", "toggle"] },
         { "id": "notifications",  "label": "Notification Center",  "cmd": ["swaync-client", "-t", "-sw"] },
-        { "id": "launchpad",      "label": "Launchpad",            "cmd": [home + "/.config/hypr/scripts/macos-launchpad.sh"] },
-        { "id": "spotlight",      "label": "Spotlight",            "cmd": [home + "/.config/hypr/scripts/macos-spotlight.sh"] },
+        { "id": "launchpad",      "label": "Launchpad",            "cmd": [home + "/.local/bin/macos-launchpad"] },
+        { "id": "spotlight",      "label": "Spotlight",            "cmd": [home + "/.local/bin/macos-spotlight"] },
         { "id": "controlcenter",  "label": "Control Center",       "cmd": ["qs", "ipc", "call", "controlcenter", "toggle"] },
         { "id": "displaysleep",   "label": "Put Display to Sleep", "cmd": ["hyprctl", "dispatch", "hl.dsp.dpms({ action = \"disable\" })"] },
-        { "id": "lock",           "label": "Lock Screen",          "cmd": [home + "/.config/ml4w/scripts/ml4w-power", "-l"] }
+        { "id": "lock",           "label": "Lock Screen",          "cmd": [home + "/.local/bin/macos-power", "-l"] }
     ]
 
     function get(group: string, key: string): var {

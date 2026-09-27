@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Clipboard history (cliphist + rofi).
+#   macos-clipboard          pick an entry and copy it
+#   macos-clipboard delete   pick an entry and delete it
+#   macos-clipboard wipe     forget the whole history
+set -euo pipefail
+theme=~/.config/rofi/macos-spotlight.rasi
+pick() { cliphist list | rofi -dmenu -i -p "$1" -theme "$theme" -display-columns 2; }
+case "${1:-}" in
+    delete) sel=$(pick "Delete") && [ -n "$sel" ] && printf '%s' "$sel" | cliphist delete ;;
+    wipe)   cliphist wipe && notify-send -a Clipboard "Clipboard history cleared" ;;
+    *)      sel=$(pick "Clipboard") && [ -n "$sel" ] && printf '%s' "$sel" | cliphist decode | wl-copy ;;
+esac

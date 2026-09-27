@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Sets the desktop picture on every screen (awww) and prepares the lock screen
+# images (hyprlock).
+#
+#   macos-wallpaper IMAGE        IMAGE is a path or a file:// URI
+#   macos-wallpaper --random     a random picture from the wallpaper folders
+#   macos-wallpaper --restore    the last picture (used at login)
+#   macos-wallpaper --current    print the current picture
+#
+# Wallpaper folders: ~/.local/share/macos-look/wallpapers, ~/Pictures/Wallpapers
+set -euo pipefail
+
+state=~/.config/macos-look/wallpaper
+cache=~/.cache/macos-look
+dirs=(~/.local/share/macos-look/wallpapers ~/Pictures/Wallpapers)
+saved=~/.local/share/macos-look/wallpapers/saved
+
+list() { find "${dirs[@]}" -maxdepth 2 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) 2>/dev/null; }
+
+case "${1:-}" in
+    --random)  img=$(list | grep -vxF "$(cat "$state" 2>/dev/null)" | shuf -n1 || true) ;;
+    --restore) img=$(cat "$state" 2>/dev/null || true)
+               [ -f "$img" ] || img=$(list | grep -i 'sonoma' | head -n1 || true)
+               [ -f "$img" ] || img=$(list | head -n1 || true) ;;
+    --current) cat "$state" 2>/dev/null; exit ;;
+    ""|-h|--help) sed -n '2,10p' "$0" | cut -c3-; exit 1 ;;
+    file://*)  img=$(python3 -c 'import sys, urllib.parse as u; print(u.unquote(u.urlparse(sys.argv[1]).path))' "$1") ;;
+    *)         img=$1 ;;
+esac
+[ -n "${img:-}" ] && [ -f "$img" ] || { echo "macos-wallpaper: no image found" >&2; exit 1; }
+img=$(realpath "$img")
+
+# Apps hand over temporary files; keep a copy so the picture survives a reboot.
+case "$img" in
+    /tmp/*|"$HOME"/.cache/*|/run/*)
+        mkdir -p "$saved"
+        cp -f "$img" "$saved/"
+        img="$saved/$(basename "$img")" ;;
+esac
+
+# awww-daemon may still be starting at login.
+for _ in $(seq 50); do awww query >/dev/null 2>&1 && break; sleep 0.1; done
+awww img "$img" --resize crop --transition-type fade --transition-duration 0.6
+
+mkdir -p "$(dirname "$state")" "$cache"
+printf '%s\n' "$img" > "$state"
+
+# Lock screen: a blurred, darker copy for the background. Done in the
+# background because it takes a second on large pictures.
+(
+    magick "$img" -resize 50% -blur 0x30 -fill black -colorize 15% "png:$cache/lock.png.tmp" \
+        && mv -f "$cache/lock.png.tmp" "$cache/lock.png"
+) >/dev/null 2>&1 &

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Launchpad (rofi). Pressing the shortcut again closes it.
+pkill -x rofi || exec rofi -show drun -replace -i -theme ~/.config/rofi/macos-launchpad.rasi

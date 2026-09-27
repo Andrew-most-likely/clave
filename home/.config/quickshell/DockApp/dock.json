@@ -1,31 +1,28 @@
 /*
-Default configuration file for the Quickshell Dock.
+Shipped Dock defaults. Do not edit: updates replace this file.
 
-This file documents the built-in defaults (kept in sync with defaultSettings in
-DockSettings.qml). The dock actually reads, in this order:
+The Dock reads this file, then ~/.config/macos-look/dock.json on top of it.
+System Settings > Desktop & Dock and pinning or unpinning apps write that
+second file. Values missing from both fall back to defaultSettings in
+DockSettings.qml.
 
-  1. ~/.config/ml4w/settings/dock.json    — shipped fallback, holds the dynamic
-                                            state (enabled / autohide / pinned)
-  2. ~/.config/ml4w-dock/dock.json        — user override, merged on top when
-                                            present
-
-Both are merged over the built-in defaults, so a partial file still leaves every
-value defined. The built-in pinned list is empty; the entries below mirror the
-shipped ml4w/settings/dock.json.
+"launchpad" in the pinned list is the Launchpad button; the other entries are
+desktop file IDs (the name of the .desktop file without the extension).
 */
 {
     "dock": {
         "enabled": true,
         "autohide": false,
-        "iconSize": 32,
-        "spacing": 8,
-        "marginBottom": 10,
+        "iconSize": 52,
+        "spacing": 2,
+        "marginBottom": 6,
         "reserveSpace": true,
-        "hideDelay": 400
+        "hideDelay": 400,
+        "showIndicators": true
     },
     "pill": {
-        "radius": 16,
-        "padding": 12,
+        "radius": 20,
+        "padding": 4,
         "animationDuration": 350
     },
     "border": {
@@ -43,9 +40,11 @@ shipped ml4w/settings/dock.json.
     },
     "apps": {
         "pinned": [
+            "org.gnome.Nautilus",
+            "launchpad",
             "firefox",
             "kitty",
-            "org.gnome.Nautilus",
+            "org.gnome.TextEditor",
             "org.gnome.Calculator"
         ]
     }

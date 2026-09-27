@@ -10,7 +10,7 @@ import QtQuick.Layouts
 import qs.DockApp
 
 // macOS-style menu bar: Apple menu, active app name and its menus, status
-// menus (battery, Wi-Fi, sound) and the clock. Replaces the ML4W
+// menus (battery, Wi-Fi, sound) and the clock. Replaces the
 // StatusbarWindow in shell.qml.
 //
 // Every title opens a real dropdown. App menus act on the window that was
@@ -276,12 +276,12 @@ PanelWindow {
             { "type": "sep" },
             { "label": "Force Quit…", "hint": "⌥⌘⎋", "action": () => root.run(["qs", "ipc", "call", "forcequit", "open"]) },
             { "type": "sep" },
-            { "label": "Sleep", "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-s"]) },
-            { "label": "Restart…", "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-r"]) },
-            { "label": "Shut Down…", "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-p"]) },
+            { "label": "Sleep", "action": () => root.run([root.home + "/.local/bin/macos-power", "-s"]) },
+            { "label": "Restart…", "action": () => root.run([root.home + "/.local/bin/macos-power", "-r"]) },
+            { "label": "Shut Down…", "action": () => root.run([root.home + "/.local/bin/macos-power", "-p"]) },
             { "type": "sep" },
-            { "label": "Lock Screen", "hint": "⌃⌘Q", "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-l"]) },
-            { "label": "Log Out " + Quickshell.env("USER") + "…", "hint": "⇧⌘Q", "action": () => root.run([root.home + "/.config/ml4w/scripts/ml4w-power", "-e"]) }
+            { "label": "Lock Screen", "hint": "⌃⌘Q", "action": () => root.run([root.home + "/.local/bin/macos-power", "-l"]) },
+            { "label": "Log Out " + Quickshell.env("USER") + "…", "hint": "⇧⌘Q", "action": () => root.run([root.home + "/.local/bin/macos-power", "-e"]) }
         ]
 
         if (id === "app") return [
@@ -336,7 +336,7 @@ PanelWindow {
             { "type": "sep" },
             { "label": "Find", "hint": "⌘F", "enabled": !term, "action": () => root.sendKeys("CTRL", "F") },
             { "type": "sep" },
-            { "label": "Emoji & Symbols", "hint": "🌐E", "action": () => root.run(["bash", root.home + "/.config/ml4w/settings/emojipicker.sh"]) }
+            { "label": "Emoji & Symbols", "hint": "⌃⌘Space", "action": () => root.run([root.home + "/.local/bin/macos-emoji"]) }
         ]
 
         if (id === "View") {
@@ -746,7 +746,7 @@ PanelWindow {
         BarItem {
             icon: "icons/search.svg"
             iconSize: 15
-            onClicked: root.run([root.home + "/.config/hypr/scripts/macos-spotlight.sh"])
+            onClicked: root.run([root.home + "/.local/bin/macos-spotlight"])
         }
 
         // Control Center (ControlCenter.qml)

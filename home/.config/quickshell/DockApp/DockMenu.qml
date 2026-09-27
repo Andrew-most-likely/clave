@@ -33,12 +33,12 @@ Item {
     Rectangle {
         id: menuBg
         anchors.fill: parent
-        // Same card style as the sidebar's context menus: flat background with
-        // a thin accent border.
+        // macOS context menu: dark translucent card, thin light border,
+        // accent-colored highlight.
         radius: 8
-        color: Theme.background
+        color: Theme.menu
         border.width: 1
-        border.color: Theme.primary
+        border.color: Theme.menuBorder
 
         Column {
             id: menuColumn
@@ -56,7 +56,7 @@ Item {
                     width: menuColumn.width
                     height: 36
                     radius: 4
-                    color: rowMouse.containsMouse ? Theme.primary : "transparent"
+                    color: rowMouse.containsMouse ? Theme.accent : "transparent"
 
                     Behavior on color {
                         ColorAnimation { duration: 200; easing.type: Easing.OutQuint }
@@ -67,7 +67,7 @@ Item {
                         anchors.left: parent.left
                         anchors.leftMargin: 10
                         text: row.modelData.label
-                        color: rowMouse.containsMouse ? Theme.background : Theme.primary
+                        color: rowMouse.containsMouse ? Theme.textOnAccent : Theme.text
                         font.family: Theme.fontFamily
                         font.pixelSize: 14
                         elide: Text.ElideRight

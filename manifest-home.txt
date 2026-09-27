@@ -1,26 +1,22 @@
-# Paths under $HOME captured into home/. Directories are copied recursively.
+# Paths under $HOME that scripts/capture.sh copies back into home/ after you
+# change them on a live system. Directories are copied recursively.
 # "/home/<you>" inside files is stored as __HOME__ and restored on install.
+#
+# Not listed on purpose: files the user owns (hypr/custom.lua, hypr/monitors.lua,
+# hypr/hypridle.conf, kitty/custom.conf, macos-look/*). The repo keeps
+# templates for those; edit them in home/ directly.
 
-# Hyprland (ML4W overrides)
-.config/hypr/custom.lua
-.config/hypr/gestures.lua
+# Hyprland
+.config/hypr/hyprland.lua
+.config/hypr/macos
 .config/hypr/hyprlock.conf
-.config/hypr/conf/autostart.lua
-.config/hypr/conf/ml4w.lua
 .config/hypr/scripts/display-mode.sh
-.config/hypr/scripts/gnome-wallpaper-bridge.sh
-.config/hypr/scripts/macos-launchpad.sh
-.config/hypr/scripts/macos-spotlight.sh
-.config/hypr/scripts/screenshot.sh
-.config/hypr/scripts/set-wallpaper.sh
-.config/hypr/scripts/wallpaper-portal.py
 
-# Quickshell: menu bar, dock, Mission Control, Settings, genie
+# Quickshell: menu bar, dock, Mission Control, System Settings, genie
 .config/quickshell/shell.qml
 .config/quickshell/MacOS
 .config/quickshell/DockApp
-.config/quickshell/CustomTheme/Theme.qml
-.config/quickshell/StatusbarApp/UpdatesModule.qml
+.config/quickshell/CustomTheme
 
 # Launchers, notifications, terminal, fetch
 .config/rofi/config.rasi
@@ -30,26 +26,9 @@
 .config/swaync/config.json
 .config/swaync/style.css
 .config/swaync/themes/macos
-.config/kitty/custom.conf
+.config/kitty/kitty.conf
 .config/fastfetch/config.jsonc
 .config/fastfetch/assets/apple-rainbow.png
-.config/bashrc/25-fastfetch
-.config/waybar/modules.json
-.config/waybar/themes/ml4w-glass-center/config
-
-# ML4W settings
-.config/ml4w/settings/matugen-color
-.config/ml4w/settings/rofi-font.rasi
-.config/ml4w/settings/statusbar
-.config/ml4w/settings/statusbar.json
-.config/ml4w/settings/waybar-disabled
-.config/ml4w/settings/waybar_appmenu.sh
-.config/ml4w/settings/waybar_network.sh
-.config/ml4w/settings/waybar_systray.sh
-.config/ml4w/settings/waybar_window.sh
-.config/ml4w/scripts/ml4w-wallpaper
-.config/ml4w-dock/dock.json
-.config/ml4w-statusbar/statusbar.json
 
 # GTK / Qt / cursor / fonts theming
 .config/gtk-3.0/gtk.css
@@ -62,17 +41,30 @@
 .config/xsettingsd/xsettingsd.conf
 .config/nwg-look/config
 .config/xdg-desktop-portal/hyprland-portals.conf
-.config/environment.d/steam-scaling.conf
 .config/autostart/opensnitch_ui.desktop
 .local/share/flatpak/overrides/global
 
-# macOS look settings + helpers
-.config/macos-look/settings.json
-.config/macos-look/hypr.lua
-.local/bin/macos-idle
+# macOS helpers
 .local/bin/macos-app-info
+.local/bin/macos-clipboard
+.local/bin/macos-emoji
+.local/bin/macos-gtk-apply
+.local/bin/macos-idle
+.local/bin/macos-keybinds
+.local/bin/macos-launchpad
+.local/bin/macos-nightshift
+.local/bin/macos-power
+.local/bin/macos-screenshot
 .local/bin/macos-sound
 .local/bin/macos-sounds-build
+.local/bin/macos-spotlight
+.local/bin/macos-update
+.local/bin/macos-wallpaper
+.local/share/applications/launchpad.desktop
+.local/share/icons/hicolor/scalable/apps/macos-launchpad.svg
+.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.macos.service
+.local/share/xdg-desktop-portal/portals/macos.portal
+.local/share/macos-look/wallpaper-portal.py
 .local/share/macos-look/rebuild-plugins.sh
 .local/share/macos-look/fix-sddm-theme.sh
 .local/share/macos-look/hypr-minimize/build.sh

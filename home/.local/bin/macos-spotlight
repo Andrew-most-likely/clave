@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Spotlight (rofi). Pressing the shortcut again closes it.
+pkill -x rofi || exec rofi -show drun -replace -i -theme ~/.config/rofi/macos-spotlight.rasi

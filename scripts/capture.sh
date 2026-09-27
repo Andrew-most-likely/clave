@@ -33,13 +33,14 @@ copy_tree() {  # copy_tree SRC DEST: copy file or directory, skipping backups an
 }
 
 echo "==> home"
-rm -rf "$repo/home"
+# home/ also holds templates for user-owned files, so only listed paths are replaced.
 grep -vE '^\s*(#|$)' "$repo/manifest-home.txt" | while read -r path; do
     if [ -e "$HOME/$path" ]; then copy_tree "$HOME/$path" "$repo/home/$path"
     else echo "  missing: ~/$path"; fi
 done
 
 echo "==> system (needs sudo to read some files)"
+# system/ holds only captured files.
 rm -rf "$repo/system"
 grep -vE '^\s*(#|$)' "$repo/manifest-system.txt" | while read -r group path; do
     dest="$repo/system/$group$path"

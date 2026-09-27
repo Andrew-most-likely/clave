@@ -1,33 +1,12 @@
 //@ pragma UseQApplication
 
 import Quickshell
-import Quickshell.Io
-import "WelcomeApp"
-import "PowerApp"
-import "SidebarApp"
-import "CalendarApp"
-import "WallpaperApp"
-import "StatusbarApp"
 import "DockApp"
 import "MacOS"
-import "CustomTheme"
 
 ShellRoot {
-    // Test IPC tools: qs ipc show
+    // List the IPC targets: qs ipc show
 
-    IpcHandler {
-        target: "theme-manager" 
-        function reload(): void {
-            Theme.reloadTheme()
-        }
-    }
-
-    WelcomeWindow {}
-    PowerWindow {}
-    SidebarWindow {}
-    CalendarWindow {}
-    WallpaperWindow {}
-    // StatusbarWindow {}  (ML4W bar, replaced by the macOS menu bar)
     // One menu bar per screen. Only the first one answers "qs ipc call menubar".
     Variants {
         model: Quickshell.screens

@@ -1,0 +1,4 @@
+[portal]
+DBusName=org.freedesktop.impl.portal.desktop.macos
+Interfaces=org.freedesktop.impl.portal.Wallpaper
+UseIn=Hyprland

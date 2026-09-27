@@ -10,7 +10,6 @@ desktop  /etc/systemd/resolved.conf.d/no-mdns.conf
 desktop  /etc/systemd/journald.conf.d/size.conf
 desktop  /etc/systemd/zram-generator.conf
 desktop  /etc/bluetooth/main.conf
-desktop  /etc/pacman.conf
 harden   /etc/nftables.conf
 harden   /etc/systemd/system/nftables.service.d/remain.conf
 harden   /etc/sysctl.d/10-userns.conf

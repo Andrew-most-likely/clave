@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Copies the GTK settings from ~/.config/gtk-3.0/settings.ini into gsettings,
+# which GTK4/libadwaita apps and the portals read.
+set -u
+ini=~/.config/gtk-3.0/settings.ini
+[ -f "$ini" ] || exit 0
+get() { sed -n "s/^\s*$1\s*=\s*//p" "$ini" | head -n1; }
+schema=org.gnome.desktop.interface
+dark=$(get gtk-application-prefer-dark-theme)
+[ "$dark" = 0 ] || [ "$dark" = false ] && scheme=prefer-light || scheme=prefer-dark
+gsettings set $schema gtk-theme    "$(get gtk-theme-name)"
+gsettings set $schema icon-theme   "$(get gtk-icon-theme-name)"
+gsettings set $schema cursor-theme "$(get gtk-cursor-theme-name)"
+size=$(get gtk-cursor-theme-size)
+gsettings set $schema cursor-size  "${size:-24}"
+gsettings set $schema font-name    "$(get gtk-font-name)"
+gsettings set $schema color-scheme "$scheme"

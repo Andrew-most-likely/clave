@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Screenshots, macOS style: shutter sound, copied to the clipboard, saved to
+# the Screenshots folder, and a notification with a preview. Click the
+# notification to mark up the picture (satty).
+#
+#   macos-screenshot screen   whole focused screen   (Shift+Super+3)
+#   macos-screenshot area     drag a rectangle        (Shift+Super+4)
+#   macos-screenshot window   focused window          (Shift+Super+5)
+#   macos-screenshot text     copy text in an area (OCR, tesseract)
+#
+# Folder: System Settings > Screenshots, default ~/Pictures/Screenshots.
+set -euo pipefail
+
+dir=$(jq -r '.screenshots.folder // empty' ~/.config/macos-look/settings.json 2>/dev/null || true)
+dir=${dir:-$HOME/Pictures/Screenshots}
+dir=${dir/#\~/$HOME}
+mkdir -p "$dir"
+file="$dir/Screenshot $(date '+%Y-%m-%d at %H.%M.%S').png"
+
+area() { slurp -d -b '#00000040' -c '#ffffffcc' -w 1; }
+
+case "${1:-area}" in
+    screen)
+        output=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')
+        grim -o "$output" "$file" ;;
+    area)
+        geom=$(area) || exit 0
+        grim -g "$geom" "$file" ;;
+    window)
+        geom=$(hyprctl activewindow -j | jq -r 'if .at then "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])" else empty end')
+        [ -n "$geom" ] || exit 0
+        grim -g "$geom" "$file" ;;
+    text)
+        geom=$(area) || exit 0
+        text=$(grim -g "$geom" - | tesseract stdin stdout 2>/dev/null)
+        [ -n "$text" ] || { notify-send -a "Screenshot" "No text found"; exit 0; }
+        printf '%s' "$text" | wl-copy
+        notify-send -a "Screenshot" "Text copied" "$(head -c 120 <<<"$text")"
+        exit 0 ;;
+    *)
+        sed -n '6,9p' "$0" | cut -c3-; exit 1 ;;
+esac
+
+macos-sound screen-capture >/dev/null 2>&1 &
+wl-copy --type image/png < "$file"
+
+action=$(notify-send -a "Screenshot" -i "$file" -h "string:image-path:$file" \
+    -A "default=Mark Up" -A "show=Show in Files" "Screenshot" "$(basename "$file")" || true)
+case "$action" in
+    default) satty --filename "$file" --output-filename "$file" --copy-command wl-copy ;;
+    show)    nautilus --select "$file" ;;
+esac

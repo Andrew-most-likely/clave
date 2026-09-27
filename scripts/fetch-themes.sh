@@ -29,7 +29,7 @@ fi
 
 echo "==> Wallpapers"
 fetch WhiteSur-wallpapers https://github.com/vinceliuice/WhiteSur-wallpapers
-wp="$HOME/.config/ml4w/wallpapers"
+wp="$HOME/.local/share/macos-look/wallpapers"
 mkdir -p "$wp"
 find "$cache/WhiteSur-wallpapers" -path '*4k*' \( -iname '*sonoma*' -o -iname '*ventura*' -o -iname '*monterey*' -o -iname 'WhiteSur*' \) \
      \( -iname '*.jpg' -o -iname '*.png' \) -exec cp -n {} "$wp/" \; 2>/dev/null || true
