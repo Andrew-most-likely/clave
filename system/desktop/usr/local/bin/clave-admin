@@ -1,10 +1,17 @@
 #!/bin/bash
-# The one battery setting that needs root, for System Settings (Quickshell
+# Settings that need root, for System Settings (Quickshell
 # Clave/SettingsWindow.qml). Installed as /usr/local/bin/clave-admin and run
 # through pkexec with no password (polkit action org.clave.admin), so
 # every argument is checked here.
 #
 #   clave-admin charge-limit PERCENT|off   stop charging at PERCENT (50-100)
+#   clave-admin login-background < PNG     login screen background (FEAT-4)
+#   clave-admin login-picture < PNG        login screen picture of the caller
+#
+# The login pictures arrive on stdin as PNG, already converted by clave-prefs
+# as the user. Root never opens a path the user chose and never decodes the
+# image: it checks the size and the PNG signature and copies the bytes to a
+# fixed place, where SDDM reads them.
 #
 # Time settings are not here: System Settings calls timedatectl, and systemd's
 # polkit rules decide (turning automatic time off asks for the password).
@@ -30,6 +37,26 @@ case "${1:-}" in
         else
             echo "clave-admin: bad charge limit: $v" >&2; exit 2
         fi ;;
+    login-background|login-picture)
+        [ -d /usr/share/sddm/themes/clave ] || { echo "clave-admin: the Clave login screen is not installed" >&2; exit 2; }
+        [[ "${PKEXEC_UID:-}" =~ ^[0-9]+$ ]] || { echo "clave-admin: run through pkexec" >&2; exit 2; }
+        max=$((25 * 1024 * 1024))
+        tmp=$(mktemp)
+        trap 'rm -f "$tmp"' EXIT
+        head -c $((max + 1)) > "$tmp"
+        [ "$(stat -c %s "$tmp")" -le "$max" ] || { echo "clave-admin: picture larger than 25 MB" >&2; exit 2; }
+        [ "$(head -c 8 "$tmp" | od -An -tx1 | tr -d ' \n')" = 89504e470d0a1a0a ] \
+            || { echo "clave-admin: not a PNG image" >&2; exit 2; }
+        if [ "$1" = login-background ]; then
+            # Kept in /var/lib/clave too, so reinstalling keeps the choice.
+            dest=/var/lib/clave/login-background.png
+            install -m644 "$tmp" /usr/share/sddm/themes/clave/background.png
+        else
+            dest="/usr/share/sddm/faces/$(id -nu "$PKEXEC_UID").face.icon"
+        fi
+        install -Dm644 "$tmp" "$dest"
+        # uninstall.sh --system removes what is listed here.
+        grep -qxF "$dest" /var/lib/clave/installed-files 2>/dev/null || echo "$dest" >> /var/lib/clave/installed-files ;;
     *)
-        echo "usage: clave-admin charge-limit PERCENT|off" >&2; exit 2 ;;
+        echo "usage: clave-admin charge-limit PERCENT|off | login-background | login-picture" >&2; exit 2 ;;
 esac

@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Lists every Hyprland shortcut that has a description (Super+/).
 set -euo pipefail
-hyprctl binds -j | jq -r '
+# System Settings > Keyboard > Super key symbol.
+glyph=⌘
+[ "$(jq -r '.keyboard.superGlyph // ""' ~/.config/clave/settings.json 2>/dev/null)" = super ] && glyph=❖
+hyprctl binds -j | jq -r --arg super "$glyph" '
     def mods: [ (if .modmask % 2 >= 1 then "⇧" else empty end),
                 (if (.modmask / 4 | floor) % 2 == 1 then "⌃" else empty end),
                 (if (.modmask / 8 | floor) % 2 == 1 then "⌥" else empty end),
-                (if (.modmask / 64 | floor) % 2 == 1 then "⌘" else empty end) ] | join("");
+                (if (.modmask / 64 | floor) % 2 == 1 then $super else empty end) ] | join("");
     .[] | select(.description != "" and (.key | test("^switch:") | not))
         | "\(mods)\(.key | ascii_upcase)\t\(.description)"' \
   | awk -F'\t' '!seen[$0]++ { printf "%-16s %s\n", $1, $2 }' \

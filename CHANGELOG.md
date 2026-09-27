@@ -14,6 +14,9 @@ dotfiles, published as arch-macos-hyprland.
   fonts, a cursor and sounds that you supply.
 - The terminal logo is text now, so it no longer stays on screen after a full-screen program exits.
 - The startup chime is gone.
+- System Settings: login screen background and profile picture, Space numbers in the menu bar (off by default),
+  the Super key symbol (⌘ or ❖), and a list of apps that draw their own title bar buttons. VS Code and Bazaar
+  no longer show two sets of buttons.
 
 - Standalone Hyprland config: `hyprland.lua` plus `clave/*.lua`, with `custom.lua` and `monitors.lua` left to you
 - `clave-*` commands replace the ML4W scripts: power, wallpaper, screenshot, clipboard, emoji, keyboard shortcuts,

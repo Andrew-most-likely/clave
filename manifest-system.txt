@@ -1,7 +1,6 @@
 # Absolute paths captured into system/. Group tag decides which install step owns them.
 # group  path
 look     /etc/pacman.d/hooks/clave-plugins.hook
-look     /etc/systemd/system/clave-boot-chime.service
 look     /etc/plymouth/plymouthd.conf
 look     /etc/sddm.conf.d/theme.conf
 look     /usr/share/icons/default/index.theme

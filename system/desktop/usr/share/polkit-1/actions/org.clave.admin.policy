@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
-<!-- System Settings (clave): change the battery charge limit -->
+<!-- System Settings (clave): battery charge limit, login screen pictures -->
 <policyconfig>
   <action id="org.clave.admin">
-    <description>change the battery charge limit</description>
-    <message>Authentication is required to change the battery charge limit</message>
+    <description>change the battery charge limit or the login screen pictures</description>
+    <message>Authentication is required to change system settings</message>
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>

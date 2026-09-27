@@ -106,7 +106,9 @@ if has look; then
     walls="$home/.local/share/clave/wallpapers"
     bg=$(find "$walls" -maxdepth 1 -iname 'whitesur-dark*' 2>/dev/null | head -n1)
     [ -n "$bg" ] || bg=$(find "$walls" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1)
-    if [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/clave/background.png
+    # A background chosen in System Settings (clave-admin) wins.
+    if [ -f "$state/login-background.png" ]; then install -m644 "$state/login-background.png" /usr/share/sddm/themes/clave/background.png
+    elif [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/clave/background.png
     else magick -size 16x16 xc:'#1e1e22' /usr/share/sddm/themes/clave/background.png; fi
     if personal_on "$home"; then
         personal_fill /usr/share/sddm/themes/clave/Main.qml

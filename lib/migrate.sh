@@ -11,15 +11,10 @@ OLD=macos-look
 # shellcheck disable=SC2034  # read by is_ours in lib/common.sh
 OLD_OURS=(macos/binds.lua MacOS/MenuBar.qml)
 
-# Old name -> new name, for text the user wrote: commands and the layer
-# names that window rules match.
-OLD_NAMES=(
-    macos-mission-control:clave-overview macos-notification-center:clave-notification-center
-    macos-control-center:clave-control-center macos-menubar:clave-menubar
-    macos-hotcorner:clave-hotcorner macos-genie:clave-genie macos-dock:clave-dock
-    macos-launchpad:clave-apps
-    macos-spotlight:clave-search
-    macos-nightshift:clave-nightlight
+# Old name -> new name. Commands in ~/.local/bin, and the layer names that
+# window rules match. Both are updated in text the user wrote.
+OLD_COMMANDS=(
+    macos-launchpad:clave-apps macos-spotlight:clave-search macos-nightshift:clave-nightlight
     macos-app-info:clave-app-info macos-clipboard:clave-clipboard
     macos-displays:clave-displays macos-emoji:clave-emoji
     macos-gtk-apply:clave-gtk-apply macos-idle:clave-idle
@@ -28,6 +23,12 @@ OLD_NAMES=(
     macos-sounds-build:clave-sounds-build macos-sound:clave-sound
     macos-update:clave-update macos-wallpaper:clave-wallpaper
 )
+OLD_LAYERS=(
+    macos-mission-control:clave-overview macos-notification-center:clave-notification-center
+    macos-control-center:clave-control-center macos-menubar:clave-menubar
+    macos-hotcorner:clave-hotcorner macos-genie:clave-genie macos-dock:clave-dock
+)
+OLD_NAMES=("${OLD_COMMANDS[@]}" "${OLD_LAYERS[@]}")
 
 # move_dir OLD NEW: rename a directory, or merge it into NEW without
 # replacing anything already there.
@@ -110,6 +111,33 @@ remove_orphans() {
     [ "$DRY" -eq 1 ] || mv "$keep" "$list"
     rm -f "$keep"
     [ "$n" -eq 0 ] || echo "  removed $n file(s) from the earlier version"
+    remove_old_home_paths
+}
+
+# Files of the old layout that early installs did not record, by name. Only
+# exact names the project used; anything else of the user's stays.
+remove_old_home_paths() {
+    local p pair n=0 paths=(
+        .config/hypr/macos .config/quickshell/MacOS .config/swaync/themes/macos
+        .config/rofi/macos-display.rasi .config/rofi/macos-launchpad.rasi .config/rofi/macos-spotlight.rasi
+        .local/share/applications/launchpad.desktop
+        .local/share/clave/plymouth-macos .local/share/clave/sddm-macos .local/share/clave/boot-chime
+        .local/share/icons/hicolor/scalable/apps/macos-launchpad.svg
+        .local/share/xdg-desktop-portal/portals/macos.portal
+        .local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.macos.service
+    )
+    for pair in "${OLD_COMMANDS[@]}"; do
+        paths+=(".local/bin/${pair%%:*}")
+        for p in "$HOME/.local/bin/__pycache__/${pair%%:*}cpython-"*.pyc; do
+            paths+=("${p#"$HOME/"}")
+        done
+    done
+    for p in "${paths[@]}"; do
+        [ -e "$HOME/$p" ] || [ -L "$HOME/$p" ] || continue
+        run rm -rf "${HOME:?}/$p"
+        n=$((n + 1))
+    done
+    [ "$n" -eq 0 ] || echo "  removed $n file(s) with the old names"
 }
 
 # The home half: config, data, state, cache and the user's sounds.
@@ -136,24 +164,47 @@ migrate_home() {
     migrate_user_text
 }
 
+# System files of the old layout. Installs made before scripts/system.sh kept
+# a record have no list, so these are checked by name as well.
+OLD_SYSTEM_PATHS=(
+    /usr/share/sddm/themes/macos /usr/share/plymouth/themes/macos
+    /usr/local/bin/macos-admin /usr/local/bin/macos-lid /usr/local/bin/macos-usb
+    /usr/share/polkit-1/actions/org.macos-look.admin.policy
+    /usr/share/polkit-1/actions/org.macos-look.lid.policy
+    /usr/share/polkit-1/actions/org.macos-look.usb.policy
+    /etc/systemd/system/macos-boot-chime.service /usr/local/share/sounds/macos-boot-chime.wav
+    /etc/pacman.d/hooks/macos-look-plugins.hook
+)
+
+# restore_or_remove PATH: put back the oldest PATH.bak-*, or remove PATH.
+restore_or_remove() {
+    local bak
+    bak=$(ls -1d "$1".bak-* 2>/dev/null | sort | head -n1)
+    rm -rf "$1"
+    if [ -n "$bak" ]; then mv "$bak" "$1"; echo "  restored $1"; else echo "  removed  $1"; fi
+}
+
 # The system half, run as root by scripts/system.sh. Same idea: files the old
 # install placed that this version does not place are restored or removed.
 # Paths this version still uses carry over into the new record.
 migrate_system() {  # migrate_system NEW_STATE_DIR
-    local old=/var/lib/$OLD f
-    [ -f "$old/installed-files" ] || return 0
+    local old=/var/lib/$OLD f found=0
+    for f in "$old" "${OLD_SYSTEM_PATHS[@]}"; do [ -e "$f" ] && found=1; done
+    [ "$found" -eq 1 ] || return 0
     say "Moving the earlier system install to the Clave names"
     systemctl disable macos-boot-chime.service 2>/dev/null || true
-    while IFS= read -r f; do
-        if compgen -G "$repo/system/*$f" >/dev/null || [[ "$f" == /etc/usbguard/IPCAccessControl.d/* ]]; then
-            grep -qxF "$f" "$1/installed-files" 2>/dev/null || echo "$f" >> "$1/installed-files"
-            continue
-        fi
-        local bak
-        bak=$(ls -1d "$f".bak-* 2>/dev/null | sort | head -n1)
-        rm -rf "$f"
-        if [ -n "$bak" ]; then mv "$bak" "$f"; echo "  restored $f"; else echo "  removed  $f"; fi
-    done < "$old/installed-files"
+    if [ -f "$old/installed-files" ]; then
+        while IFS= read -r f; do
+            if compgen -G "$repo/system/*$f" >/dev/null || [[ "$f" == /etc/usbguard/IPCAccessControl.d/* ]]; then
+                grep -qxF "$f" "$1/installed-files" 2>/dev/null || echo "$f" >> "$1/installed-files"
+                continue
+            fi
+            [ -e "$f" ] && restore_or_remove "$f"
+        done < "$old/installed-files"
+    fi
+    for f in "${OLD_SYSTEM_PATHS[@]}"; do
+        [ -e "$f" ] && restore_or_remove "$f"
+    done
     rm -rf "$old"
     systemctl daemon-reload
 }

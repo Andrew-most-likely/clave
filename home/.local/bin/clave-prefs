@@ -20,8 +20,11 @@ Every "get" prints JSON; everything else changes one setting.
   clave-prefs appearance mode light|dark   GTK 3/4, Qt (Kvantum), icons, flatpak
   clave-prefs appearance accent NAME       blue purple pink red orange yellow green graphite
   clave-prefs appearance text-scale FACTOR
+  clave-prefs loginwindow background FILE|wallpaper   login screen background
+  clave-prefs loginwindow picture FILE                profile picture (also ~/.face)
 
-Root-only changes go through pkexec /usr/local/bin/clave-admin (charge limit) and
+Root-only changes go through pkexec /usr/local/bin/clave-admin (charge limit, login
+pictures) and
 clave-usb (asks for the password); time settings use systemd's own polkit rules.
 """
 import configparser
@@ -353,6 +356,38 @@ def appearance(args):
         sys.exit(__doc__)
 
 
+def loginwindow(args):
+    """Converts the picture as the user, then hands clave-admin the PNG on stdin."""
+    if len(args) != 2 or args[0] not in ("background", "picture"):
+        sys.exit(__doc__)
+    what, src = args
+    if what == "background" and src == "wallpaper":
+        src = read(os.path.join(CONFIG, "clave/wallpaper")).strip()
+    if not os.path.isfile(src):
+        sys.exit(f"no such picture: {src}")
+    if what == "background":
+        size = ["-resize", "3840x2160^"]
+    else:
+        size = ["-thumbnail", "256x256^", "-gravity", "center", "-extent", "256x256"]
+    png = subprocess.run(["magick", src + "[0]", "-auto-orient", *size, "-strip", "png:-"],
+                         capture_output=True)
+    if png.returncode != 0 or not png.stdout:
+        sys.exit(f"cannot read the picture: {png.stderr.decode(errors='replace').strip()}")
+    if what == "picture":
+        face = os.path.join(HOME, ".face")
+        with open(face + ".tmp", "wb") as f:
+            f.write(png.stdout)
+        os.replace(face + ".tmp", face)
+    r = subprocess.run(["pkexec", "/usr/local/bin/clave-admin", "login-" + what],
+                       input=png.stdout, capture_output=True)
+    ok = r.returncode == 0
+    sh("notify-send", "-a", "System Settings",
+       "Login screen updated" if ok else "Login screen not changed",
+       "The new picture shows at the next login." if ok else r.stderr.decode(errors="replace").strip())
+    if not ok:
+        sys.exit(1)
+
+
 def main():
     a = sys.argv[1:]
     cmd, rest = (a[0], a[1:]) if a else ("", [])
@@ -372,6 +407,8 @@ def main():
         login(rest)
     elif cmd == "appearance":
         appearance(rest)
+    elif cmd == "loginwindow":
+        loginwindow(rest)
     else:
         sys.exit(__doc__)
 

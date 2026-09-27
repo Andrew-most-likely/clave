@@ -50,13 +50,28 @@ if bars then
         action = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" })']],
     })
 
-    -- Apps that draw their own title bar (GTK/libadwaita, Firefox, Steam) would
-    -- get two sets of traffic lights.
+    -- Apps that draw their own title bar (GTK/libadwaita, Firefox, Steam,
+    -- VS Code, Bazaar) would get two sets of traffic lights. Hyprland does not
+    -- tell which windows draw their own, so this is a list (ISSUE-1). Users add
+    -- to it in System Settings > Desktop & Dock > Windows.
     hl.window_rule({
         name  = "clave-no-bar-csd",
-        match = { class = "^(firefox|steam|org\\.gnome\\..*|nautilus|.*pavucontrol|blueman-.*|nm-connection-editor|nwg-.*|virt-manager|satty|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1|io\\.elementary\\..*|fsearch|io\\.github\\.cboxdoerfer\\.FSearch)$" },
+        match = { class = "^(firefox|steam|code|code-oss|vscodium|codium|io\\.github\\.kolunmi\\.Bazaar|org\\.gnome\\..*|nautilus|.*pavucontrol|blueman-.*|nm-connection-editor|nwg-.*|virt-manager|satty|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1|io\\.elementary\\..*|fsearch|io\\.github\\.cboxdoerfer\\.FSearch)$" },
         ["hyprbars:no_bar"] = true,
     })
+    local extra = {}
+    for _, class in ipairs(settings.no_bar_apps or {}) do
+        if class:match("^[%w._-]+$") then
+            extra[#extra + 1] = (class:gsub("%.", "\\."))
+        end
+    end
+    if #extra > 0 then
+        hl.window_rule({
+            name  = "clave-no-bar-user",
+            match = { class = "^(" .. table.concat(extra, "|") .. ")$" },
+            ["hyprbars:no_bar"] = true,
+        })
+    end
     hl.window_rule({
         name  = "clave-no-bar-about",
         match = { title = "^About This Computer$" },

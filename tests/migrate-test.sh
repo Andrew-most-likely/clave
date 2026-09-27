@@ -20,6 +20,9 @@ old_name=$(grep -o 'state}/[a-z-]*' "$old/lib/common.sh" | cut -d/ -f2)
 echo "==> install $old_ref"
 run bash "$old/install.sh" --user-only --no-packages --yes >/dev/null
 cfg="$home/.config/$old_name"
+# Early installs recorded only some of their files.
+list="$home/.local/state/$old_name/installed-files"
+head -n 20 "$list" > "$tmp/list" && mv "$tmp/list" "$list"
 [ -f "$cfg/settings.json" ] || fail "old install has no settings.json"
 jq '.search_old = 1 | .display.nightShiftTemp = 3800 | .hotCorners.topLeft = "launchpad"
     | .spotlight = {"web": true}' "$cfg/settings.json" > "$tmp/s" && mv "$tmp/s" "$cfg/settings.json"

@@ -121,6 +121,10 @@ The installer never replaces files you own:
 | `~/.config/clave/` | Everything System Settings saves, including Dock pins and the current wallpaper |
 | `~/.config/clave/branding/logo.svg` | Your own logo for the menu bar, the About window and the boot splash |
 
+System Settings > Lock Screen sets the login screen background and your profile picture. Desktop & Dock
+turns on Space numbers in the menu bar and lists apps that should not get title bar buttons, for apps that
+draw their own. Keyboard switches the Super key symbol in menus between ⌘ and ❖.
+
 See [`examples/`](examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
 
 ## Update

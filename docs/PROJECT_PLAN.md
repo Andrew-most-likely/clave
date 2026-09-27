@@ -176,16 +176,22 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 
 | ID | Feature | Required or optional | Default | Setting |
 |---|---|---|---|---|
-| FEAT-1 | Space numbers in the menu bar (the pane indicator from stock Hyprland) | Optional | Off | Desktop & Dock |
-| FEAT-4 | Login screen background, profile picture and other options | Required | Current look | Lock Screen, or a new Login pane |
+| FEAT-1 | Space numbers in the menu bar (the pane indicator from stock Hyprland) | Optional | Off | Desktop & Dock > Spaces (done) |
+| FEAT-4 | Login screen background and profile picture | Required | Current look | Lock Screen > Login Window (done) |
 | FEAT-5 | Traffic lights on or off for all windows | Optional | On | Desktop & Dock > Windows > Show title bar buttons (done) |
 | FEAT-6 | Replaceable logo (BR-2, BR-10) | Required | Clave keystone | `branding/logo.svg` now, a picker later |
-| FEAT-7 | Modifier key glyph (BR-5) | Required | ⌘ | Keyboard |
+| FEAT-7 | Modifier key glyph (BR-5) | Required | ⌘ | Keyboard > Super key symbol (done) |
 
 Notes on the features:
 
+- **FEAT-1.** The numbers come from Quickshell's Hyprland events, with no polling. While the setting is off,
+  nothing is created. Click a number to go to that Space.
 - **FEAT-4.** SDDM runs as its own user, so settings must be copied to a place SDDM can read. The copy
-  happens when the user saves the setting, through the existing polkit helpers. No new service.
+  happens when the user saves the setting, through the existing polkit helper `clave-admin`. No new service.
+  `clave-prefs` converts the picture to PNG as the user and passes the bytes on stdin. Root checks the size
+  and the PNG signature and copies them to a fixed place. It never opens a path the user chose and never
+  decodes the image. The background is kept in `/var/lib/clave`, so reinstalling keeps it.
+- **FEAT-7.** The choices are ⌘ and ❖. The Windows logo is a Microsoft trademark, so it is not offered.
 - **FEAT-5.** The setting already exists and is on by default. When it is off, the hyprbars plugin is
   unloaded. Separately, a fixed list in `plugins.lua` (`no-bar-csd` rule) hides the bar for apps that draw
   their own. See ISSUE-1.
@@ -205,6 +211,13 @@ simple. The user supplies all files that the project cannot ship.
      or the client-side decoration hint) and skip hyprbars for it.
   2. For apps that can use a system title bar, prefer that. VS Code has `window.titleBarStyle`.
   3. If no general fix works, keep the list and consider making it editable in System Settings.
+
+  Outcome: Hyprland does not expose whether a window draws its own decorations. The xdg-decoration state is
+  private to Hyprland, and GTK4 apps never use that protocol. Reading it would need a hook into Hyprland
+  internals that breaks with Hyprland updates, which fails section 3. So the list stays. VS Code and Bazaar
+  are added to it, and users add more in System Settings > Desktop & Dock > Windows. The list is saved in
+  `settings.json` (`windows.noBarApps`). VS Code users who prefer the system title bar can set
+  `window.titleBarStyle` to `native` and remove `code` from the list.
 - **ISSUE-2 VS Code asks for weaker encryption.** Cause found: `~/.vscode/argv.json` contained
   `"password-store": "basic"`, which forces the weak store. GNOME Keyring already unlocks at login through
   PAM. Fix: set `"password-store": "gnome-libsecret"`. The Flatpak build of VS Code also needs access to

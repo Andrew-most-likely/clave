@@ -599,6 +599,7 @@ PanelWindow {
         property string icon: ""
         property int iconSize: 16
         property bool bold: false
+        property bool dim: false
         property string menuId: ""
         readonly property bool pressed: bi.menuId !== "" && root.openMenu === bi.menuId
         signal clicked(var mouse)
@@ -633,6 +634,7 @@ PanelWindow {
                 font.family: root.fontFamily
                 font.pixelSize: 13
                 font.weight: bi.bold ? Font.Bold : Font.Medium
+                opacity: bi.dim ? 0.5 : 1
             }
             Loader { active: bi.trailing !== null; visible: active; sourceComponent: bi.trailing }
         }
@@ -679,6 +681,32 @@ PanelWindow {
                 ? ["File", "Edit", "View", "Go", "Window", "Help"]
                 : ["File", "Edit", "View", "Window", "Help"]
             BarItem { required property string modelData; label: modelData; menuId: modelData }
+        }
+
+        // Space numbers for this screen (FEAT-1), like stock Hyprland bars
+        // show them. Off by default; while off, nothing is created. Hyprland's
+        // own events keep the list current, so there is no polling.
+        Loader {
+            active: ClaveSettings.get("menubar", "spaceNumbers")
+            visible: active
+            Layout.leftMargin: 8
+            sourceComponent: RowLayout {
+                id: spaces
+                readonly property var monitor: Hyprland.monitorFor(root.screen)
+                spacing: 0
+                Repeater {
+                    model: Hyprland.workspaces
+                    BarItem {
+                        required property var modelData
+                        visible: modelData.id > 0 && modelData.monitor === spaces.monitor
+                        label: modelData.name
+                        implicitWidth: 24
+                        bold: modelData === spaces.monitor?.activeWorkspace
+                        dim: !bold
+                        onClicked: root.hypr(`hl.dsp.focus({ workspace = ${modelData.id} })`)
+                    }
+                }
+            }
         }
     }
 
@@ -1080,7 +1108,7 @@ PanelWindow {
                                     anchors.right: parent.right
                                     anchors.rightMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: row.modelData.hint || ""
+                                    text: (row.modelData.hint || "").replace(/⌘/g, ClaveSettings.superKey)
                                     color: itemRow.hot ? Qt.alpha(Theme.onAccent, 0.85)
                                          : itemRow.enabledItem ? Theme.fgA(0.45) : Theme.fgA(0.2)
                                     font.family: root.fontFamily

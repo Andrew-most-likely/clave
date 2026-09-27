@@ -78,7 +78,6 @@
 .local/share/clave/sddm-clave/metadata.desktop
 .local/share/clave/sddm-clave/theme.conf
 .local/share/clave/sddm-clave/assets
-.local/share/clave/boot-chime/chime.wav
 
 # Housekeeping
 .local/bin/home-cleanup

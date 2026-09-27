@@ -1,8 +1,10 @@
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import qs.CustomTheme
 import QtQuick
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import qs.DockApp
 
@@ -84,7 +86,6 @@ Scope {
             "echo \"brightness=$(brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d %)\";" +
             "echo \"wifi=$(nmcli radio wifi 2>/dev/null)\";" +
             "echo \"bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
-            "echo \"chime=$(systemctl is-enabled clave-boot-chime.service 2>/dev/null)\";" +
             "echo \"wallpaper=$(cat ~/.config/clave/wallpaper 2>/dev/null)\";" +
             "for kv in $(~/.local/bin/clave-idle get); do echo \"idle_$kv\"; done;" +
             "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
@@ -172,6 +173,21 @@ Scope {
     // arrives; single values redraw by themselves.
     property var pd: ({})
     readonly property string prefs: root.home + "/.local/bin/clave-prefs"
+
+    // Picture chooser for the login screen (FEAT-4). "background" or "picture".
+    property string pictureFor: ""
+    function choosePicture(what: string): void {
+        root.pictureFor = what
+        pictureDialog.open()
+    }
+    FileDialog {
+        id: pictureDialog
+        title: root.pictureFor === "background" ? "Choose a login background" : "Choose a profile picture"
+        currentFolder: "file://" + root.home + "/Pictures"
+        nameFilters: ["Pictures (*.jpg *.jpeg *.png *.webp)"]
+        onAccepted: root.run([root.prefs, "loginwindow", root.pictureFor,
+                              decodeURIComponent(`${selectedFile}`.replace(/^file:\/\//, ""))])
+    }
     readonly property var paneData: ({ "security": "usb", "battery": "battery", "datetime": "time",
         "notifications": "notify", "printers": "printers", "login": "login", "appearance": "appearance" })
 
@@ -365,6 +381,16 @@ Scope {
     // shortly after ClaveSettings has written the file.
     Timer { id: hyprReload; interval: 300; onTriggered: root.run(["hyprctl", "reload"]) }
 
+    // Apps that get no traffic lights (ISSUE-1): saved, then Hyprland reloads.
+    function setNoBarApps(list: var): void {
+        ClaveSettings.set("windows", "noBarApps", list)
+        hyprReload.restart()
+    }
+    function openAppClasses(): var {
+        return [...new Set(ToplevelManager.toplevels.values.map(t => t.appId)
+            .filter(c => /^[A-Za-z0-9._-]+$/.test(c)))].sort()
+    }
+
     function setTrafficLights(on: bool): void {
         ClaveSettings.set("windows", "trafficLights", on)
         if (on) {
@@ -520,10 +546,21 @@ Scope {
                     { "type": "switch", "label": "Show indicators for open applications",
                       "get": () => D.settings.dock.showIndicators, "set": on => D.setDockValue("showIndicators", on) }
                 ]},
+                { "title": "Spaces", "rows": [
+                    { "type": "switch", "label": "Show Space numbers in the menu bar", "sub": "Click a number to go to that Space",
+                      "get": () => M.get("menubar", "spaceNumbers"), "set": on => M.set("menubar", "spaceNumbers", on) }
+                ]},
                 { "title": "Windows", "rows": [
                     { "type": "switch", "label": "Show title bar buttons", "sub": "Red, yellow and green buttons on apps without their own title bar",
                       "get": () => M.get("windows", "trafficLights"), "set": on => root.setTrafficLights(on) }
-                ]},
+                ].concat(M.noBarApps().map(c => (
+                    { "type": "button", "label": c, "sub": "Draws its own title bar buttons", "text": "Remove",
+                      "action": () => root.setNoBarApps(M.noBarApps().filter(x => x !== c)) }
+                ))).concat([
+                    { "type": "choice", "label": "App shows two sets of buttons?", "sub": "Pick it while it is open",
+                      "options": root.openAppClasses().filter(c => !M.noBarApps().includes(c)).map(c => ({ "id": c, "label": c })),
+                      "get": () => "", "set": v => root.setNoBarApps(M.noBarApps().concat([v])) }
+                ])},
                 { "title": "Hot Corners", "rows": [
                     corner("topLeft", "Top left"), corner("topRight", "Top right"),
                     corner("bottomLeft", "Bottom left"), corner("bottomRight", "Bottom right")
@@ -590,11 +627,7 @@ Scope {
         ]
         if (id === "sound") return [
             { "title": "Sound Effects", "rows": [
-                { "type": "switch", "label": "Play sound on startup",
-                  "get": () => root.st.chime === "enabled",
-                  "set": on => { root.setState("chime", on ? "enabled" : "disabled")
-                                 root.run(["systemctl", on ? "enable" : "disable", "clave-boot-chime.service"]) } },
-                { "type": "switch", "label": "Play user interface sound effects",
+                { "type": "switch", "label": "Play user interface sound effects", "sub": "Including the login sound",
                   "get": () => M.get("sound", "uiSounds"), "set": on => M.set("sound", "uiSounds", on) }
             ]},
             { "title": "Output", "rows": [
@@ -613,6 +646,14 @@ Scope {
                   "get": () => Number(root.st.idle_display || 0), "set": v => root.setIdle("display", v) },
                 { "type": "choice", "label": "Sleep when inactive", "options": root.idleChoices,
                   "get": () => Number(root.st.idle_sleep || 0), "set": v => root.setIdle("sleep", v) }
+            ]},
+            { "title": "Login Window", "rows": [
+                { "type": "button", "label": "Background", "text": "Use Current Wallpaper",
+                  "action": () => root.run([root.prefs, "loginwindow", "background", "wallpaper"]) },
+                { "type": "button", "label": "", "text": "Choose Picture…",
+                  "action": () => root.choosePicture("background") },
+                { "type": "button", "label": "Profile picture", "text": "Choose Picture…",
+                  "action": () => root.choosePicture("picture") }
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Lock the screen now", "text": "Lock Screen",
@@ -784,7 +825,11 @@ Scope {
                               { "id": "caps:escape", "label": "Escape" }, { "id": "caps:backspace", "label": "Backspace" },
                               { "id": "caps:none", "label": "No Action" }],
                   "get": () => M.get("keyboard", "capsLock"),
-                  "set": v => { M.set("keyboard", "capsLock", v); hyprReload.restart() } }
+                  "set": v => { M.set("keyboard", "capsLock", v); hyprReload.restart() } },
+                { "type": "choice", "label": "Super key symbol", "sub": "Shown in menus and the shortcut list",
+                  "options": [{ "id": "command", "label": "⌘" }, { "id": "super", "label": "❖" }],
+                  "get": () => M.get("keyboard", "superGlyph"),
+                  "set": v => M.set("keyboard", "superGlyph", v) }
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Keyboard Shortcuts", "text": "Show…",
