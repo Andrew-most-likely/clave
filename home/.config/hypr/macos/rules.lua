@@ -9,7 +9,7 @@ end
 
 -- macOS pieces (Quickshell MacOS/)
 float("macos-about",           { title = "^About This Mac$" },            "300 460")
-float("macos-system-settings", { title = "^System Settings$" },           "860 620")
+float("macos-system-settings", { title = "^System Settings$" },           "860 680")
 float("macos-force-quit",      { title = "^Force Quit Applications$" },   "420 440")
 float("macos-app-about",       { class = "^org\\.quickshell$", title = "^About .*" })
 -- Quick Look (sushi): Space in Nautilus

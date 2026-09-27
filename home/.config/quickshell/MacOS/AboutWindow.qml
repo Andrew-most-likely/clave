@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 
@@ -46,7 +47,7 @@ Scope {
 
         FloatingWindow {
             title: "About This Mac"
-            color: "#1e1e1e"
+            color: Theme.window
             implicitWidth: 300
             implicitHeight: 460
             onVisibleChanged: if (!visible) root.open = false
@@ -71,7 +72,7 @@ Scope {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 14
                     text: root.info.model || "MacBook Pro"
-                    color: "#ffffff"
+                    color: Theme.fg
                     font.family: "SF Pro Display"
                     font.pixelSize: 22
                     font.weight: Font.Bold
@@ -80,7 +81,7 @@ Scope {
                     textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     text: root.info.host || ""
-                    color: Qt.rgba(1, 1, 1, 0.55)
+                    color: Theme.fgA(0.55)
                     font.family: "SF Pro Text"
                     font.pixelSize: 12
                 }
@@ -103,7 +104,7 @@ Scope {
                         Text {
                             textFormat: Text.PlainText
                             text: modelData[0]
-                            color: "#ffffff"
+                            color: Theme.fg
                             font.family: "SF Pro Text"
                             font.pixelSize: 12
                             font.weight: Font.DemiBold
@@ -113,7 +114,7 @@ Scope {
                         Text {
                             textFormat: Text.PlainText
                             text: modelData[1] || "…"
-                            color: Qt.rgba(1, 1, 1, 0.7)
+                            color: Theme.fgA(0.7)
                             font.family: "SF Pro Text"
                             font.pixelSize: 12
                             elide: Text.ElideRight
@@ -129,12 +130,12 @@ Scope {
                     implicitWidth: 120
                     implicitHeight: 24
                     radius: 6
-                    color: moreMouse.pressed ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(1, 1, 1, 0.18)
+                    color: moreMouse.pressed ? Theme.fgA(0.3) : Theme.fgA(0.18)
                     Text {
                         textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: "More Info…"
-                        color: "#ffffff"
+                        color: Theme.fg
                         font.family: "SF Pro Text"
                         font.pixelSize: 13
                     }

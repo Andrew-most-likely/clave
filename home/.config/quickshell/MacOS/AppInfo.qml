@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 
@@ -67,7 +68,7 @@ Scope {
 
         FloatingWindow {
             title: "About " + (root.info.name || root.appId)
-            color: "#1e1e1e"
+            color: Theme.window
             implicitWidth: 300
             implicitHeight: 330
             onVisibleChanged: if (!visible) root.aboutOpen = false
@@ -91,7 +92,7 @@ Scope {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 10
                     text: root.info.name || root.appId
-                    color: "#ffffff"
+                    color: Theme.fg
                     font.family: "SF Pro Display"
                     font.pixelSize: 18
                     font.weight: Font.Bold
@@ -101,7 +102,7 @@ Scope {
                     Layout.alignment: Qt.AlignHCenter
                     visible: (root.info.version || "") !== ""
                     text: "Version " + (root.info.version || "")
-                    color: Qt.rgba(1, 1, 1, 0.6)
+                    color: Theme.fgA(0.6)
                     font.family: "SF Pro Text"
                     font.pixelSize: 12
                 }
@@ -112,7 +113,7 @@ Scope {
                     text: root.info.description || ""
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
-                    color: Qt.rgba(1, 1, 1, 0.75)
+                    color: Theme.fgA(0.75)
                     font.family: "SF Pro Text"
                     font.pixelSize: 12
                 }
@@ -122,7 +123,7 @@ Scope {
                     Layout.alignment: Qt.AlignHCenter
                     visible: root.webUrl(root.info.url) !== ""
                     text: root.info.url || ""
-                    color: "#0a84ff"
+                    color: Theme.accent
                     font.family: "SF Pro Text"
                     font.pixelSize: 12
                     elide: Text.ElideMiddle
@@ -138,7 +139,7 @@ Scope {
                     Layout.alignment: Qt.AlignHCenter
                     text: root.info.source === "flatpak" ? "Installed from Flathub"
                         : root.info.source === "pacman" ? "Installed with pacman" : ""
-                    color: Qt.rgba(1, 1, 1, 0.4)
+                    color: Theme.fgA(0.4)
                     font.family: "SF Pro Text"
                     font.pixelSize: 11
                 }

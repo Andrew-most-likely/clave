@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 
@@ -23,8 +24,8 @@ PanelWindow {
     color: "transparent"
     visible: swayncVisible
 
-    readonly property string fontFamily: "SF Pro Text"
-    readonly property color red: "#ff453a"
+    readonly property string fontFamily: Theme.fontFamily
+    readonly property color red: Theme.red
 
     // --- swaync visibility ---
     property bool swayncVisible: false
@@ -63,10 +64,10 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 22
-        color: Qt.rgba(44 / 255, 44 / 255, 46 / 255, 0.82)
+        radius: Theme.radiusPanel
+        color: Theme.card
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.10)
+        border.color: Theme.border
 
         RowLayout {
             anchors.fill: parent
@@ -90,7 +91,7 @@ PanelWindow {
                 Text {
                     textFormat: Text.PlainText
                     text: Qt.formatDate(root.today, "d")
-                    color: "#ffffff"
+                    color: Theme.fg
                     font.family: "SF Pro Display"
                     font.pixelSize: 44
                     font.weight: Font.Normal
@@ -100,7 +101,7 @@ PanelWindow {
                 Text {
                     textFormat: Text.PlainText
                     text: "No events today"
-                    color: Qt.rgba(235 / 255, 235 / 255, 245 / 255, 0.55)
+                    color: Theme.secondary
                     font.family: root.fontFamily
                     font.pixelSize: 12
                 }
@@ -135,7 +136,7 @@ PanelWindow {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
                             text: modelData
-                            color: Qt.rgba(235 / 255, 235 / 255, 245 / 255, 0.55)
+                            color: Theme.secondary
                             font.family: root.fontFamily
                             font.pixelSize: 9
                             font.weight: Font.DemiBold
@@ -159,7 +160,7 @@ PanelWindow {
                                 textFormat: Text.PlainText
                                 anchors.centerIn: parent
                                 text: parent.modelData > 0 ? parent.modelData : ""
-                                color: "#ffffff"
+                                color: Theme.fg
                                 font.family: root.fontFamily
                                 font.pixelSize: 10
                                 font.weight: parent.isToday ? Font.Bold : Font.Medium

@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 
@@ -85,7 +86,7 @@ Scope {
 
         FloatingWindow {
             title: "Force Quit Applications"
-            color: "#1e1e1e"
+            color: Theme.window
             implicitWidth: 420
             implicitHeight: 440
             onVisibleChanged: if (!visible) root.open = false
@@ -100,7 +101,7 @@ Scope {
                     Layout.fillWidth: true
                     text: "If an app doesn't respond for a while, select its name and click Force Quit."
                     wrapMode: Text.WordWrap
-                    color: "#ffffff"
+                    color: Theme.fg
                     font.family: "SF Pro Text"
                     font.pixelSize: 13
                 }
@@ -109,8 +110,8 @@ Scope {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: 6
-                    color: "#2a2a2c"
-                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                    color: Theme.group
+                    border.color: Theme.fgA(0.1)
                     clip: true
 
                     ListView {
@@ -122,8 +123,8 @@ Scope {
                             required property var modelData
                             width: ListView.view.width
                             height: 30
-                            radius: 5
-                            color: root.selected === modelData.key ? "#0a84ff" : "transparent"
+                            radius: Theme.radiusRow
+                            color: root.selected === modelData.key ? Theme.accent : "transparent"
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 8
@@ -139,7 +140,7 @@ Scope {
                                     textFormat: Text.PlainText
                                     Layout.fillWidth: true
                                     text: modelData.name
-                                    color: "#ffffff"
+                                    color: Theme.fg
                                     font.family: "SF Pro Text"
                                     font.pixelSize: 13
                                     elide: Text.ElideRight
@@ -158,7 +159,7 @@ Scope {
                     textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: "You can open this window by pressing Super-Alt-Escape."
-                    color: Qt.rgba(1, 1, 1, 0.5)
+                    color: Theme.fgA(0.5)
                     font.family: "SF Pro Text"
                     font.pixelSize: 11
                 }
@@ -169,12 +170,12 @@ Scope {
                     implicitHeight: 26
                     radius: 6
                     readonly property bool usable: root.selected !== ""
-                    color: usable ? (fqMouse.pressed ? "#0063d1" : "#0a84ff") : Qt.rgba(1, 1, 1, 0.12)
+                    color: usable ? (fqMouse.pressed ? Qt.darker(Theme.accent, 1.2) : Theme.accent) : Theme.fgA(0.12)
                     Text {
                         textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: "Force Quit"
-                        color: parent.usable ? "#ffffff" : Qt.rgba(1, 1, 1, 0.4)
+                        color: parent.usable ? Theme.onAccent : Theme.fgA(0.4)
                         font.family: "SF Pro Text"
                         font.pixelSize: 13
                     }

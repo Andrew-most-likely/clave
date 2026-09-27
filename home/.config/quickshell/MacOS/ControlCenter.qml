@@ -6,6 +6,7 @@ import Quickshell.Widgets
 import Quickshell.Bluetooth
 import Quickshell.Services.Pipewire
 import Quickshell.Services.Mpris
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -36,8 +37,8 @@ PanelWindow {
     color: "transparent"
     visible: root.shown || fadeOut.running
 
-    readonly property string fontFamily: "SF Pro Text"
-    readonly property color accent: "#0a84ff"
+    readonly property string fontFamily: Theme.fontFamily
+    readonly property color accent: Theme.accent
     readonly property string home: Quickshell.env("HOME")
 
     property bool shown: false
@@ -181,9 +182,9 @@ PanelWindow {
     // PIECES
     // ==========================================
     component Module: Rectangle {
-        radius: 14
-        color: Qt.rgba(1, 1, 1, 0.09)
-        border.color: Qt.rgba(1, 1, 1, 0.08)
+        radius: Theme.radiusCard
+        color: Theme.fgA(0.09)
+        border.color: Theme.fgA(0.08)
         border.width: 1
     }
 
@@ -196,7 +197,7 @@ PanelWindow {
         implicitWidth: size
         implicitHeight: size
         radius: size / 2
-        color: on ? root.accent : Qt.rgba(1, 1, 1, circleMouse.containsMouse ? 0.24 : 0.16)
+        color: on ? root.accent : Theme.fgA(circleMouse.containsMouse ? 0.24 : 0.16)
         Behavior on color { ColorAnimation { duration: 140 } }
         Image {
             anchors.centerIn: parent
@@ -216,7 +217,7 @@ PanelWindow {
 
     component Label: Text {
         textFormat: Text.PlainText
-        color: "#ffffff"
+        color: Theme.fg
         font.family: root.fontFamily
         font.pixelSize: 13
         font.weight: Font.DemiBold
@@ -225,7 +226,7 @@ PanelWindow {
 
     component Detail: Text {
         textFormat: Text.PlainText
-        color: Qt.rgba(1, 1, 1, 0.55)
+        color: Theme.fgA(0.55)
         font.family: root.fontFamily
         font.pixelSize: 11
         elide: Text.ElideRight
@@ -260,7 +261,7 @@ PanelWindow {
         signal moved(real v)
         implicitHeight: 24
         radius: height / 2
-        color: Qt.rgba(1, 1, 1, 0.14)
+        color: Theme.fgA(0.14)
         Rectangle {
             width: Math.max(sl.height, sl.width * Math.min(1, sl.value))
             height: sl.height
@@ -295,9 +296,9 @@ PanelWindow {
     Rectangle {
         id: panel
         anchors.fill: parent
-        radius: 18
-        color: Qt.rgba(0.13, 0.13, 0.14, 0.62)
-        border.color: Qt.rgba(1, 1, 1, 0.14)
+        radius: Theme.radiusPanel
+        color: Theme.panel
+        border.color: Theme.border
         border.width: 1
 
         opacity: root.shown ? 1 : 0
@@ -395,7 +396,7 @@ PanelWindow {
                             Circle {
                                 icon: "icons/moon.svg"
                                 on: root.dnd
-                                color: root.dnd ? "#5e5ce6" : Qt.rgba(1, 1, 1, 0.16)
+                                color: root.dnd ? "#5e5ce6" : Theme.fgA(0.16)
                                 onClicked: {
                                     root.dnd = !root.dnd
                                     root.run(["swaync-client", root.dnd ? "-dn" : "-df"])
@@ -425,7 +426,7 @@ PanelWindow {
                                     Layout.alignment: Qt.AlignHCenter
                                     icon: "icons/nightshift.svg"
                                     on: root.nightShift
-                                    color: root.nightShift ? "#ff9f0a" : Qt.rgba(1, 1, 1, 0.16)
+                                    color: root.nightShift ? "#ff9f0a" : Theme.fgA(0.16)
                                     onClicked: {
                                         root.nightShift = !root.nightShift
                                         if (root.nightShift)
@@ -437,7 +438,7 @@ PanelWindow {
                                 Detail {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: "Night Shift"
-                                    color: "#ffffff"
+                                    color: Theme.fg
                                     font.pixelSize: 10
                                 }
                             }
@@ -461,7 +462,7 @@ PanelWindow {
                                 Detail {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: "Mirroring"
-                                    color: "#ffffff"
+                                    color: Theme.fg
                                     font.pixelSize: 10
                                 }
                             }
@@ -525,7 +526,7 @@ PanelWindow {
                         Layout.preferredWidth: 44
                         Layout.preferredHeight: 44
                         radius: 8
-                        color: Qt.rgba(1, 1, 1, 0.12)
+                        color: Theme.fgA(0.12)
                         Image {
                             anchors.fill: parent
                             source: root.artUrl

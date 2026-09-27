@@ -176,7 +176,7 @@ Item {
         height: 4
         width: 4
         radius: 2
-        color: Qt.rgba(1, 1, 1, 0.8)
+        color: Theme.fgA(0.8)
         opacity: item.running && DockSettings.settings.dock.showIndicators ? 1 : 0
 
         Behavior on width {
@@ -250,10 +250,10 @@ Item {
             anchors.centerIn: parent
             implicitWidth: tooltipText.implicitWidth + 20
             implicitHeight: tooltipText.implicitHeight + 12
-            radius: 6
-            color: Qt.rgba(0.12, 0.12, 0.12, 0.92)
+            radius: Theme.radiusControl
+            color: Theme.tooltip
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.15)
+            border.color: Theme.border
 
             Text {
                 textFormat: Text.PlainText
@@ -262,7 +262,7 @@ Item {
                 text: item.windows.length > 1
                     ? item.appName + " (" + item.windows.length + ")"
                     : item.appName
-                color: "#ffffff"
+                color: Theme.fg
                 font.family: "SF Pro Text"
                 font.pixelSize: 13
             }

@@ -5,6 +5,7 @@ import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Services.Pipewire
 import Quickshell.Services.SystemTray
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 import qs.DockApp
@@ -29,11 +30,11 @@ PanelWindow {
     anchors { top: true; left: true; right: true }
     implicitHeight: 30
     exclusiveZone: 30
-    color: Qt.rgba(0, 0, 0, 0.25)
+    color: Theme.dark ? Qt.rgba(0, 0, 0, 0.25) : Qt.rgba(1, 1, 1, 0.35)
 
-    readonly property string fontFamily: "SF Pro Text"
-    readonly property color fg: "#ffffff"
-    readonly property color accent: "#0a84ff"
+    readonly property string fontFamily: Theme.fontFamily
+    readonly property color fg: Theme.fg
+    readonly property color accent: Theme.accent
     readonly property string home: Quickshell.env("HOME")
     readonly property var hiddenTrayIds: ["nm-applet", "blueman"]
 
@@ -72,6 +73,32 @@ PanelWindow {
 
     function hyprToplevels(): var {
         return Hyprland.toplevels.values
+    }
+
+    // Audio device names without the part they all share: "Raptor Lake-P/U/H
+    // cAVS Speaker" and "… HDMI / DisplayPort 1 Output" become "Speaker" and
+    // "HDMI / DisplayPort 1 Output", as macOS lists them.
+    function deviceNames(nodes: var): var {
+        const names = nodes.map(n => `${n.description || n.nickname || n.name}`)
+        if (names.length < 2)
+            return names
+        let prefix = names[0]
+        for (let i = 1; i < names.length; i++)
+            while (!names[i].startsWith(prefix))
+                prefix = prefix.slice(0, -1)
+        const cut = prefix.lastIndexOf(" ") + 1
+        return names.map(n => cut > 0 && n.length > cut ? n.slice(cut) : n)
+    }
+
+    // The shortcut as macOS writes it (⌃⌥⇧⌘ order), for the keys that are
+    // really sent: menu hints show what you can press yourself.
+    function keyHint(mods: string, key: string): string {
+        const m = mods.split(" ")
+        const names = { "comma": ",", "equal": "+", "minus": "−", "BackSpace": "⌫", "Delete": "⌦",
+                        "Return": "↩", "Left": "←", "Right": "→", "Up": "↑", "Down": "↓", "period": "." }
+        return (m.includes("CTRL") ? "⌃" : "") + (m.includes("ALT") ? "⌥" : "")
+            + (m.includes("SHIFT") ? "⇧" : "") + (m.includes("SUPER") ? "⌘" : "")
+            + (names[key] || key.toUpperCase())
     }
 
     // Sends a key combination to the menu's target window.
@@ -250,6 +277,11 @@ PanelWindow {
         }
         function close(): void { root.closeMenu() }
         function isOpen(): string { return root.openMenu }
+        // Keyboard shortcuts (hypr/macos/binds.lua): ⌘H, ⌥⌘H, ⌘Q on the
+        // focused app. No arguments: the target is always the focused window.
+        function hide(): void { if (root.activeAppId !== "") root.hideApp(root.activeAppId) }
+        function hideOthers(): void { root.hideOthers(root.activeAppId) }
+        function quit(): void { if (root.activeAppId !== "") root.quitApp(root.activeAppId) }
     }
 
     // ==========================================
@@ -281,13 +313,13 @@ PanelWindow {
             { "label": "Shut Down…", "action": () => root.run([root.home + "/.local/bin/macos-power", "-p"]) },
             { "type": "sep" },
             { "label": "Lock Screen", "hint": "⌃⌘Q", "action": () => root.run([root.home + "/.local/bin/macos-power", "-l"]) },
-            { "label": "Log Out " + Quickshell.env("USER") + "…", "hint": "⇧⌘Q", "action": () => root.run([root.home + "/.local/bin/macos-power", "-e"]) }
+            { "label": "Log Out " + root.fullName + "…", "action": () => root.run([root.home + "/.local/bin/macos-power", "-e"]) }
         ]
 
         if (id === "app") return [
             { "label": "About " + name, "enabled": t.appId !== "", "action": () => root.run(["qs", "ipc", "call", "appinfo", "about", t.appId]) },
             { "type": "sep" },
-            { "label": "Settings…", "hint": "⌘,", "enabled": t.appId !== "",
+            { "label": "Settings…", "hint": term ? root.keyHint("CTRL SHIFT", "F2") : root.keyHint("CTRL", "comma"), "enabled": t.appId !== "",
               "action": () => term ? root.sendKeys("CTRL SHIFT", "F2") : root.sendKeys("CTRL", "comma") },
             { "type": "sep" },
             { "label": "Hide " + name, "hint": "⌘H", "enabled": t.appId !== "", "action": () => root.hideApp(t.appId) },
@@ -299,42 +331,42 @@ PanelWindow {
 
         if (id === "File") {
             if (finder) return [
-                { "label": "New Finder Window", "hint": "⌘N", "action": () => root.openFolder(root.home) },
-                { "label": "New Folder", "hint": "⇧⌘N", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL SHIFT", "N") },
-                { "label": "New Tab", "hint": "⌘T", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "T") },
+                { "label": "New Finder Window", "action": () => root.openFolder(root.home) },
+                { "label": "New Folder", "hint": root.keyHint("CTRL SHIFT", "N"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL SHIFT", "N") },
+                { "label": "New Tab", "hint": root.keyHint("CTRL", "T"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "T") },
                 { "type": "sep" },
                 { "label": "Close Window", "hint": "⌘W", "enabled": t.appId !== "", "action": () => root.windowDispatch("close", "") },
                 { "type": "sep" },
-                { "label": "Get Info", "hint": "⌘I", "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Return") },
+                { "label": "Get Info", "hint": root.keyHint("ALT", "Return"), "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Return") },
                 { "label": "Rename", "enabled": t.appId !== "", "action": () => root.sendKeys("", "F2") },
                 { "type": "sep" },
-                { "label": "Move to Trash", "hint": "⌘⌫", "enabled": t.appId !== "", "action": () => root.sendKeys("", "Delete") },
+                { "label": "Move to Trash", "hint": root.keyHint("", "Delete"), "enabled": t.appId !== "", "action": () => root.sendKeys("", "Delete") },
                 { "type": "sep" },
-                { "label": "Find", "hint": "⌘F", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "F") }
+                { "label": "Find", "hint": root.keyHint("CTRL", "F"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "F") }
             ]
             return [
-                { "label": "New Window", "hint": "⌘N", "action": () => term ? root.sendKeys("CTRL SHIFT", "N") : root.sendKeys("CTRL", "N") },
-                { "label": "New Tab", "hint": "⌘T", "action": () => term ? root.sendKeys("CTRL SHIFT", "T") : root.sendKeys("CTRL", "T") },
-                { "label": "Open…", "hint": "⌘O", "enabled": !term, "action": () => root.sendKeys("CTRL", "O") },
+                { "label": "New Window", "hint": term ? root.keyHint("CTRL SHIFT", "N") : root.keyHint("CTRL", "N"), "action": () => term ? root.sendKeys("CTRL SHIFT", "N") : root.sendKeys("CTRL", "N") },
+                { "label": "New Tab", "hint": term ? root.keyHint("CTRL SHIFT", "T") : root.keyHint("CTRL", "T"), "action": () => term ? root.sendKeys("CTRL SHIFT", "T") : root.sendKeys("CTRL", "T") },
+                { "label": "Open…", "hint": root.keyHint("CTRL", "O"), "enabled": !term, "action": () => root.sendKeys("CTRL", "O") },
                 { "type": "sep" },
-                { "label": "Close Tab", "hint": "⌘W", "action": () => term ? root.sendKeys("CTRL SHIFT", "W") : root.sendKeys("CTRL", "W") },
-                { "label": "Close Window", "hint": "⇧⌘W", "action": () => root.windowDispatch("close", "") },
-                { "label": "Save", "hint": "⌘S", "enabled": !term, "action": () => root.sendKeys("CTRL", "S") },
+                { "label": "Close Tab", "hint": term ? root.keyHint("CTRL SHIFT", "W") : root.keyHint("CTRL", "W"), "action": () => term ? root.sendKeys("CTRL SHIFT", "W") : root.sendKeys("CTRL", "W") },
+                { "label": "Close Window", "hint": "⌘W", "action": () => root.windowDispatch("close", "") },
+                { "label": "Save", "hint": root.keyHint("CTRL", "S"), "enabled": !term, "action": () => root.sendKeys("CTRL", "S") },
                 { "type": "sep" },
-                { "label": "Print…", "hint": "⌘P", "enabled": !term, "action": () => root.sendKeys("CTRL", "P") }
+                { "label": "Print…", "hint": root.keyHint("CTRL", "P"), "enabled": !term, "action": () => root.sendKeys("CTRL", "P") }
             ]
         }
 
         if (id === "Edit") return [
-            { "label": "Undo", "hint": "⌘Z", "enabled": !term, "action": () => root.sendKeys("CTRL", "Z") },
-            { "label": "Redo", "hint": "⇧⌘Z", "enabled": !term, "action": () => root.sendKeys("CTRL SHIFT", "Z") },
+            { "label": "Undo", "hint": root.keyHint("CTRL", "Z"), "enabled": !term, "action": () => root.sendKeys("CTRL", "Z") },
+            { "label": "Redo", "hint": root.keyHint("CTRL SHIFT", "Z"), "enabled": !term, "action": () => root.sendKeys("CTRL SHIFT", "Z") },
             { "type": "sep" },
-            { "label": "Cut", "hint": "⌘X", "enabled": !term, "action": () => root.sendKeys("CTRL", "X") },
-            { "label": "Copy", "hint": "⌘C", "action": () => term ? root.sendKeys("CTRL SHIFT", "C") : root.sendKeys("CTRL", "C") },
-            { "label": "Paste", "hint": "⌘V", "action": () => term ? root.sendKeys("CTRL SHIFT", "V") : root.sendKeys("CTRL", "V") },
-            { "label": "Select All", "hint": "⌘A", "enabled": !term, "action": () => root.sendKeys("CTRL", "A") },
+            { "label": "Cut", "hint": root.keyHint("CTRL", "X"), "enabled": !term, "action": () => root.sendKeys("CTRL", "X") },
+            { "label": "Copy", "hint": term ? root.keyHint("CTRL SHIFT", "C") : root.keyHint("CTRL", "C"), "action": () => term ? root.sendKeys("CTRL SHIFT", "C") : root.sendKeys("CTRL", "C") },
+            { "label": "Paste", "hint": term ? root.keyHint("CTRL SHIFT", "V") : root.keyHint("CTRL", "V"), "action": () => term ? root.sendKeys("CTRL SHIFT", "V") : root.sendKeys("CTRL", "V") },
+            { "label": "Select All", "hint": root.keyHint("CTRL", "A"), "enabled": !term, "action": () => root.sendKeys("CTRL", "A") },
             { "type": "sep" },
-            { "label": "Find", "hint": "⌘F", "enabled": !term, "action": () => root.sendKeys("CTRL", "F") },
+            { "label": "Find", "hint": root.keyHint("CTRL", "F"), "enabled": !term, "action": () => root.sendKeys("CTRL", "F") },
             { "type": "sep" },
             { "label": "Emoji & Symbols", "hint": "⌃⌘Space", "action": () => root.run([root.home + "/.local/bin/macos-emoji"]) }
         ]
@@ -343,17 +375,17 @@ PanelWindow {
             let v = []
             if (finder)
                 v = [
-                    { "label": "as Icons", "hint": "⌘1", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "1") },
-                    { "label": "as List", "hint": "⌘2", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "2") },
+                    { "label": "as Icons", "hint": root.keyHint("CTRL", "1"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "1") },
+                    { "label": "as List", "hint": root.keyHint("CTRL", "2"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "2") },
                     { "type": "sep" },
-                    { "label": "Show Hidden Files", "hint": "⇧⌘.", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "H") },
+                    { "label": "Show Hidden Files", "hint": root.keyHint("CTRL", "H"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "H") },
                     { "type": "sep" }
                 ]
             else
                 v = [
-                    { "label": "Actual Size", "hint": "⌘0", "action": () => term ? root.sendKeys("CTRL SHIFT", "BackSpace") : root.sendKeys("CTRL", "0") },
-                    { "label": "Zoom In", "hint": "⌘+", "action": () => term ? root.sendKeys("CTRL SHIFT", "equal") : root.sendKeys("CTRL", "equal") },
-                    { "label": "Zoom Out", "hint": "⌘−", "action": () => term ? root.sendKeys("CTRL SHIFT", "minus") : root.sendKeys("CTRL", "minus") },
+                    { "label": "Actual Size", "hint": term ? root.keyHint("CTRL SHIFT", "BackSpace") : root.keyHint("CTRL", "0"), "action": () => term ? root.sendKeys("CTRL SHIFT", "BackSpace") : root.sendKeys("CTRL", "0") },
+                    { "label": "Zoom In", "hint": term ? root.keyHint("CTRL SHIFT", "equal") : root.keyHint("CTRL", "equal"), "action": () => term ? root.sendKeys("CTRL SHIFT", "equal") : root.sendKeys("CTRL", "equal") },
+                    { "label": "Zoom Out", "hint": term ? root.keyHint("CTRL SHIFT", "minus") : root.keyHint("CTRL", "minus"), "action": () => term ? root.sendKeys("CTRL SHIFT", "minus") : root.sendKeys("CTRL", "minus") },
                     { "type": "sep" }
                 ]
             return v.concat([
@@ -363,18 +395,18 @@ PanelWindow {
         }
 
         if (id === "Go") return [
-            { "label": "Back", "hint": "⌘[", "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Left") },
-            { "label": "Forward", "hint": "⌘]", "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Right") },
-            { "label": "Enclosing Folder", "hint": "⌘↑", "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Up") },
+            { "label": "Back", "hint": root.keyHint("ALT", "Left"), "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Left") },
+            { "label": "Forward", "hint": root.keyHint("ALT", "Right"), "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Right") },
+            { "label": "Enclosing Folder", "hint": root.keyHint("ALT", "Up"), "enabled": t.appId !== "", "action": () => root.sendKeys("ALT", "Up") },
             { "type": "sep" },
-            { "label": "Recents", "hint": "⇧⌘F", "action": () => root.openFolder("recent:///") },
-            { "label": "Documents", "hint": "⇧⌘O", "action": () => root.openFolder(root.home + "/Documents") },
-            { "label": "Desktop", "hint": "⇧⌘D", "action": () => root.openFolder(root.home + "/Desktop") },
-            { "label": "Downloads", "hint": "⌥⌘L", "action": () => root.openFolder(root.home + "/Downloads") },
-            { "label": "Home", "hint": "⇧⌘H", "action": () => root.openFolder(root.home) },
-            { "label": "Network", "hint": "⇧⌘K", "action": () => root.openFolder("network:///") },
+            { "label": "Recents", "action": () => root.openFolder("recent:///") },
+            { "label": "Documents", "action": () => root.openFolder(root.home + "/Documents") },
+            { "label": "Desktop", "action": () => root.openFolder(root.home + "/Desktop") },
+            { "label": "Downloads", "action": () => root.openFolder(root.home + "/Downloads") },
+            { "label": "Home", "action": () => root.openFolder(root.home) },
+            { "label": "Network", "action": () => root.openFolder("network:///") },
             { "type": "sep" },
-            { "label": "Go to Folder…", "hint": "⇧⌘G", "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "L") }
+            { "label": "Go to Folder…", "hint": root.keyHint("CTRL", "L"), "enabled": t.appId !== "", "action": () => root.sendKeys("CTRL", "L") }
         ]
 
         if (id === "Window") {
@@ -400,7 +432,7 @@ PanelWindow {
         if (id === "Help") return [
             { "label": name + " Help", "enabled": t.appId !== "", "action": () => root.run(["qs", "ipc", "call", "appinfo", "help", t.appId]) },
             { "type": "sep" },
-            { "label": "Keyboard Shortcuts", "action": () => root.run([root.home + "/.config/hypr/scripts/keybindings.sh"]) }
+            { "label": "Keyboard Shortcuts", "hint": "⌘/", "action": () => root.run([root.home + "/.local/bin/macos-keybinds"]) }
         ]
 
         if (id === "battery") {
@@ -428,15 +460,17 @@ PanelWindow {
             const others = nets.filter(n => !n.active)
             if (current.length > 0) {
                 m.push({ "type": "header", "label": "Known Network" })
-                m.push({ "label": current[0].ssid, "checked": true, "hint": current[0].secure ? "🔒" : "" })
+                m.push({ "label": current[0].ssid, "checked": true, "hint": root.wifiHint(current[0]) })
             }
             if (others.length > 0) {
                 m.push({ "type": "header", "label": "Other Networks" })
                 for (let i = 0; i < Math.min(others.length, 8); i++) {
                     const ssid = others[i].ssid
-                    m.push({ "label": ssid, "hint": others[i].secure ? "🔒" : "",
-                             "action": () => root.run(["kitty", "--class", "macos-wifi-connect", "-e",
-                                                       "nmcli", "--ask", "device", "wifi", "connect", ssid]) })
+                    // NetworkManager asks for the password through its own
+                    // agent (nm-applet), which keeps it in the keyring: this
+                    // shell never sees it.
+                    m.push({ "label": ssid, "hint": root.wifiHint(others[i]),
+                             "action": () => root.run(["nmcli", "device", "wifi", "connect", ssid]) })
                 }
             }
             m.push({ "type": "sep" })
@@ -453,11 +487,25 @@ PanelWindow {
                 { "type": "header", "label": "Output" }
             ]
             const sinks = Pipewire.nodes.values.filter(n => n.isSink && !n.isStream && n.audio)
+            const sinkNames = root.deviceNames(sinks)
             for (let i = 0; i < sinks.length; i++) {
                 const node = sinks[i]
-                m.push({ "label": node.description || node.nickname || node.name,
+                m.push({ "label": sinkNames[i],
                          "checked": node === Pipewire.defaultAudioSink,
                          "action": () => { Pipewire.preferredDefaultAudioSink = node } })
+            }
+            const sources = Pipewire.nodes.values.filter(n => !n.isSink && !n.isStream && n.audio
+                                                         && !`${n.name}`.endsWith(".monitor"))
+            if (sources.length > 0) {
+                m.push({ "type": "sep" })
+                m.push({ "type": "header", "label": "Input" })
+                const sourceNames = root.deviceNames(sources)
+                for (let i = 0; i < sources.length; i++) {
+                    const node = sources[i]
+                    m.push({ "label": sourceNames[i],
+                             "checked": node === Pipewire.defaultAudioSource,
+                             "action": () => { Pipewire.preferredDefaultAudioSource = node } })
+                }
             }
             m.push({ "type": "sep" })
             m.push({ "label": "Sound Settings…", "action": () => root.run(["pavucontrol"]) })
@@ -484,10 +532,29 @@ PanelWindow {
     }
 
     property bool wifiEnabled: true
+    // Full name from the account (GECOS), for "Log Out <name>…".
+    property string fullName: Quickshell.env("USER")
+    Process {
+        running: true
+        command: ["getent", "passwd", Quickshell.env("USER")]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const gecos = (this.text.split(":")[4] || "").split(",")[0].trim()
+                if (gecos !== "")
+                    root.fullName = gecos
+            }
+        }
+    }
+
     property var wifiNetworks: []
+    // Lock for secured networks, then signal bars (strongest shown first).
+    function wifiHint(n: var): string {
+        const bars = n.signal >= 67 ? "▂▄▆" : n.signal >= 34 ? "▂▄" : "▂"
+        return (n.secure ? "🔒 " : "") + bars
+    }
     Process {
         id: wifiScan
-        command: ["bash", "-c", "nmcli -t radio wifi; nmcli -t -f IN-USE,SSID,SECURITY device wifi list --rescan no 2>/dev/null"]
+        command: ["bash", "-c", "nmcli -t radio wifi; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list --rescan no 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = this.text.trim().split("\n")
@@ -495,7 +562,7 @@ PanelWindow {
                 let seen = ({})
                 let nets = []
                 for (let i = 1; i < lines.length; i++) {
-                    // IN-USE:SSID:SECURITY, with ":" inside the SSID escaped as "\:"
+                    // IN-USE:SSID:SECURITY:SIGNAL, with ":" inside the SSID escaped as "\:"
                     const parts = lines[i].replace(/\\:/g, "\u0001").split(":")
                     if (parts.length < 3)
                         continue
@@ -509,7 +576,8 @@ PanelWindow {
                         seen[ssid].active = seen[ssid].active || active
                         continue
                     }
-                    seen[ssid] = { "ssid": ssid, "active": active, "secure": parts[2] !== "" && parts[2] !== "--" }
+                    seen[ssid] = { "ssid": ssid, "active": active, "secure": parts[2] !== "" && parts[2] !== "--",
+                                   "signal": parseInt(parts[3]) || 0 }
                     nets.push(seen[ssid])
                 }
                 root.wifiNetworks = nets
@@ -539,9 +607,9 @@ PanelWindow {
 
         implicitWidth: Math.max(row.implicitWidth + 16, 26)
         implicitHeight: 24
-        radius: 5
-        color: bi.pressed ? Qt.rgba(1, 1, 1, 0.22)
-             : ma.containsMouse && root.openMenu === "" ? Qt.rgba(1, 1, 1, 0.12)
+        radius: Theme.radiusRow
+        color: bi.pressed ? Theme.fgA(0.22)
+             : ma.containsMouse && root.openMenu === "" ? Theme.fgA(0.12)
              : "transparent"
 
         RowLayout {
@@ -680,14 +748,14 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         radius: 3.5
                         color: "transparent"
-                        border.color: Qt.rgba(1, 1, 1, 0.5)
+                        border.color: Theme.fgA(0.5)
                         border.width: 1
                         Rectangle {
                             x: 2; y: 2
                             height: parent.height - 4
                             width: Math.max(2, (parent.width - 4) * battery.level)
                             radius: 1.5
-                            color: battery.level <= 0.2 && !battery.charging ? "#ff453a" : "#ffffff"
+                            color: battery.level <= 0.2 && !battery.charging ? "#ff453a" : Theme.fg
                         }
                         Image {
                             visible: battery.charging
@@ -702,7 +770,7 @@ PanelWindow {
                         anchors.leftMargin: 1
                         anchors.verticalCenter: shell.verticalCenter
                         width: 1.5; height: 4; radius: 1
-                        color: Qt.rgba(1, 1, 1, 0.5)
+                        color: Theme.fgA(0.5)
                     }
                 }
             }
@@ -789,9 +857,9 @@ PanelWindow {
 
         Rectangle {
             anchors.fill: parent
-            radius: 10
-            color: Qt.rgba(0.16, 0.16, 0.17, 0.82)
-            border.color: Qt.rgba(1, 1, 1, 0.14)
+            radius: Theme.radiusMenu
+            color: Theme.menu
+            border.color: Theme.border
             border.width: 1
 
             Item {
@@ -828,7 +896,7 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     width: parent.width - 16
                                     height: 1
-                                    color: Qt.rgba(1, 1, 1, 0.12)
+                                    color: Theme.fgA(0.12)
                                 }
                             }
                         }
@@ -857,7 +925,7 @@ PanelWindow {
                                     anchors.rightMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: row.modelData.detail || ""
-                                    color: Qt.rgba(1, 1, 1, 0.55)
+                                    color: Theme.fgA(0.55)
                                     font.family: root.fontFamily
                                     font.pixelSize: 13
                                 }
@@ -876,7 +944,7 @@ PanelWindow {
                                     anchors.leftMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: row.modelData.label
-                                    color: Qt.rgba(1, 1, 1, 0.5)
+                                    color: Theme.fgA(0.5)
                                     font.family: root.fontFamily
                                     font.pixelSize: 12
                                     font.weight: Font.DemiBold
@@ -909,7 +977,7 @@ PanelWindow {
                                     anchors.rightMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 32; height: 18; radius: 9
-                                    color: toggleRow.on ? root.accent : Qt.rgba(1, 1, 1, 0.2)
+                                    color: toggleRow.on ? root.accent : Theme.fgA(0.2)
                                     Behavior on color { ColorAnimation { duration: 150 } }
                                     Rectangle {
                                         width: 16; height: 16; radius: 8
@@ -941,12 +1009,12 @@ PanelWindow {
                                     anchors.topMargin: 5
                                     anchors.bottomMargin: 5
                                     radius: height / 2
-                                    color: Qt.rgba(1, 1, 1, 0.14)
+                                    color: Theme.fgA(0.14)
                                     Rectangle {
                                         width: Math.max(height, sliderTrack.width * Math.min(1, sliderRow.value))
                                         height: parent.height
                                         radius: height / 2
-                                        color: "#ffffff"
+                                        color: Theme.fg
                                     }
                                     Image {
                                         anchors.left: parent.left
@@ -979,7 +1047,7 @@ PanelWindow {
                                 readonly property int gutter: menuPopup.hasChecks ? 22 : 10
                                 implicitHeight: 24
                                 implicitWidth: gutter + itemLabel.implicitWidth + 36 + itemHint.implicitWidth + 10
-                                radius: 5
+                                radius: Theme.radiusRow
                                 color: hot ? root.accent : "transparent"
 
                                 Text {
@@ -1001,8 +1069,8 @@ PanelWindow {
                                     anchors.leftMargin: itemRow.gutter
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: row.modelData.label
-                                    color: itemRow.enabledItem || row.modelData.checked === true
-                                        ? "#ffffff" : Qt.rgba(1, 1, 1, 0.28)
+                                    color: itemRow.hot ? Theme.onAccent
+                                         : itemRow.enabledItem || row.modelData.checked === true ? Theme.fg : Theme.fgA(0.28)
                                     font.family: root.fontFamily
                                     font.pixelSize: 13
                                 }
@@ -1013,8 +1081,8 @@ PanelWindow {
                                     anchors.rightMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: row.modelData.hint || ""
-                                    color: itemRow.hot ? Qt.rgba(1, 1, 1, 0.85)
-                                         : itemRow.enabledItem ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(1, 1, 1, 0.2)
+                                    color: itemRow.hot ? Qt.alpha(Theme.onAccent, 0.85)
+                                         : itemRow.enabledItem ? Theme.fgA(0.45) : Theme.fgA(0.2)
                                     font.family: root.fontFamily
                                     font.pixelSize: 13
                                 }

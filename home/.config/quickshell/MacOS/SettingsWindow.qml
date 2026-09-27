@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
+import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
 import qs.DockApp
@@ -346,13 +347,13 @@ Scope {
                 anchors.fill: parent
                 radius: 24
                 color: Qt.rgba(0.1, 0.1, 0.1, 0.85)
-                border.color: Qt.rgba(1, 1, 1, 0.2)
+                border.color: Theme.fgA(0.2)
                 Text {
                     textFormat: Text.PlainText
                     anchors.centerIn: parent
                     text: idWin.mon ? root.displayNumber(idWin.mon.description) : ""
                     color: "#ffffff"
-                    font.family: "SF Pro Display"
+                    font.family: Theme.displayFamily
                     font.pixelSize: 110
                     font.weight: Font.Bold
                 }
@@ -876,7 +877,9 @@ Scope {
         FloatingWindow {
             id: win
             title: "System Settings"
-            color: "#1e1e1e"
+            // Transparent window: the sidebar is translucent (Hyprland blurs
+            // what is behind it) and the content pane paints its own background.
+            color: "transparent"
             implicitWidth: 860
             implicitHeight: 680
             onVisibleChanged: if (!visible) root.open = false
@@ -889,7 +892,7 @@ Scope {
                 implicitWidth: 38
                 implicitHeight: 22
                 radius: 11
-                color: checked ? "#0a84ff" : Qt.rgba(1, 1, 1, 0.16)
+                color: checked ? Theme.accent : Theme.fgA(0.16)
                 Behavior on color { ColorAnimation { duration: 150 } }
                 Rectangle {
                     width: 18; height: 18; radius: 9
@@ -908,14 +911,14 @@ Scope {
                 implicitWidth: mbText.implicitWidth + 24
                 implicitHeight: 24
                 radius: 6
-                color: mbMouse.pressed ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.16)
+                color: mbMouse.pressed ? Theme.fgA(0.28) : Theme.fgA(0.16)
                 Text {
                     textFormat: Text.PlainText
                     id: mbText
                     anchors.centerIn: parent
                     text: mb.text
-                    color: "#ffffff"
-                    font.family: "SF Pro Text"
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
                     font.pixelSize: 13
                 }
                 MouseArea { id: mbMouse; anchors.fill: parent; onClicked: mb.clicked() }
@@ -929,7 +932,9 @@ Scope {
                 Rectangle {
                     Layout.fillHeight: true
                     Layout.preferredWidth: 230
-                    color: "#262628"
+                    color: Theme.sidebar
+                    topLeftRadius: 12
+                    bottomLeftRadius: 12
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -942,7 +947,7 @@ Scope {
                             Layout.bottomMargin: 8
                             implicitHeight: 28
                             radius: 7
-                            color: Qt.rgba(1, 1, 1, 0.08)
+                            color: Theme.fgA(0.08)
                             Image {
                                 id: searchIcon
                                 anchors.left: parent.left
@@ -960,8 +965,8 @@ Scope {
                                 anchors.right: parent.right
                                 anchors.rightMargin: 8
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: "#ffffff"
-                                font.family: "SF Pro Text"
+                                color: Theme.fg
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 13
                                 clip: true
                                 onTextChanged: root.search = text
@@ -969,7 +974,7 @@ Scope {
                                     textFormat: Text.PlainText
                                     anchors.fill: parent
                                     text: "Search"
-                                    color: Qt.rgba(1, 1, 1, 0.4)
+                                    color: Theme.fgA(0.4)
                                     font: searchInput.font
                                     visible: searchInput.text === ""
                                 }
@@ -995,8 +1000,8 @@ Scope {
                                         Layout.fillWidth: true
                                         implicitHeight: 30
                                         radius: 6
-                                        color: root.pane === modelData.id ? "#0a84ff"
-                                            : (paneMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
+                                        color: root.pane === modelData.id ? Theme.accent
+                                            : (paneMouse.containsMouse ? Theme.fgA(0.06) : "transparent")
                                         RowLayout {
                                             anchors.fill: parent
                                             anchors.leftMargin: 8
@@ -1006,7 +1011,7 @@ Scope {
                                                 radius: 6
                                                 color: modelData.color
                                                 border.width: modelData.color === "#2c2c2e" || modelData.color === "#3a3a3c" ? 1 : 0
-                                                border.color: Qt.rgba(1, 1, 1, 0.15)
+                                                border.color: Theme.fgA(0.15)
                                                 Text {
                                                     textFormat: Text.PlainText
                                                     anchors.centerIn: parent
@@ -1020,8 +1025,8 @@ Scope {
                                                 textFormat: Text.PlainText
                                                 Layout.fillWidth: true
                                                 text: modelData.label
-                                                color: "#ffffff"
-                                                font.family: "SF Pro Text"
+                                                color: Theme.fg
+                                                font.family: Theme.fontFamily
                                                 font.pixelSize: 13
                                                 elide: Text.ElideRight
                                             }
@@ -1039,13 +1044,21 @@ Scope {
                     }
                 }
 
-                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.rgba(0, 0, 0, 0.5) }
+                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Theme.dark ? Qt.rgba(0, 0, 0, 0.5) : Qt.rgba(0, 0, 0, 0.12) }
 
                 // ---------- Content ----------
                 Flickable {
                     id: content
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Rectangle {
+                        parent: content
+                        anchors.fill: parent
+                        z: -1
+                        color: Theme.window
+                        topRightRadius: 12
+                        bottomRightRadius: 12
+                    }
                     contentHeight: contentCol.implicitHeight + 40
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
@@ -1060,8 +1073,8 @@ Scope {
                         Text {
                             textFormat: Text.PlainText
                             text: root.paneTitle
-                            color: "#ffffff"
-                            font.family: "SF Pro Display"
+                            color: Theme.fg
+                            font.family: Theme.displayFamily
                             font.pixelSize: 20
                             font.weight: Font.Bold
                             Layout.bottomMargin: 8
@@ -1080,8 +1093,8 @@ Scope {
                                     textFormat: Text.PlainText
                                     visible: section.modelData.title !== ""
                                     text: section.modelData.title
-                                    color: Qt.rgba(1, 1, 1, 0.85)
-                                    font.family: "SF Pro Text"
+                                    color: Theme.fgA(0.85)
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 13
                                     font.weight: Font.DemiBold
                                     Layout.leftMargin: 4
@@ -1092,9 +1105,9 @@ Scope {
                                     Layout.fillWidth: true
                                     implicitHeight: cardCol.implicitHeight
                                     radius: 10
-                                    color: "#2a2a2c"
+                                    color: Theme.group
                                     border.width: 1
-                                    border.color: Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: Theme.fgA(0.06)
 
                                     ColumnLayout {
                                         id: cardCol
@@ -1123,7 +1136,7 @@ Scope {
                                                     anchors.leftMargin: 12
                                                     anchors.rightMargin: 12
                                                     height: 1
-                                                    color: Qt.rgba(1, 1, 1, 0.07)
+                                                    color: Theme.fgA(0.07)
                                                 }
 
                                                 // label (+ sub label)
@@ -1139,8 +1152,8 @@ Scope {
                                                         textFormat: Text.PlainText
                                                         width: parent.width
                                                         text: rowItem.r.label || ""
-                                                        color: "#ffffff"
-                                                        font.family: "SF Pro Text"
+                                                        color: Theme.fg
+                                                        font.family: Theme.fontFamily
                                                         font.pixelSize: 13
                                                         elide: Text.ElideRight
                                                     }
@@ -1149,8 +1162,8 @@ Scope {
                                                         visible: !!rowItem.r.sub
                                                         width: parent.width
                                                         text: rowItem.r.sub || ""
-                                                        color: Qt.rgba(1, 1, 1, 0.5)
-                                                        font.family: "SF Pro Text"
+                                                        color: Theme.fgA(0.5)
+                                                        font.family: Theme.fontFamily
                                                         font.pixelSize: 11
                                                         elide: Text.ElideRight
                                                     }
@@ -1195,8 +1208,8 @@ Scope {
                                                     Text {
                                                         textFormat: Text.PlainText
                                                         text: rowItem.r.value
-                                                        color: Qt.rgba(1, 1, 1, 0.55)
-                                                        font.family: "SF Pro Text"
+                                                        color: Theme.fgA(0.55)
+                                                        font.family: Theme.fontFamily
                                                         font.pixelSize: 13
                                                     }
                                                 }
@@ -1217,7 +1230,7 @@ Scope {
                                                         implicitWidth: Math.max(120, choiceText.implicitWidth + 36)
                                                         implicitHeight: 24
                                                         radius: 6
-                                                        color: Qt.rgba(1, 1, 1, choiceMouse.pressed ? 0.24 : 0.14)
+                                                        color: Theme.fgA(choiceMouse.pressed ? 0.24 : 0.14)
                                                         Text {
                                                             textFormat: Text.PlainText
                                                             id: choiceText
@@ -1225,8 +1238,8 @@ Scope {
                                                             anchors.leftMargin: 10
                                                             anchors.verticalCenter: parent.verticalCenter
                                                             text: choiceBtn.currentLabel
-                                                            color: "#ffffff"
-                                                            font.family: "SF Pro Text"
+                                                            color: Theme.fg
+                                                            font.family: Theme.fontFamily
                                                             font.pixelSize: 13
                                                         }
                                                         Text {
@@ -1236,7 +1249,7 @@ Scope {
                                                             anchors.verticalCenter: parent.verticalCenter
                                                             text: "⌃\n⌄"
                                                             lineHeight: 0.45
-                                                            color: Qt.rgba(1, 1, 1, 0.7)
+                                                            color: Theme.fgA(0.7)
                                                             font.pixelSize: 9
                                                         }
                                                         MouseArea {
@@ -1265,8 +1278,8 @@ Scope {
                                                         Rectangle {
                                                             anchors.verticalCenter: parent.verticalCenter
                                                             width: parent.width; height: 4; radius: 2
-                                                            color: Qt.rgba(1, 1, 1, 0.16)
-                                                            Rectangle { width: parent.width * slider.frac; height: parent.height; radius: 2; color: "#0a84ff" }
+                                                            color: Theme.fgA(0.16)
+                                                            Rectangle { width: parent.width * slider.frac; height: parent.height; radius: 2; color: Theme.accent }
                                                         }
                                                         Rectangle {
                                                             width: 20; height: 20; radius: 10
@@ -1321,9 +1334,9 @@ Scope {
                                                             width: modelData.lw * arrange.f
                                                             height: modelData.lh * arrange.f
                                                             radius: 6
-                                                            color: sel ? "#0a84ff" : "#4a4a4e"
+                                                            color: sel ? Theme.accent : (Theme.dark ? "#4a4a4e" : "#c7c7cc")
                                                             border.width: 2
-                                                            border.color: sel ? "#5eb0ff" : Qt.rgba(1, 1, 1, 0.25)
+                                                            border.color: sel ? Qt.lighter(Theme.accent, 1.3) : Theme.fgA(0.25)
                                                             z: dragArea.drag.active ? 2 : 1
                                                             Column {
                                                                 anchors.centerIn: parent
@@ -1332,7 +1345,7 @@ Scope {
                                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                                     text: root.displayNumber(screenRect.modelData.description)
                                                                     color: "#ffffff"
-                                                                    font.family: "SF Pro Display"
+                                                                    font.family: Theme.displayFamily
                                                                     font.pixelSize: 28
                                                                     font.weight: Font.Bold
                                                                 }
@@ -1341,8 +1354,8 @@ Scope {
                                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                                     width: Math.min(implicitWidth, screenRect.width - 8)
                                                                     text: root.displayName(screenRect.modelData)
-                                                                    color: Qt.rgba(1, 1, 1, 0.8)
-                                                                    font.family: "SF Pro Text"
+                                                                    color: Theme.fgA(0.8)
+                                                                    font.family: Theme.fontFamily
                                                                     font.pixelSize: 10
                                                                     elide: Text.ElideRight
                                                                 }
@@ -1381,8 +1394,8 @@ Scope {
                                                         anchors.bottomMargin: 4
                                                         text: arrange.mons.length > 1 ? "Drag displays to match how they sit on your desk"
                                                             : "Select a display to change its settings"
-                                                        color: Qt.rgba(1, 1, 1, 0.5)
-                                                        font.family: "SF Pro Text"
+                                                        color: Theme.fgA(0.5)
+                                                        font.family: Theme.fontFamily
                                                         font.pixelSize: 11
                                                     }
                                                     MacButton {
@@ -1411,7 +1424,7 @@ Scope {
                                                                 radius: 8
                                                                 color: "#111111"
                                                                 border.width: root.st.wallpaper === modelData ? 3 : 0
-                                                                border.color: "#0a84ff"
+                                                                border.color: Theme.accent
                                                                 clip: true
                                                                 Image {
                                                                     anchors.fill: parent
@@ -1435,8 +1448,8 @@ Scope {
                                                                 textFormat: Text.PlainText
                                                                 width: (contentCol.width - 24 - 36) / 4
                                                                 text: modelData.split("/").pop().replace(/\.[^.]+$/, "").replace(/[-_]/g, " ")
-                                                                color: Qt.rgba(1, 1, 1, 0.7)
-                                                                font.family: "SF Pro Text"
+                                                                color: Theme.fgA(0.7)
+                                                                font.family: Theme.fontFamily
                                                                 font.pixelSize: 11
                                                                 elide: Text.ElideRight
                                                                 horizontalAlignment: Text.AlignHCenter
@@ -1466,8 +1479,8 @@ Scope {
                     width: 340
                     height: keepCol.implicitHeight + 36
                     radius: 12
-                    color: "#2f2f31"
-                    border.color: Qt.rgba(1, 1, 1, 0.14)
+                    color: Theme.popup
+                    border.color: Theme.fgA(0.14)
                     Column {
                         id: keepCol
                         anchors.centerIn: parent
@@ -1477,8 +1490,8 @@ Scope {
                             textFormat: Text.PlainText
                             width: parent.width
                             text: "Keep these display settings?"
-                            color: "#ffffff"
-                            font.family: "SF Pro Text"
+                            color: Theme.fg
+                            font.family: Theme.fontFamily
                             font.pixelSize: 14
                             font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter
@@ -1487,8 +1500,8 @@ Scope {
                             textFormat: Text.PlainText
                             width: parent.width
                             text: "Reverting to previous display settings in " + root.revertLeft + " seconds."
-                            color: Qt.rgba(1, 1, 1, 0.7)
-                            font.family: "SF Pro Text"
+                            color: Theme.fgA(0.7)
+                            font.family: Theme.fontFamily
                             font.pixelSize: 12
                             wrapMode: Text.WordWrap
                             horizontalAlignment: Text.AlignHCenter
@@ -1502,14 +1515,14 @@ Scope {
                                 implicitWidth: keepText.implicitWidth + 28
                                 implicitHeight: 24
                                 radius: 6
-                                color: keepMouse.pressed ? "#0070e0" : "#0a84ff"
+                                color: keepMouse.pressed ? Qt.darker(Theme.accent, 1.15) : Theme.accent
                                 Text {
                                     textFormat: Text.PlainText
                                     id: keepText
                                     anchors.centerIn: parent
                                     text: "Keep changes"
-                                    color: "#ffffff"
-                                    font.family: "SF Pro Text"
+                                    color: Theme.onAccent
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 13
                                 }
                                 MouseArea { id: keepMouse; anchors.fill: parent; onClicked: root.keepDisplay() }
@@ -1533,8 +1546,8 @@ Scope {
                     width: 240
                     height: Math.min(choiceList.implicitHeight + 10, 380, overlay.height - 16)
                     radius: 8
-                    color: "#2f2f31"
-                    border.color: Qt.rgba(1, 1, 1, 0.14)
+                    color: Theme.popup
+                    border.color: Theme.fgA(0.14)
                     clip: true
 
                     // Long lists (apps, time zones) scroll.
@@ -1553,14 +1566,14 @@ Scope {
                                 width: choiceList.width
                                 height: 24
                                 radius: 5
-                                color: optMouse.containsMouse ? "#0a84ff" : "transparent"
+                                color: optMouse.containsMouse ? Theme.accent : "transparent"
                                 readonly property bool isCurrent: root.choiceRow && root.choiceRow.get() === modelData.id
                                 Text {
                                     textFormat: Text.PlainText
                                     x: 6
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: parent.isCurrent ? "✓" : ""
-                                    color: "#ffffff"
+                                    color: optMouse.containsMouse ? Theme.onAccent : Theme.fg
                                     font.pixelSize: 12
                                 }
                                 Text {
@@ -1568,8 +1581,8 @@ Scope {
                                     x: 22
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: modelData.label
-                                    color: "#ffffff"
-                                    font.family: "SF Pro Text"
+                                    color: optMouse.containsMouse ? Theme.onAccent : Theme.fg
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 13
                                 }
                                 MouseArea {

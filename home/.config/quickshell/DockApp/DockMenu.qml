@@ -11,7 +11,8 @@ import qs.CustomTheme
 //
 // The entries are handed in as a list of
 //   { "label": "Pin to Dock", "callback": function () { ... } }
-// objects; running a callback closes the menu.
+// objects, or { "separator": true }; running a callback closes the menu.
+// Rows use the same metrics as the menu bar's menus (Theme).
 Item {
     id: menu
 
@@ -20,12 +21,12 @@ Item {
     // width depend on the background, whose width depends on the rows — a
     // layout polish loop. The entries are short and known, so a constant is
     // enough (labels elide if a future one is longer).
-    property int menuWidth: 200
+    property int menuWidth: 220
 
     signal closeRequested()
 
     implicitWidth: menu.menuWidth
-    implicitHeight: menuColumn.implicitHeight + 16
+    implicitHeight: menuColumn.implicitHeight + 10
     width: implicitWidth
     height: implicitHeight
     visible: false
@@ -33,18 +34,16 @@ Item {
     Rectangle {
         id: menuBg
         anchors.fill: parent
-        // macOS context menu: dark translucent card, thin light border,
-        // accent-colored highlight.
-        radius: 8
+        radius: Theme.radiusMenu
         color: Theme.menu
         border.width: 1
-        border.color: Theme.menuBorder
+        border.color: Theme.border
 
         Column {
             id: menuColumn
             anchors.centerIn: parent
-            width: parent.width - 16
-            spacing: 2
+            width: parent.width - 10
+            spacing: 0
 
             Repeater {
                 model: menu.actions
@@ -54,36 +53,38 @@ Item {
                     required property var modelData
 
                     width: menuColumn.width
-                    height: 36
-                    radius: 4
-                    color: rowMouse.containsMouse ? Theme.accent : "transparent"
+                    readonly property bool separator: modelData.separator === true
+                    height: separator ? 11 : Theme.menuRowHeight
+                    radius: Theme.radiusRow
+                    color: rowMouse.containsMouse && !separator ? Theme.accent : "transparent"
 
-                    Behavior on color {
-                        ColorAnimation { duration: 200; easing.type: Easing.OutQuint }
+                    Rectangle {
+                        visible: row.separator
+                        anchors.centerIn: parent
+                        width: parent.width - 20
+                        height: 1
+                        color: Theme.separator
                     }
 
                     Text {
+                        visible: !row.separator
                         textFormat: Text.PlainText
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
                         anchors.leftMargin: 10
                         text: row.modelData.label
-                        color: rowMouse.containsMouse ? Theme.textOnAccent : Theme.text
+                        color: rowMouse.containsMouse ? Theme.onAccent : Theme.fg
                         font.family: Theme.fontFamily
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontBody
                         elide: Text.ElideRight
                         width: parent.width - 20
-
-                        Behavior on color {
-                            ColorAnimation { duration: 200; easing.type: Easing.OutQuint }
-                        }
                     }
 
                     MouseArea {
                         id: rowMouse
                         anchors.fill: parent
+                        enabled: !row.separator
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             // Grab the callback before closing: closing clears
                             // the model and tears this delegate down, so reading

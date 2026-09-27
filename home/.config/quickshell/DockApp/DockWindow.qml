@@ -21,7 +21,7 @@ PanelWindow {
         Layout.rightMargin: 4
         implicitWidth: 1
         implicitHeight: root.settings.dock.iconSize * 0.8
-        color: Qt.rgba(1, 1, 1, 0.25)
+        color: Theme.fgA(0.25)
     }
 
 
@@ -265,9 +265,9 @@ PanelWindow {
     // resizing the layer surface on open/close makes the whole dock flicker.
     // The area stays transparent and click-through (see mask), and the reserved
     // space (exclusiveZone) is set explicitly, so the extra height costs
-    // nothing. Sized for the tallest menu: three 32px rows, 2px apart, in a box
-    // with 8px padding, plus the 8px gap above the pill.
-    readonly property int menuReserve: 3 * 32 + 2 * 2 + 16 + 8
+    // nothing. Sized for the tallest menu: 12 rows in a box with 5px padding,
+    // plus the 8px gap above the pill.
+    readonly property int menuReserve: 12 * Theme.menuRowHeight + 10 + 8
     implicitHeight: dockHeight + settings.dock.marginBottom + 30 + menuReserve
 
     // Only the pill takes pointer input; the transparent rest of the window
@@ -422,9 +422,9 @@ PanelWindow {
             id: pillBg
             anchors.fill: parent
             radius: root.settings.pill.radius
-            color: Qt.rgba(0.16, 0.16, 0.16, 0.35)
+            color: Theme.dock
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.18)
+            border.color: Theme.border
         }
 
         RowLayout {

@@ -43,10 +43,14 @@ bind(mod .. " + SHIFT + W",      exec("macos-wallpaper --random"),        "Next 
 bind(mod .. " + SHIFT + N",      exec("macos-nightshift toggle"),         "Night Shift on/off")
 
 -- Windows
-bind(mod .. " + Q",              hl.dsp.window.close(),                   "Close window")
-bind(mod .. " + H",              exec("qs ipc call minimize active"),     "Minimize window to Dock")
+bind(mod .. " + Q",              exec("qs ipc call menubar quit"),        "Quit app")
+bind(mod .. " + W",              hl.dsp.window.close(),                   "Close window")
+bind(mod .. " + H",              exec("qs ipc call menubar hide"),        "Hide app")
+bind(mod .. " + ALT + H",        exec("qs ipc call menubar hideOthers"),  "Hide others")
+bind(mod .. " + M",              exec("qs ipc call minimize active"),     "Minimize window to Dock")
+bind(mod .. " + CTRL + F",       hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), "Full screen")
 bind(mod .. " + F",              hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), "Full screen")
-bind(mod .. " + M",              hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }),  "Zoom (maximize)")
+bind(mod .. " + CTRL + M",       hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }),  "Zoom (maximize)")
 bind(mod .. " + T",              hl.dsp.window.float({ action = "toggle" }), "Float / tile window")
 bind(mod .. " + ALT + T",        function()
     hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
