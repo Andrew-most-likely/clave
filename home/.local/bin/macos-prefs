@@ -18,6 +18,7 @@ Every "get" prints JSON; everything else changes one setting.
   macos-prefs login remove FILE
   macos-prefs appearance get
   macos-prefs appearance mode light|dark   GTK 3/4, Qt (Kvantum), icons, flatpak
+  macos-prefs appearance accent NAME       blue purple pink red orange yellow green graphite
   macos-prefs appearance text-scale FACTOR
 
 Root-only changes go through pkexec /usr/local/bin/macos-admin (charge limit) and
@@ -299,6 +300,10 @@ def set_ini(path, key, value):
     write(path, text + "\n")
 
 
+ACCENTS = {"blue": "blue", "purple": "purple", "pink": "pink", "red": "red", "orange": "orange",
+           "yellow": "yellow", "green": "green", "graphite": "slate"}
+
+
 def appearance(args):
     iface = "org.gnome.desktop.interface"
     if args[:1] == ["get"]:
@@ -330,6 +335,15 @@ def appearance(args):
         sh("gsettings", "set", iface, "gtk-theme", t["gtk"])
         sh("gsettings", "set", iface, "icon-theme", t["icons"])
         sh("gsettings", "set", iface, "color-scheme", t["scheme"])
+        # GTK4 widget images follow the theme too.
+        assets = os.path.join(CONFIG, "gtk-4.0/assets")
+        if os.path.islink(assets) or not os.path.exists(assets):
+            if os.path.islink(assets):
+                os.remove(assets)
+            os.symlink(os.path.join(HOME, ".local/share/themes", t["gtk"], "gtk-4.0/assets"), assets)
+    elif args[:1] == ["accent"] and len(args) == 2 and args[1] in ACCENTS:
+        # libadwaita apps follow org.gnome.desktop.interface accent-color.
+        sh("gsettings", "set", iface, "accent-color", ACCENTS[args[1]])
     elif args[:1] == ["text-scale"] and len(args) == 2:
         f = float(args[1])
         if not 0.5 <= f <= 3:

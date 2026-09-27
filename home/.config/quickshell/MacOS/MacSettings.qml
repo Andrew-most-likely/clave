@@ -33,7 +33,7 @@ Singleton {
         "mouse":      { "speed": 0, "acceleration": true, "naturalScroll": false, "leftHanded": false },
         "keyboard":   { "repeatRate": 25, "repeatDelay": 600, "layout": "us", "capsLock": "" },
         "sound":      { "uiSounds": true },
-        "appearance": { "accent": "blue" },
+        "appearance": { "mode": "dark", "accent": "blue" },
         "display":    { "nightShiftTemp": 4500 },
         "screenshots": { "folder": "", "saveTo": "pictures", "timer": 0, "thumbnail": true, "pointer": false },
         // Clipboard history lives in memory ($XDG_RUNTIME_DIR) unless kept.
@@ -89,6 +89,20 @@ Singleton {
             root.writeSoundFlag()
         if (group === "privacy" && key.startsWith("clipboard"))
             Quickshell.execDetached([root.home + "/.local/bin/macos-clipboard", "restart"])
+    }
+
+    // Light or dark for the whole desktop: the shell (Theme reads the setting)
+    // and GTK/Qt apps (macos-prefs).
+    function setAppearance(mode: string): void {
+        if (mode !== "light" && mode !== "dark")
+            return
+        root.set("appearance", "mode", mode)
+        Quickshell.execDetached([root.home + "/.local/bin/macos-prefs", "appearance", "mode", mode])
+    }
+
+    function setAccent(name: string): void {
+        root.set("appearance", "accent", name)
+        Quickshell.execDetached([root.home + "/.local/bin/macos-prefs", "appearance", "accent", name])
     }
 
     // Defaults merged with the file, key by key. Groups the defaults do not

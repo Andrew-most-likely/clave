@@ -51,11 +51,20 @@ PanelWindow {
 
     // --- month grid ---
     readonly property date today: clock.date
+    // The week starts where the locale says (Sunday in the US, Monday in most
+    // of Europe). Qt numbers days 1 (Monday) to 7 (Sunday).
+    readonly property int weekStart: Qt.locale().firstDayOfWeek % 7
+    readonly property var weekdayLetters: {
+        let letters = []
+        for (let i = 0; i < 7; i++)
+            letters.push(Qt.locale().standaloneDayName((root.weekStart + i) % 7, Locale.NarrowFormat))
+        return letters
+    }
     readonly property var days: {
         const first = new Date(root.today.getFullYear(), root.today.getMonth(), 1)
         const count = new Date(root.today.getFullYear(), root.today.getMonth() + 1, 0).getDate()
         let cells = []
-        for (let i = 0; i < first.getDay(); i++)
+        for (let i = 0; i < (first.getDay() - root.weekStart + 7) % 7; i++)
             cells.push(0)
         for (let d = 1; d <= count; d++)
             cells.push(d)
@@ -85,26 +94,19 @@ PanelWindow {
                     text: Qt.formatDate(root.today, "dddd").toUpperCase()
                     color: root.red
                     font.family: root.fontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSecondary
                     font.weight: Font.DemiBold
                 }
                 Text {
                     textFormat: Text.PlainText
                     text: Qt.formatDate(root.today, "d")
                     color: Theme.fg
-                    font.family: "SF Pro Display"
+                    font.family: Theme.displayFamily
                     font.pixelSize: 44
                     font.weight: Font.Normal
                     Layout.topMargin: -4
                 }
                 Item { Layout.fillHeight: true }
-                Text {
-                    textFormat: Text.PlainText
-                    text: "No events today"
-                    color: Theme.secondary
-                    font.family: root.fontFamily
-                    font.pixelSize: 12
-                }
             }
 
             // Right half: the month.
@@ -118,7 +120,7 @@ PanelWindow {
                     text: Qt.formatDate(root.today, "MMMM").toUpperCase()
                     color: root.red
                     font.family: root.fontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSecondary
                     font.weight: Font.DemiBold
                 }
 
@@ -129,7 +131,7 @@ PanelWindow {
                     Layout.fillWidth: true
 
                     Repeater {
-                        model: ["S", "M", "T", "W", "T", "F", "S"]
+                        model: root.weekdayLetters
                         Text {
                             textFormat: Text.PlainText
                             required property string modelData

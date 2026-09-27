@@ -666,10 +666,11 @@ Scope {
         ]
         if (id === "appearance") return [
             { "title": "", "rows": [
-                { "type": "choice", "label": "Appearance", "sub": "Apps and windows (the menu bar and Dock stay dark)",
+                { "type": "choice", "label": "Appearance",
                   "options": [{ "id": "light", "label": "Light" }, { "id": "dark", "label": "Dark" }],
-                  "get": () => (root.pd.appearance || {}).mode || "dark",
-                  "set": v => root.change([root.prefs, "appearance", "mode", v], "appearance") },
+                  "get": () => MacSettings.get("appearance", "mode"),
+                  "set": v => { MacSettings.setAppearance(v); root.refreshPane() } },
+                { "type": "accents", "label": "Accent color" },
                 { "type": "choice", "label": "Text size",
                   "options": [{ "id": 0.9, "label": "Small" }, { "id": 1, "label": "Default" },
                               { "id": 1.15, "label": "Large" }, { "id": 1.3, "label": "Larger" },
@@ -1185,10 +1186,32 @@ Scope {
                                                             : rowItem.r.type === "choice" ? choiceComp
                                                             : rowItem.r.type === "slider" ? sliderComp
                                                             : rowItem.r.type === "button" ? buttonComp
-                                                            : rowItem.r.type === "info" ? infoComp : null
+                                                            : rowItem.r.type === "info" ? infoComp
+                                                            : rowItem.r.type === "accents" ? accentsComp : null
                                                     }
                                                 }
 
+                                                Component {
+                                                    id: accentsComp
+                                                    Row {
+                                                        spacing: 8
+                                                        Repeater {
+                                                            model: Theme.accentOrder
+                                                            Rectangle {
+                                                                required property string modelData
+                                                                readonly property bool current: Theme.accentName === modelData
+                                                                width: 18; height: 18; radius: 9
+                                                                color: Theme.system(modelData)
+                                                                border.width: current ? 2 : 0
+                                                                border.color: Theme.fg
+                                                                MouseArea {
+                                                                    anchors.fill: parent
+                                                                    onClicked: MacSettings.setAccent(parent.modelData)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                                 Component {
                                                     id: switchComp
                                                     MacSwitch {

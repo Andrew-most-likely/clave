@@ -93,6 +93,23 @@ PanelWindow {
     property bool dnd: false
     property bool nightShift: false
     property real brightness: 1
+    // Keyboard backlight device (e.g. "tpacpi::kbd_backlight"), "" if none.
+    property string kbdLight: ""
+    property bool kbdOn: false
+    Process {
+        running: true
+        command: ["brightnessctl", "-l", "-m", "-c", "leds"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const line = this.text.split("\n").find(l => /kbd_backlight/.test(l.split(",")[0]))
+                if (line) {
+                    const f = line.split(",")
+                    root.kbdLight = f[0]
+                    root.kbdOn = parseInt(f[2]) > 0
+                }
+            }
+        }
+    }
 
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property bool btOn: root.adapter !== null && root.adapter.enabled
@@ -396,7 +413,7 @@ PanelWindow {
                             Circle {
                                 icon: "icons/moon.svg"
                                 on: root.dnd
-                                color: root.dnd ? "#5e5ce6" : Theme.fgA(0.16)
+                                color: root.dnd ? Theme.indigo : Theme.fgA(0.16)
                                 onClicked: {
                                     root.dnd = !root.dnd
                                     root.run(["swaync-client", root.dnd ? "-dn" : "-df"])
@@ -426,13 +443,10 @@ PanelWindow {
                                     Layout.alignment: Qt.AlignHCenter
                                     icon: "icons/nightshift.svg"
                                     on: root.nightShift
-                                    color: root.nightShift ? "#ff9f0a" : Theme.fgA(0.16)
+                                    color: root.nightShift ? Theme.orange : Theme.fgA(0.16)
                                     onClicked: {
                                         root.nightShift = !root.nightShift
-                                        if (root.nightShift)
-                                            root.run(["hyprsunset", "-t", "4500"])
-                                        else
-                                            root.run(["pkill", "-x", "hyprsunset"])
+                                        root.run([root.home + "/.local/bin/macos-nightshift", root.nightShift ? "on" : "off"])
                                     }
                                 }
                                 Detail {
@@ -509,6 +523,49 @@ PanelWindow {
                             root.sink.audio.muted = false
                             root.sink.audio.volume = v
                         }
+                    }
+                }
+            }
+
+            // --- Dark Mode, keyboard brightness ---
+            RowLayout {
+                spacing: 10
+                Layout.fillWidth: true
+
+                Module {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 52
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 11
+                        spacing: 9
+                        Circle {
+                            icon: "icons/moon.svg"
+                            on: !Theme.dark
+                            onClicked: MacSettings.setAppearance(Theme.dark ? "light" : "dark")
+                        }
+                        Label { text: Theme.dark ? "Dark Mode" : "Light Mode"; Layout.fillWidth: true }
+                    }
+                }
+
+                // Only on keyboards with a backlight.
+                Module {
+                    visible: root.kbdLight !== ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 52
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 11
+                        spacing: 9
+                        Circle {
+                            icon: "icons/sun.svg"
+                            on: root.kbdOn
+                            onClicked: {
+                                root.kbdOn = !root.kbdOn
+                                root.run(["brightnessctl", "-d", root.kbdLight, "set", root.kbdOn ? "100%" : "0"])
+                            }
+                        }
+                        Label { text: "Keyboard"; Layout.fillWidth: true }
                     }
                 }
             }
