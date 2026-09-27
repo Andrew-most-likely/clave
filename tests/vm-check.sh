@@ -59,7 +59,7 @@ case "$stage" in
         say "uninstall: start"
         runuser -u "$user" -- bash -c "cd '$repo' && ./uninstall.sh --system" > "$state/uninstall.log" 2>&1
         say "uninstall: exit $?"
-        tail -n 15 "$state/uninstall.log" | sed 's/^/VMCHECK:   /'
+        tail -n 15 "$state/uninstall.log" | while IFS= read -r line; do say "  $line"; done
         echo uninstalled > "$state/stage"
         systemctl reboot ;;
     uninstalled)

@@ -16,10 +16,16 @@ migrate_home
 [ "${1:-}" != "--system" ] || sudo "$repo/scripts/system.sh" migrate
 
 restore() {  # restore FILE [sudo]: oldest backup = the state before the first install
-    local f="$1" s="${2:-}" bak
-    bak=$($s sh -c "ls -1d '$f'.bak-* 2>/dev/null | sort | head -n1")
-    if [ -n "$bak" ]; then $s rm -rf "$f"; $s mv "$bak" "$f"; echo "  restored $f"
-    else $s rm -rf "$f"; echo "  removed  $f"; fi
+    # One shell does the whole swap, and a file is replaced by rename, so a
+    # PAM or sudoers file is never missing while the next sudo call runs.
+    local s="${2:-}"
+    # shellcheck disable=SC2016
+    $s sh -c '
+        f=$1 bak=$(ls -1d "$1".bak-* 2>/dev/null | sort | head -n1)
+        if [ -n "$bak" ]; then
+            if [ -d "$bak" ] && [ ! -L "$bak" ]; then rm -rf "$f"; fi
+            mv -fT "$bak" "$f"; echo "  restored $f"
+        else rm -rf "$f"; echo "  removed  $f"; fi' sh "$1"
 }
 
 restore_home() {  # restore_home FILE: put back the pre-install copy, or remove
@@ -69,12 +75,16 @@ if [ "${1:-}" = "--system" ]; then
         say "System files"
         while IFS= read -r f; do restore "$f" sudo; done < <(sudo cat "$sys_files")
         sudo rm -f "$sys_files"
-        for f in /etc/mkinitcpio.conf /etc/kernel/cmdline /etc/pacman.conf; do
+        for f in /etc/mkinitcpio.conf /etc/kernel/cmdline /etc/default/grub /etc/pacman.conf; do
             b=$(ls -1 "$f".bak-* 2>/dev/null | sort | head -n1) && [ -n "$b" ] && sudo cp -a "$b" "$f" && echo "  restored $f"
         done
         sudo sysctl --system >/dev/null
         say "Rebuilding initramfs"
         sudo mkinitcpio -P
+        if [ ! -f /etc/kernel/cmdline ] && [ -f /boot/grub/grub.cfg ] && command -v grub-mkconfig >/dev/null; then
+            say "Boot menu (grub-mkconfig)"
+            sudo grub-mkconfig -o /boot/grub/grub.cfg
+        fi
         echo "Services enabled by the installer (nftables, apparmor, usbguard, ...) are left on."
         echo "Disable any you don't want with: sudo systemctl disable --now <name>"
     fi
