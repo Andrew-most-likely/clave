@@ -112,6 +112,21 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 
   The repo never contains these files. `branding/` is user-owned, so updates keep it. The choice is stored in
   `~/.local/state/clave/personal`, so updates keep it too. Code: `lib/personal.sh`.
+- **BR-11 Layout, not identity.** Clave's own interfaces (section 5.8, System Settings, the shell) may match
+  the layout and behavior of the desktop they are modeled on. They always use Clave's own icons, artwork and
+  names (BR-3), and never the other company's. Every surface that closely matches the original layout is
+  listed here with a short description, so it can be reviewed before a public release:
+
+  | Surface | What it matches |
+  |---|---|
+  | Screenshot toolbar (SHELL-1) | Toolbar layout, floating thumbnail |
+  | Displays pane (SHELL-2) | Pane layout, arrangement canvas |
+  | Activity Monitor (SHELL-3) | Tabs, process list, Quit and Force Quit |
+  | Calendar and Contacts (APP-8) | Views, sidebar, event popover, contact cards |
+  | Notes (APP-9) | Folder sidebar, note list, editor |
+
+  Before v1.1.0 is published, check whether a close layout match is a trade-dress risk and record the
+  result here.
 
 ### 5.2 Security
 
@@ -124,6 +139,56 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   (web search in Search, album art, currency rates) are off by default.
 - **SEC-4 Keyring.** GNOME Keyring unlocks at login and apps that store secrets use it with full
   encryption. See ISSUE-2.
+
+- **SEC-5 Disk encryption.** A laptop without disk encryption gives its files to anyone who takes it,
+  whatever the rest of the hardening does. Clave warns when the disk is not encrypted and offers a guided
+  setup. The name everywhere is **Disk Encryption** (BR-3).
+  - **Status.** `clave-encrypt status` reads `lsblk -J` as the user, with no root: *On* when `/` and `/home`
+    are on LUKS, *Partly* when only one is, *Off* otherwise. A swap partition that is not encrypted also
+    counts as *Partly*. zram needs nothing.
+  - **Where the warning shows.**
+    1. The installer, the same way as SEC-2: printed with `--yes`, otherwise a question that offers the setup.
+    2. System Settings > Privacy & Security > Disk Encryption: the status, what it protects against, and a
+       **Set Up Disk Encryption…** button.
+    3. One notification at the first login after the install, with *Set Up…*, *Not Now* and *Don't Ask Again*.
+       The shell checks once at login and never again (PERF-1). No timer, no repeat.
+  - **Setup.** `clave-encrypt setup` runs in a terminal with `sudo`, which asks for the password. There is no
+    passwordless polkit rule for it. It offers two paths:
+    1. **Reinstall with encryption (recommended on a new machine).** It opens the guide in
+       `docs/ENCRYPTION.md`: Arch install with LUKS2 (for example `archinstall`'s disk encryption option), then
+       Clave's installer.
+    2. **Encrypt in place.** For an existing install. It runs in three stages:
+       - **Checks.** Stops when any of these fails: power supply connected and battery at 50% or more;
+         the user types a confirmation that a full backup exists and where it is; the filesystems are ext4
+         or btrfs; each partition has 32 MiB free for the LUKS2 header; the boot loader is systemd-boot,
+         GRUB or Limine (anything else: reinstall path only).
+       - **Prepare, in the running system.** Choose the LUKS UUIDs in advance (`cryptsetup reencrypt
+         --uuid`). Add `encrypt` after `block` to the mkinitcpio hooks (after `plymouth`, so the prompt is
+         graphical) and rebuild the initramfs. Write `/etc/crypttab` and a **second** boot entry, "Clave
+         (encrypted)", with `cryptdevice=UUID=…`. The old entry stays the default, so the machine still boots
+         if the user stops here. When `/home` is on its own partition, it unlocks with a key file inside the
+         encrypted root (`/etc/cryptsetup-keys.d/`), so there is one prompt at boot.
+       - **Encrypt, offline.** Boot the Arch live USB and run the copy of the script that stage 2 put on
+         the boot partition (`/boot/clave-encrypt-offline.sh`, root-owned, printed with its SHA-256 so the
+         user can compare). It shrinks each filesystem by 32 MiB (`e2fsck`, `resize2fs`), runs
+         `cryptsetup reencrypt --encrypt --type luks2 --reduce-device-size 32M` with the chosen UUID, and
+         enrolls a recovery key with `systemd-cryptenroll --recovery-key`. The recovery key is shown once and
+         never stored: the user writes it down. LUKS2 re-encryption survives interruption: `cryptsetup
+         reencrypt --resume-only` continues it, and the script says so.
+       - **Finish.** Boot the new entry. `clave-encrypt finish` checks that the status is *On*, makes the new
+         entry the default and removes the old one.
+  - **Engines.** Only upstream tools do the work: `cryptsetup`, `systemd-cryptenroll`, `e2fsprogs` or
+    `btrfs-progs`, `mkinitcpio`, and the boot loader's own tool. Clave's script checks, guides and writes
+    config (section 5.8). It never logs or stores a passphrase and makes no network calls.
+  - **Boot prompt.** The Clave Plymouth theme draws the passphrase prompt in the same style as the lock
+    screen (`Plymouth.SetDisplayPasswordFunction`). Wrong passphrases show the standard message.
+  - **Not offered by default.** TPM2 unlock without a passphrase: weaker against someone who has the laptop,
+    and without Secure Boot it does not stop a changed boot partition. Secure Boot itself is out of scope
+    for now; `/boot` stays unencrypted, which RECOVERY.md explains.
+  - **Recovery.** RECOVERY.md gets a section: forgotten passphrase (use the recovery key), interrupted
+    encryption (resume from the live USB), and booting the old entry if the new one fails before *Finish*.
+  - **Tests.** A VM test in virt-manager: in-place encryption of `/` alone and of `/` plus `/home`, with each
+    supported boot loader, and one run where the VM is powered off during `reencrypt` and then resumed.
 
 ### 5.3 Performance and background work
 
@@ -180,13 +245,189 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 
 ### 5.6 Software footprint
 
-- **SW-1** The public release ships only what the visual layer, the built features and the hardening need.
+- **SW-1** The public release ships only what the visual layer, the built features, the hardening and the
+  standard app set (SW-4) need. Changed on 2026-09-27: the standard apps of the desktop Clave is modeled on
+  are part of the experience, so they ship by default.
 - **SW-2** Convenience apps (for example Spotify or virtual machine managers) never ship by default. They
-  stay in `packages/extras*.txt`.
+  stay in `packages/extras*.txt`. An app is a convenience app when it is not in the standard app set (APP-1).
 - **SW-3** Audit `packages/desktop.txt` against SW-1. Each GNOME app either backs a feature (for example
   Nautilus for the Dock's Trash) or moves to extras. Done: Nautilus, Text Editor and Calculator back Files and the Dock's
   default pins; Loupe and File Roller open pictures and archives from Files. Disks, Disk Usage Analyzer,
-  Snapshot and Passwords and Keys moved to extras.
+  Snapshot and Passwords and Keys moved to extras. Partly reversed by SW-4: Disks, Snapshot and Passwords
+  and Keys come back as standard apps. Disk Usage Analyzer stays in extras.
+- **SW-4 Standard app set.** The apps in APP-1 ship by default in a new `packages/apps.txt`. They come from
+  the Arch repositories (signed packages), not the AUR or Flathub, unless APP-1 says otherwise. There is no
+  opt-out flag.
+
+### 5.7 Standard apps
+
+The target is the set of apps a new user of this kind of desktop expects to find: calendar, notes, photos and
+so on. The rule for every app (decision 2026-09-27): **no background service, no Flatpak runtime, and no
+network use unless the app's purpose needs it.** An app runs only while its window is open. Where a stock
+open-source app meets the rule, Clave ships it and themes it (APP-3). Where none does, Clave draws the app in
+Quickshell on top of open-source libraries (section 5.8).
+
+- **APP-1 App set.** One app per role. All are in the Arch `extra` repository. Names are what the Dock,
+  Apps and Search show (APP-4).
+
+  | Role | Shown as | Package | Toolkit | Notes |
+  |---|---|---|---|---|
+  | Calendar | Calendar | Clave app (APP-8) | QML | `gnome-calendar` rejected: evolution-data-server stays running |
+  | Contacts | Contacts | Clave app (APP-8) | QML | `gnome-contacts` rejected: evolution-data-server and gnome-online-accounts |
+  | Reminders | Reminders | `errands` | GTK4 | Local lists. CalDAV sync off by default |
+  | Notes | Notes | Clave app (APP-9) | QML | `iotas` rejected: it embeds WebKitGTK to show Markdown |
+  | Sticky notes | Stickies | `sticky` | GTK4 | |
+  | Weather | Weather | `gnome-weather` | GTK4 | Online only while open (APP-6) |
+  | Clock, alarms, timers | Clock | `gnome-clocks` | GTK4 | Depends on geoclue; no network location (APP-6) |
+  | Maps | Maps | `gnome-maps` | GTK4 | Online only while open (APP-6) |
+  | Photo library | Photos | `shotwell` | GTK3 | Loupe stays the default image viewer |
+  | E-books | Books | `foliate` | GTK4 | Embeds WebKitGTK, only while open. Accepted: EPUB needs a real layout engine |
+  | Podcasts | Podcasts | `gnome-podcasts` | GTK4 | Online only while open (APP-6) |
+  | Music | Music | `amberol` | GTK4 | `gnome-music` rejected: it needs the `localsearch` indexer (PERF-1) |
+  | Video | Videos | `showtime` | GTK4 | VLC stays in extras |
+  | Voice recording | Voice Memos | `gnome-sound-recorder` | GTK4 | |
+  | Camera | Camera | `snapshot` | GTK4 | Back from extras (SW-4) |
+  | Fonts | Fonts | `gnome-font-viewer` | GTK4 | |
+  | Chess | Chess | `gnome-chess` | GTK4 | |
+  | Whiteboard | Freeform board | `rnote` | GTK4 | |
+  | Scanner | Scanner | `simple-scan` | GTK3 | SANE starts no service |
+  | Remote screen (client only) | Screen Sharing | `gnome-connections` | GTK4 | No listener |
+  | System log | Console | `gnome-logs` | GTK4 | |
+  | Hardware report | System Information | `hardinfo2` | GTK3 | Check that benchmark sync stays off (step 1) |
+  | Disks | Disk Utility | `gnome-disk-utility` | GTK4 | Back from extras (SW-4) |
+  | Keys and certificates | Keychain | `seahorse` | GTK3 | Back from extras (SW-4). Keyserver lookups only on request (check in step 1) |
+  | Backups | Backups | `timeshift` | GTK3 | Installed, not configured. Nothing runs until the user sets it up |
+
+  Already shipped and unchanged: Files (`nautilus`), Text Editor, Calculator, Loupe, File Roller, and
+  Evince for PDFs (pulled in by `sushi`, so no second PDF app). The character viewer stays
+  `clave-emoji` (`rofi-emoji`), which already uses the Clave theme.
+
+  No equivalent, out of scope: messaging, video calls, device finding, home automation, TV, news, stocks,
+  automation, voice assistant and phone mirroring. They depend on Apple services.
+
+- **APP-2 Replaced and duplicate software.** When an APP-1 app or a section 5.8 engine replaces something,
+  the replaced item leaves the package lists. On update, the installer removes the Clave files it replaces
+  (the BR-9 pattern). It never uninstalls a package the user may have installed themselves; it prints a
+  list the user can remove instead.
+
+  | Removed from the lists | Replaced by |
+  |---|---|
+  | `htop` (`packages/extras.txt`) | Activity Monitor (SHELL-3); `btop` stays in extras for the terminal |
+  | `clave-screenshot`, the Shift+Super+3/4/5 binds that call it | SHELL-1 |
+  | `clave-displays`, `scripts/display-mode.sh`, `rofi/clave-display.rasi`, the Super+P menu | SHELL-2 |
+  | `Clave/ForceQuit.qml` as a separate window | SHELL-3 (Force Quit stays as a dialog of the same component) |
+
+- **APP-3 Theme.** Every APP-1 app follows the Clave theme in light and dark with the accent color (COMP-3).
+  GTK3 apps use WhiteSur. GTK4/libadwaita apps use `home/.config/gtk-4.0/gtk.css`. That file is extended
+  so the window buttons of libadwaita apps look like the traffic lights, on the left, and header bars,
+  sidebars and corner radius match the shell. A theme can change colors, fonts, spacing and radius. It
+  cannot move widgets: the layout of each app stays its own. That limit is accepted (decision 2026-09-27).
+  Every APP-1 app that draws its own title bar goes in the default `windows.noBarApps` list, so each window
+  has exactly one set of traffic lights (ISSUE-1).
+
+- **APP-4 Names and icons.** The Dock, Apps and Search show the "Shown as" names from APP-1. The names are
+  generic words (BR-3, BR-11). Clave sets them with `.desktop` overrides in
+  `~/.local/share/applications`. It does not patch packages. Icons come from the icon theme. Any app's
+  icon can be changed in `~/.config/clave/settings.json`:
+
+  ```json
+  "icons": { "org.gnome.Weather": "~/Pictures/icons/weather.png" }
+  ```
+
+  `clave-prefs` writes the override `.desktop` file with that `Icon=`. It accepts only local PNG and SVG
+  files and copies them to `~/.local/share/clave/icons/`, the same checks as the logo (FEAT-6). A picker in
+  System Settings joins the logo picker in section 13.
+
+- **APP-5 Default apps.** The installer sets the MIME defaults: Calendar for `text/calendar`, Contacts for
+  `text/vcard`, Videos for video types, Music for audio types, Books for EPUB, and Maps for `geo:` links.
+
+- **APP-6 Offline defaults (SEC-3).** Only Weather, Maps and Podcasts use the network, because their
+  data exists only online (forecasts, map tiles, feeds). They connect only while open, and OpenSnitch asks
+  before each one's first connection (hardening layer). Without the hardening layer they connect when
+  opened. Every other app makes no network calls. Nothing syncs in the background.
+  - geoclue: the network location sources (Wi-Fi, cell) are off in
+    `/etc/geoclue/conf.d/90-clave.conf`. Weather, Clock and Maps ask the user for a city instead.
+  - Reminders: CalDAV sync stays off. Calendar, Contacts and Notes (APP-8, APP-9) have no sync at all.
+  - Weather and Podcasts: no refresh while closed. Check whether either one has a background mode; turn
+    it off if it does.
+
+- **APP-7 Background cost (PERF-1).** The app set adds no service that stays running. One dependency is
+  D-Bus activated: `geoclue`, pulled in by Weather, Clock and Maps. It starts only when one of them asks for
+  the location, and with its network sources off (APP-6) it has nothing to look up online. Record it in
+  PERF-2 after the clean-VM check.
+
+- **APP-8 Calendar and Contacts.** Clave apps drawn in Quickshell (section 5.8).
+  - Each one runs as its own process (`qs -c clave-calendar`, `qs -c clave-contacts`). It starts when
+    opened and exits when its window closes, so a crash cannot take the shell down. No new runtime:
+    Quickshell and Python are already required.
+  - Data is plain files: one `.ics` file per calendar in `~/.local/share/clave/calendars/`, and one `.vcf`
+    file per contact in `~/.local/share/clave/contacts/`. Importing a file means copying it there. Other apps
+    and backups can read them.
+  - Open-source libraries read and write the files: `python-icalendar` (recurrence through
+    `python-dateutil`) and `python-vobject`. Clave code never parses the formats itself.
+  - Views: Calendar has day, week, month and year views, a sidebar with calendars and a mini month, and
+    event details in a popover. Contacts has a list with an index and a card view. Both use the 1:1
+    layout (BR-11).
+  - Reminders from events: a notification appears only if the event starts while Calendar is open. There
+    is no alarm service (PERF-1). The Clock app is for alarms.
+  - No sync, no accounts, no network.
+
+- **APP-9 Notes.** A Clave app like APP-8. Notes are Markdown files in `~/Documents/Notes`, one folder per
+  folder in the sidebar. Formatting shows in a QML `TextEdit` (rich text), with no web engine. Search looks
+  only inside that folder.
+
+### 5.8 Clave apps: open-source engines, Clave interface
+
+Some tools are part of the shell, not separate apps: the screenshot toolbar, the Displays settings and the
+process monitor. For these, and for the apps in APP-8 and APP-9, stock open-source apps either look like
+GNOME apps or break the APP rule.
+The rule (decision 2026-09-27): **trusted open-source programs do the work, and Clave draws only the
+interface in Quickshell.** Clave's own code is then UI only. It runs no capture code and no display logic,
+needs no root, parses no untrusted files, and calls each engine with a fixed argument list, not through
+a shell.
+
+- **SHELL-1 Screenshot and screen recording.** A toolbar on Shift+Super+5 with capture screen, capture
+  window, capture area, record screen, record area, Options (save folder, timer, show mouse pointer,
+  floating thumbnail) and Capture. Shift+Super+3 and Shift+Super+4 capture at once, as they do now. After a
+  capture, a floating thumbnail in the lower right opens markup on click. The notification is removed.
+  - Engines: `grim` (capture), `slurp` (area), `wf-recorder` (recording), `satty` (markup), `tesseract`
+    (copy text). All are in the Arch repositories.
+  - `wf-recorder` was chosen over `gpu-screen-recorder`, because `gpu-screen-recorder`'s KMS capture needs
+    a helper with `cap_sys_admin`. Kooha was rejected: it is a GNOME-style app (APP-3 limit).
+  - While recording, the menu bar shows a stop button. Nothing runs when not recording (PERF-3).
+  - Removes: `clave-screenshot` (APP-2). The `screenshots.folder` setting is kept.
+
+- **SHELL-2 Displays.** The Displays pane in System Settings stays: it is where this desktop expects the
+  settings to be. Its engine changes to Hyprland's own monitor rules.
+  - Hyprland applies `desc:` rules (make, model, serial) by itself when a screen is plugged in. So
+    per-screen resolution, scale, rotation and position need no Clave script and no daemon. The pane
+    writes the rules to `~/.config/clave/monitors.lua`, which `custom.lua` loads, and applies them
+    with `hyprctl`.
+  - Mirroring: Hyprland's `mirror` monitor option, set from the pane ("Use as: Mirror for …") and from the
+    Mirroring button in Control Center. The Super+P menu is removed.
+  - Lid closed with a second screen: keep one bind in `custom.lua` that turns the built-in panel off and on
+    with `hyprctl`. That is the only glue left.
+  - Rejected: `nwg-displays` (a GNOME-style window, and it writes hyprlang, not Lua), `kanshi` (a daemon
+    that does what `desc:` rules already do; it also has no mirroring), `wl-mirror` (mirrors into a
+    window, not onto a screen).
+  - Lost: a separate layout for each set of connected screens. `desc:` rules store one position per screen.
+    Check on the dock with the two Dell screens whether this matters in practice.
+  - Migration: `displays.json` is converted to `monitors.lua` once. Removes: `clave-displays`,
+    `display-mode.sh`, `clave-display.rasi` (APP-2).
+
+- **SHELL-3 Activity Monitor.** A Quickshell window, opened from Apps and from Search, with CPU, Memory,
+  Disk and Network tabs, a process list, Quit (SIGTERM) and Force Quit (SIGKILL). The Force Quit dialog
+  (Super+Alt+Escape) becomes a small mode of the same component.
+  - Engines: `ps` and `free` (procps-ng), `ip -s -j link` (iproute2) and `/proc/diskstats`. All come
+    with Arch `base`.
+  - Refreshes every 2 seconds only while the window is open. Nothing runs when it is closed (PERF-3).
+  - Only the user's own processes can be quit. There is no root helper.
+  - No Energy tab: Linux has no per-app power figure without root.
+  - Rejected: Mission Center and GNOME System Monitor. They are GNOME-style windows (APP-3 limit).
+
+Answers to the section 3 questions for SHELL-1 to SHELL-3: each one improves the experience; none needs a
+service or a listener while it is closed; the attack surface gets smaller, because display logic and
+capture now run in upstream programs; resources are used only while open; everything is local.
 
 ## 6. Features
 
@@ -331,8 +572,29 @@ Each phase ends when its exit criteria are met.
 | 3 | Settings: FEAT-4, FEAT-1, FEAT-7 (BR-5), ISSUE-1 | Each setting works and costs nothing when off. |
 | 4 | Release model: SEC-1, SEC-2, SW-3, PERF-2 | Hardened install round trip passes. Inventory matches the system. |
 | 5 | Sections 9 and 10 | Findings added to this plan as requirements or rejected with a reason. (done) |
+| 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. |
+| 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. |
 
-Phase 4 must finish before the public release.
+Phase 4 must finish before the public release. Phase 6 comes after v1.0.0, so it does not block that release.
+Phase 7 is security work and does not depend on phase 6: start it first. The status check and the warnings
+(the first two items of SEC-5) can ship in a v1.0.x update before the setup tool.
+
+Phase 6 steps, in order:
+
+1. **Checks before building.** On the clean VM: `desc:` monitor rules on hotplug with the dock (SHELL-2);
+   `wf-recorder` on Hyprland with the portal and without it (SHELL-1); that geoclue stops after use and
+   makes no network calls (APP-7); that Hardinfo2 and Seahorse make no network calls unless asked (APP-1);
+   a round trip of a real `.ics` and `.vcf` export through the Python libraries (APP-8); how much of each GTK4 app `gtk.css` can
+   reach (APP-3). Write each result in this plan. If a check fails, change the requirement first.
+2. **Packages.** Create `packages/apps.txt` (APP-1). Move Disks, Snapshot and Passwords and Keys from
+   extras. Remove `htop`. Add the geoclue config (APP-6) to `system/desktop`.
+3. **Theme and names.** Extend `gtk-4.0/gtk.css` (APP-3), the `.desktop` name overrides and the `icons`
+   setting (APP-4), MIME defaults (APP-5), and `windows.noBarApps` entries.
+4. **Clave apps.** SHELL-3 first (smallest), then SHELL-1, then SHELL-2 (needs the migration), then
+   Notes (APP-9), then Calendar and Contacts (APP-8).
+5. **Migration and cleanup.** Remove the replaced files on update (APP-2) and convert `displays.json`.
+   Extend `tests/migrate-test.sh`.
+6. **Docs.** README feature list, CHANGELOG, PERF-2, BR-11 review.
 
 ## 12. Release criteria for v1.0.0
 
@@ -370,7 +632,15 @@ These ideas are on hold. They are not part of v1.0.0.
 
 ## 14. Open questions
 
-- None at the moment. Add new ones here.
+- **Mail.** Should the public build ship a mail app (Geary, GTK3)? The author uses webmail. Geary keeps a
+  background process for new-mail notices, which PERF-1 would have to justify.
+- **Dictionary.** `gnome-dictionary` is archived upstream and looks up words online. No maintained offline
+  GTK dictionary is in the Arch repositories. Leave it out, or accept it?
+- **One password or two with Disk Encryption.** With SEC-5 the user types the disk passphrase at boot and
+  then the login password. Logging in automatically after the disk unlocks would skip the second prompt, but
+  GNOME Keyring then no longer unlocks at login (SEC-4). Keep both prompts, or find a way to unlock the keyring
+  from the disk passphrase?
+- **Per-set display layouts.** Does losing them (SHELL-2) matter? Decide after the step 1 check.
 
 ## Appendix: source notes
 
