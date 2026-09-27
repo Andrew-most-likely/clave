@@ -78,7 +78,10 @@ def monitors():
         out = subprocess.run(["hyprctl", "monitors", "all", "-j"], capture_output=True, text=True).stdout
     except FileNotFoundError:
         out = ""
-    mons = json.loads(out or "[]")
+    try:
+        mons = json.loads(out or "[]")
+    except ValueError:      # no Hyprland running (hyprctl prints an error)
+        mons = []
     for m in mons:
         w, h = (m["height"], m["width"]) if m["transform"] % 2 else (m["width"], m["height"])
         m["lw"] = round(w / m["scale"])

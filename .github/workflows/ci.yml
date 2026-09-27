@@ -52,14 +52,16 @@ jobs:
           sed '1,/\*\//d' home/.config/quickshell/DockApp/dock.json | jq empty
 
       - name: Python
-        run: python -m py_compile home/.local/share/clave/wallpaper-portal.py home/.local/bin/clave-idle
+        run: |
+          mapfile -t py < <(grep -rlE '^#!/usr/bin/env python3' home/.local/bin tests; echo home/.local/share/clave/wallpaper-portal.py)
+          for f in "${py[@]}"; do python -c 'import sys, py_compile; py_compile.compile(sys.argv[1], doraise=True)' "$f"; done
 
   install:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
       - name: Install tools
-        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland
+        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil
 
       - uses: actions/checkout@v4
         with:
@@ -74,5 +76,14 @@ jobs:
       - name: Update from the old names
         run: su tester -c 'bash /home/tester/repo/tests/migrate-test.sh'
 
+      - name: Update from v1.0.0 (APP-2, SHELL-2)
+        run: su tester -c 'bash /home/tester/repo/tests/update-test.sh'
+
       - name: Disk Encryption config writers (SEC-5)
         run: su tester -c 'bash /home/tester/repo/tests/encrypt-unit.sh'
+
+      - name: Displays, app names and icons, Calendar and Contacts files
+        run: |
+          su tester -c 'bash /home/tester/repo/tests/displays-test.sh'
+          su tester -c 'bash /home/tester/repo/tests/apps-test.sh'
+          su tester -c 'bash /home/tester/repo/tests/pim-test.sh'

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034  # ev, fam and c are read inside check's eval strings
 # Tests for clave-pim (APP-8): calendars and events (repeats, one repeat
 # removed, all-day, moving between calendars), an imported .ics file as other
 # apps export them (time zones, RRULE, EXDATE, an overridden repeat), and
