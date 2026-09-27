@@ -350,10 +350,10 @@ Status on 2026-09-27, after phases 0 to 5:
 | Criterion | Status |
 |---|---|
 | No Apple names or assets | Passes (`scripts/name-check.sh`) |
-| CI checks | All pass locally. CI itself has not run: the repo has no GitHub remote yet |
-| Hardened install and uninstall on a clean Arch system | **Open.** Needs a clean VM. A container cannot run the kernel, AppArmor, USBGuard and audit parts. The hardened install was run as an update of a live machine and succeeded |
+| CI checks | Pass on GitHub Actions |
+| Hardened install and uninstall on a clean Arch system | Passes on a clean Arch VM (`tests/vm-check.sh`): no failed units after the install or after `uninstall.sh --system`, and the uninstall restores PAM, the boot menu flags and the themes. The first run found that the uninstall deleted `/etc/pam.d/system-auth` and left the kernel flags in GRUB; both are fixed |
 | Update from `macos-look` keeps settings | Passes (`tests/migrate-test.sh`, and the live machine) |
-| Inventory matches a fresh install | Checked on the live machine (PERF-2). Recheck on the clean VM |
+| Inventory matches a fresh install | Passes on the live machine and the clean VM (PERF-2) |
 | Works offline, including the calculator | Calculator app and Search calculator make no downloads (OFF-1, FEAT-9). Online features are off by default (SEC-3) |
 | README, CHANGELOG, plan | Up to date |
 

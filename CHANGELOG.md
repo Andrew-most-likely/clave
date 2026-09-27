@@ -16,6 +16,8 @@ dotfiles, published as arch-macos-hyprland.
 - The startup chime is gone.
 - The hardening layer is installed by default. `--no-harden` skips it, and `--yes` includes it. The installer
   explains it first, and [docs/RECOVERY.md](docs/RECOVERY.md) explains how to recover from a lockout.
+- `uninstall.sh --system` no longer removes `/etc/pam.d/system-auth` while restoring it, which broke sudo and
+  login, and it now removes the kernel flags from the GRUB boot menu.
 - Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys moved to `--extras`.
 - Search has a calculator (`Ctrl+Tab`), which never downloads exchange rates.
 - Optional editing shortcuts on the Super key (System Settings > Keyboard).
