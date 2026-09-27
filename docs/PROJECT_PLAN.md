@@ -345,6 +345,21 @@ Phase 4 must finish before the public release.
 - The desktop works offline, including the calculator.
 - README, CHANGELOG and this plan are up to date.
 
+Status on 2026-09-27, after phases 0 to 5:
+
+| Criterion | Status |
+|---|---|
+| No Apple names or assets | Passes (`scripts/name-check.sh`) |
+| CI checks | All pass locally. CI itself has not run: the repo has no GitHub remote yet |
+| Hardened install and uninstall on a clean Arch system | **Open.** Needs a clean VM. A container cannot run the kernel, AppArmor, USBGuard and audit parts. The hardened install was run as an update of a live machine and succeeded |
+| Update from `macos-look` keeps settings | Passes (`tests/migrate-test.sh`, and the live machine) |
+| Inventory matches a fresh install | Checked on the live machine (PERF-2). Recheck on the clean VM |
+| Works offline, including the calculator | Calculator app and Search calculator make no downloads (OFF-1, FEAT-9). Online features are off by default (SEC-3) |
+| README, CHANGELOG, plan | Up to date |
+
+Before publishing: create the GitHub repository `Andrew-most-likely/clave` (setup.sh, clave-update and the
+README point there), push, let CI run, and sign the `v1.0.0` tag with the key in `home/.config/clave/allowed_signers`.
+
 ## 13. Tabled
 
 These ideas are on hold. They are not part of v1.0.0.
