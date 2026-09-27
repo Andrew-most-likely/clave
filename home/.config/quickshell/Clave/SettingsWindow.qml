@@ -836,7 +836,11 @@ Scope {
                 { "type": "choice", "label": "Super key symbol", "sub": "Shown in menus and the shortcut list",
                   "options": [{ "id": "command", "label": "⌘" }, { "id": "super", "label": "❖" }],
                   "get": () => M.get("keyboard", "superGlyph"),
-                  "set": v => M.set("keyboard", "superGlyph", v) }
+                  "set": v => M.set("keyboard", "superGlyph", v) },
+                { "type": "switch", "label": "Editing shortcuts on the Super key",
+                  "sub": "Super+C, X, V, Z copy, cut, paste and undo. Clipboard history moves to Super+Shift+V",
+                  "get": () => M.get("keyboard", "superEditing"),
+                  "set": on => { M.set("keyboard", "superEditing", on); hyprReload.restart() } }
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Keyboard Shortcuts", "text": "Show…",

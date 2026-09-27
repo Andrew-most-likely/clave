@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
-# Search (rofi). Pressing the shortcut again closes it.
-pkill -x rofi || exec rofi -show drun -replace -i -theme ~/.config/rofi/clave-search.rasi
+# Search (rofi): apps, and a calculator one Ctrl+Tab away (FEAT-9). Enter
+# copies the result. Pressing the shortcut again closes Search.
+pkill -x rofi && exit 0
+exec rofi -show drun -modi drun,calc -display-drun Apps -display-calc Calculator \
+    -qalc-binary "$HOME/.local/bin/clave-qalc" -no-persist-history \
+    -calc-command 'wl-copy "{result}"' -replace -i \
+    -theme ~/.config/rofi/clave-search.rasi \
+    -theme-str 'mainbox { children: [ inputbar, message, listview, mode-switcher ]; }'

@@ -197,6 +197,8 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 | FEAT-5 | Traffic lights on or off for all windows | Optional | On | Desktop & Dock > Windows > Show title bar buttons (done) |
 | FEAT-6 | Replaceable logo (BR-2, BR-10) | Required | Clave keystone | `branding/logo.svg` now, a picker later |
 | FEAT-7 | Modifier key glyph (BR-5) | Required | ⌘ | Keyboard > Super key symbol (done) |
+| FEAT-8 | Editing shortcuts on Super (Super+C, X, V, Z, Shift+Z) sent to the app as Ctrl shortcuts | Optional | Off | Keyboard > Editing shortcuts on the Super key (done) |
+| FEAT-9 | Calculator in Search, fully local (OFF-1): no exchange-rate downloads | Required | On | Search > Calculator, Ctrl+Tab (done) |
 
 Notes on the features:
 
@@ -207,6 +209,12 @@ Notes on the features:
   `clave-prefs` converts the picture to PNG as the user and passes the bytes on stdin. Root checks the size
   and the PNG signature and copies them to a fixed place. It never opens a path the user chose and never
   decodes the image. The background is kept in `/var/lib/clave`, so reinstalling keeps it.
+- **FEAT-8.** Super+A stays Apps and Super+F full screen. When the setting is on, Super+V pastes and clipboard
+  history moves to Super+Shift+V. Terminals get Ctrl+Shift+C and Ctrl+Shift+V, and nothing for cut and undo,
+  because Ctrl+C and Ctrl+Z stop programs there. The bindings exist only while the setting is on.
+- **FEAT-9.** `rofi-calc` (libqalculate) is a second mode in Search, one Ctrl+Tab away. It cannot show results
+  inside the app list (rofi's combined mode drops them). `clave-qalc` runs qalc with exchange-rate updates
+  off, so conversions use only rates already on disk. Enter copies the result. History is not kept.
 - **FEAT-7.** The choices are ⌘ and ❖. The Windows logo is a Microsoft trademark, so it is not offered.
 - **FEAT-5.** The setting already exists and is on by default. When it is off, the hyprbars plugin is
   unloaded. Separately, a fixed list in `plugins.lua` (`no-bar-csd` rule) hides the bar for apps that draw
@@ -242,6 +250,9 @@ simple. The user supplies all files that the project cannot ship.
   leaving a full-screen program such as Claude Code, the image could stay drawn over the text. Fixed: the logo
   is now text (`home/.config/fastfetch/assets/clave.txt`), which works in every terminal and is cleared with
   the screen. `extra/fastfetch.bash` is no longer needed and is removed.
+- **ISSUE-5 Lock screen clock format.** `hyprlock.conf` printed `%-I:%M` whatever the locale or the menu bar's
+  24-hour setting. Fixed: `clave-lock-clock` reads the setting, or the locale when it is not set. It runs only
+  while the screen is locked, in place of the `date` call that ran there before.
 - **ISSUE-4 Login screen button spacing.** The Sleep, Restart and Shut Down buttons were not evenly
   spaced, because each button column was as wide as its label. Each column now has the same width.
 
@@ -256,10 +267,22 @@ Add other similar Linux desktop projects with at least 200 GitHub stars. For eac
 
 | Project | Features | Visual approach | Architecture | Customization | Security | Bundled apps | Quality of life | We do better | We lack |
 |---|---|---|---|---|---|---|---|---|---|
+| [pearOS](https://github.com/pearOS-archlinux/iso) (361★) | Full distribution: ISO, installer (Calamares), own bootloader, settings app, theme switcher, sound scheme, own browser | KDE Plasma with themes and a blur effect | Arch base, built as an ISO with its own package repository | Light/dark switcher | No hardening layer described | Many, including its own browser | Rolling updates keep the branding | Works on an existing Arch install; hardened by default; one small repo | An installable ISO |
+| [Gnomintosh](https://github.com/jothi-prasath/gnomintosh) (286★) | Theme, icons, cursor, wallpapers, fonts, dconf settings | GNOME with Dash to Dock and other extensions | Shell script that applies themes and dconf keys | Through GNOME Tweaks and extensions | None | None | One script; last updated 2024 | Tiling; own shell, menu bar and settings; uninstall | Works on GNOME, which many users already run |
+| [GNOME-macOS-Tahoe](https://github.com/kayozxo/GNOME-macOS-Tahoe) (1107★) | GTK3/GTK4/Shell theme, 16 accent colors, libadwaita override, GDM theme | GNOME theme plus recommended extensions | Theme generator and interactive installer (gum) | Accent colors, light/dark | None | None | Interactive installer menu | A whole desktop, not a theme; accent follows one setting everywhere | 16 accents (we have 8) |
+| [eqSh](https://github.com/eq-desktop/eqsh) (263★) | Quickshell shell for Hyprland: panel, notch, launcher, notifications, lock screen, OSDs, control center, dock, widgets, screenshots, AI chatbot, settings app | Own shell drawn in Quickshell | Quickshell config plus a CLI (`au`) | JSON settings and a settings app | Not described | None | curl installer | Dock magnification, genie minimize, app menus, window title bars; hardening; offline by default | Desktop widgets, notch |
+| [KOS / NextKde](https://github.com/SuceV587/NextKde) (245★) | Quickshell shell on KDE Plasma: top bar, dock, launcher, search, notifications, settings, KWin effects, window decoration, optional lock screen | Quickshell over Plasma, KWin effects | Quickshell plus a C++ platform service and KWin plugins | Settings app | Not described | None | `kosctl` installs and removes parts | No extra platform service; lighter than Plasma | Desktop files; a global search with more sources |
 
-Adopt a feature only if it passes section 3, does not weaken security, does not add a background service
-without reason, and does not add unneeded software. The goal is completeness where it helps, not a copy
-of every feature.
+Decisions:
+
+- **Adopt as requirements:** a local calculator in Search (FEAT-9; most launchers above have one). Optional
+  editing shortcuts on the Super key, since users of this layout expect Super+C and Super+V (FEAT-8; the
+  `gnome-macos-remap` scripts, 542★, show the demand).
+- **Reject:** an ISO (out of scope: Clave installs on Arch), desktop widgets and a notch (only visual, section
+  3), an AI chatbot (network, SEC-3), an interactive installer menu (the flags and `--dry-run` already cover it
+  without a new dependency), more accent colors (eight cover the common choices), a platform service like
+  KOS's (PERF-1).
+- **Already tabled:** desktop files (section 13).
 
 ## 10. Quality-of-life review
 
@@ -278,6 +301,24 @@ Walk through each area as a new user and write down every point of friction:
 
 Each finding becomes an issue with a requirement ID, or a new requirement in this plan.
 
+Findings from updating a live machine on 2026-09-27:
+
+| Area | Finding | Outcome |
+|---|---|---|
+| First run | A package already installed was upgraded alone and failed (partial upgrade), after the migration had started | Fixed: only missing packages, packages first |
+| First run | Old system files were left because early installs kept no record; the cleanup then stopped on a missing backup | Fixed: cleanup by name, error fixed |
+| First run | The wallpaper setting still pointed at the old folder | Fixed: paths in `~/.config/clave` are rewritten |
+| First run | GTK font and cursor stayed old until the next login | Fixed: the installer applies them in a running session |
+| First run | The Firefox theme was skipped with a wrong reason ("start Firefox once") while Firefox was open | Fixed: says to close Firefox |
+| First run | Hyprland plugins do not load on a config reload after their folder moved | Accepted: they load at the next login, which the installer asks for |
+| Login | Login screen, profile picture and background work. `~/.face` was missing | Set through Lock Screen > Login Window (FEAT-4) |
+| Authentication | VS Code used the weak password store (ISSUE-2) | Fixed on the test machine; documented in the README |
+| System Settings | The `search` settings (calculator, files, web) were read by nothing | Removed |
+| Search | No calculator | FEAT-9 (done) |
+| Lock screen | The clock is always 12-hour, while the menu bar follows the locale and the 24-hour setting | ISSUE-5 (fixed) |
+| Window management | No Super+C / Super+V for copy and paste | FEAT-8 (done, optional) |
+| Sounds, visual consistency, customization | No new friction found | — |
+
 ## 11. Roadmap
 
 Each phase ends when its exit criteria are met.
@@ -289,7 +330,7 @@ Each phase ends when its exit criteria are met.
 | 2 | Rename and assets: BR-1 to BR-4, BR-6 to BR-10 | The trademark check (section 12) passes. The migration test passes. |
 | 3 | Settings: FEAT-4, FEAT-1, FEAT-7 (BR-5), ISSUE-1 | Each setting works and costs nothing when off. |
 | 4 | Release model: SEC-1, SEC-2, SW-3, PERF-2 | Hardened install round trip passes. Inventory matches the system. |
-| 5 | Sections 9 and 10 | Findings added to this plan as requirements or rejected with a reason. |
+| 5 | Sections 9 and 10 | Findings added to this plan as requirements or rejected with a reason. (done) |
 
 Phase 4 must finish before the public release.
 

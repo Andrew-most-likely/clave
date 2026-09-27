@@ -162,6 +162,18 @@ migrate_home() {
     fi
     migrate_settings
     migrate_user_text
+    migrate_paths
+}
+
+# Settings files name other files by full path (the wallpaper, a screenshot
+# folder): point those at the moved folders.
+migrate_paths() {
+    local f
+    for f in "$HOME"/.config/clave/*; do
+        [ -f "$f" ] && grep -Iq . "$f" && grep -q "/$OLD/\|/sounds/macOS/" "$f" || continue
+        run sed -i -e "s|/$OLD/|/clave/|g" -e 's|/sounds/macOS/|/sounds/clave/|g' "$f"
+        echo "  updated paths in ${f#"$HOME/"}"
+    done
 }
 
 # System files of the old layout. Installs made before scripts/system.sh kept

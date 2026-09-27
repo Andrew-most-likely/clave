@@ -1,0 +1,12 @@
+#!/bin/sh
+# The lock screen clock (hyprlock runs this every second while locked):
+# 12- or 24-hour like the menu bar (ISSUE-5).
+case $(jq -r '.menubar.clock24h // empty' "$HOME/.config/clave/settings.json" 2>/dev/null) in
+    true) exec date +%H:%M ;;
+    false) exec date +%-I:%M ;;
+esac
+# Not set in System Settings: follow the locale, as the menu bar does.
+case $(locale t_fmt 2>/dev/null) in
+    *%p* | *%r*) exec date +%-I:%M ;;
+esac
+exec date +%H:%M

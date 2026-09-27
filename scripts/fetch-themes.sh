@@ -21,7 +21,11 @@ fetch WhiteSur-gtk-theme https://github.com/vinceliuice/WhiteSur-gtk-theme
 
 echo "==> WhiteSur Firefox theme"
 if [ -d "$HOME/.config/mozilla/firefox" ] || [ -d "$HOME/.mozilla/firefox" ]; then
-    (cd "$cache/WhiteSur-gtk-theme" && ./tweaks.sh -f 2>&1 | tail -n 3) || echo "  Firefox theme skipped (start Firefox once, then re-run)"
+    if pgrep -x firefox >/dev/null; then
+        echo "  skipped: Firefox is open. Close it and run install.sh again for the Firefox theme."
+    else
+        (cd "$cache/WhiteSur-gtk-theme" && ./tweaks.sh -f 2>&1 | tail -n 3) || echo "  Firefox theme skipped (start Firefox once, then re-run)"
+    fi
 else
     echo "  no Firefox profile yet, skipped"
 fi

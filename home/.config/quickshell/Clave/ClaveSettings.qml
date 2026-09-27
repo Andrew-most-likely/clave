@@ -12,7 +12,7 @@ import QtQuick
 //                                       accessibility); applied with a reload
 //
 // Every feature that could matter for privacy or security has a switch here
-// ("privacy", "features", "search"), and the code that runs the feature
+// ("privacy", "features"), and the code that runs the feature
 // checks it. Anything that reaches the network is off by default.
 //
 // Values missing from the file fall back to the defaults below.
@@ -33,7 +33,7 @@ Singleton {
         "trackpad":   { "tapToClick": true, "naturalScroll": true },
         "mouse":      { "speed": 0, "acceleration": true, "naturalScroll": false, "leftHanded": false },
         "keyboard":   { "repeatRate": 25, "repeatDelay": 600, "layout": "us", "capsLock": "",
-                        "superGlyph": "command" },
+                        "superGlyph": "command", "superEditing": false },
         "sound":      { "uiSounds": true },
         "appearance": { "mode": "dark", "accent": "blue" },
         "display":    { "nightLightTemp": 4500 },
@@ -42,8 +42,6 @@ Singleton {
         "privacy":    { "clipboardHistory": true, "clipboardKeep": false, "clipboardImages": false,
                         "albumArtOnline": false, "wallpaperApps": "ask", "capturePrompt": true },
         "features":   { "appSwitcher": true, "windowTiling": true, "screenRecording": true },
-        "search":     { "apps": true, "settings": true, "calculator": true, "conversions": true,
-                        "files": true, "web": false, "hideUtilities": true },
         "accessibility": { "reduceMotion": false, "reduceTransparency": false, "increaseContrast": false }
     })
 
@@ -158,6 +156,7 @@ Singleton {
             + "    reduce_transparency = " + b(root.get("accessibility", "reduceTransparency")) + ",\n"
             + "    increase_contrast   = " + b(root.get("accessibility", "increaseContrast")) + ",\n"
             + "    enforce_permissions = " + b(root.get("privacy", "capturePrompt")) + ",\n"
+            + "    super_editing  = " + b(root.get("keyboard", "superEditing")) + ",\n"
             + "    no_bar_apps    = { " + root.noBarApps().map(c => JSON.stringify(c)).join(", ") + " },\n"
             + "}\n")
     }

@@ -60,7 +60,8 @@ install to the new names and keeps your settings, Dock, wallpaper and your own f
 - Dock with magnification, running indicators, pinning, and the genie minimize animation. The animation uses
   GLSL shaders and a small Hyprland plugin, `hypr-minimize`.
 - Traffic-light title bars from `hyprbars`, built from source for your Hyprland version
-- Overview, hot corners, Search, Apps and Force Quit
+- Overview, hot corners, Search (apps, and a calculator one `Ctrl+Tab` away that works offline), Apps and
+  Force Quit
 - System Settings (`Super+,`) with panes for Wi-Fi & Bluetooth, Displays, Sound, Battery, Appearance (light or
   dark, text size), Desktop & Dock, Wallpaper, Control Center, Notifications, Lock Screen, Login Items,
   Printers & Scanners, Date & Time, Trackpad, Mouse, Keyboard, and Privacy & Security
@@ -123,7 +124,8 @@ The installer never replaces files you own:
 
 System Settings > Lock Screen sets the login screen background and your profile picture. Desktop & Dock
 turns on Space numbers in the menu bar and lists apps that should not get title bar buttons, for apps that
-draw their own. Keyboard switches the Super key symbol in menus between ⌘ and ❖.
+draw their own. Keyboard switches the Super key symbol in menus between ⌘ and ❖, and can turn on editing shortcuts on the
+Super key (Super+C, X, V, Z; clipboard history then moves to Super+Shift+V).
 
 See [`examples/`](examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
 

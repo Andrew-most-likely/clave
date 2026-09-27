@@ -64,6 +64,9 @@ migrate_home
 [ "$update" -eq 1 ] || move_aside_old_setup
 install_home_files
 remove_orphans
+# GTK apps and portals read gsettings, which clave-gtk-apply sets from the
+# installed settings.ini; otherwise the old font and cursor stay until login.
+[ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || [ "$DRY" -eq 1 ] || "$HOME/.local/bin/clave-gtk-apply" || true
 [ "$update" -eq 1 ] || fetch_themes
 
 say "Genie shaders and Hyprland plugins"

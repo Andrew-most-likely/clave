@@ -20,7 +20,10 @@ bind(mod .. " + B",              exec("xdg-open https://"),               "Web b
 bind(mod .. " + COMMA",          exec("qs ipc call settings open general"), "System Settings")
 bind(mod .. " + N",              exec("swaync-client -t -sw"),            "Notification Center")
 bind(mod .. " + CTRL + N",       exec("qs ipc call controlcenter toggle"), "Control Center")
-bind(mod .. " + V",              exec("clave-clipboard"),                 "Clipboard history")
+-- With the editing shortcuts on (below), Super+V pastes and the history
+-- moves to Super+Shift+V.
+local settings = require("clave.settings")
+bind(mod .. (settings.super_editing and " + SHIFT + V" or " + V"), exec("clave-clipboard"), "Clipboard history")
 bind(mod .. " + CTRL + SPACE",   exec("clave-emoji"),                     "Emoji & Symbols")
 bind(mod .. " + SLASH",          exec("clave-keybinds"),                  "Keyboard shortcuts")
 bind(mod .. " + P",              exec("~/.config/hypr/scripts/display-mode.sh"), "Display mode")
@@ -90,6 +93,34 @@ bind(mod .. " + S",             hl.dsp.workspace.toggle_special("scratchpad"), "
 bind(mod .. " + SHIFT + S",     function()
     hl.dispatch(hl.dsp.window.move({ workspace = "special:scratchpad" }))
 end, "Move window to scratchpad")
+
+-- Editing shortcuts on Super (FEAT-8; System Settings > Keyboard, off by
+-- default). The app receives the Ctrl shortcut. Terminals get Ctrl+Shift for
+-- copy and paste and nothing for cut and undo, since Ctrl+C and Ctrl+Z stop
+-- programs there. Super+A stays Apps and Super+F full screen.
+if settings.super_editing then
+    local terminals = {
+        kitty = true, Alacritty = true, foot = true, ["org.wezfurlong.wezterm"] = true,
+        ["com.mitchellh.ghostty"] = true, ["org.gnome.Terminal"] = true,
+        ["org.gnome.Ptyxis"] = true, ["org.kde.konsole"] = true,
+    }
+    local function edit(key, shift)
+        return function()
+            local w = hl.get_active_window()
+            local term = w ~= nil and terminals[w.class] == true
+            if term and key ~= "C" and key ~= "V" then
+                return
+            end
+            local mods = (shift or term) and "CTRL SHIFT" or "CTRL"
+            hl.dispatch(hl.dsp.send_shortcut({ mods = mods, key = key }))
+        end
+    end
+    bind(mod .. " + C",         edit("C"),       "Copy")
+    bind(mod .. " + X",         edit("X"),       "Cut")
+    bind(mod .. " + V",         edit("V"),       "Paste")
+    bind(mod .. " + Z",         edit("Z"),       "Undo")
+    bind(mod .. " + SHIFT + Z", edit("Z", true), "Redo")
+end
 
 -- Game mode: no animations, blur, shadows, gaps or rounding. Off reloads the config.
 local gamemode = false

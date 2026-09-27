@@ -28,6 +28,31 @@ window {
     padding:         0;
 }
 mainbox { children: [ inputbar, listview ]; spacing: 0; }
+/* The calculator's result (clave-search), and the Apps / Calculator switch. */
+message {
+    padding:   12px 18px;
+    border:    0 0 1px 0;
+    border-color: @border-c;
+}
+textbox {
+    font:      "Inter Display 18";
+    text-color: @fg;
+}
+mode-switcher {
+    padding:   6px;
+    spacing:   6px;
+    border:    1px 0 0 0;
+    border-color: @border-c;
+}
+button {
+    padding:   5px 10px;
+    border-radius: 8px;
+    text-color: @fg-dim;
+}
+button selected {
+    background-color: @accent;
+    text-color: #ffffff;
+}
 inputbar {
     children:  [ icon-search, entry ];
     padding:   14px 18px;

@@ -17,6 +17,11 @@ dotfiles, published as arch-macos-hyprland.
 - The hardening layer is installed by default. `--no-harden` skips it, and `--yes` includes it. The installer
   explains it first, and [docs/RECOVERY.md](docs/RECOVERY.md) explains how to recover from a lockout.
 - Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys moved to `--extras`.
+- Search has a calculator (`Ctrl+Tab`), which never downloads exchange rates.
+- Optional editing shortcuts on the Super key (System Settings > Keyboard).
+- The lock screen clock follows the 12- or 24-hour setting.
+- The Wi-Fi and Trash icons react to changes instead of checking every few seconds.
+- Updating from the old names also fixes paths in your settings, such as the wallpaper.
 - System Settings: login screen background and profile picture, Space numbers in the menu bar (off by default),
   the Super key symbol (⌘ or ❖), and a list of apps that draw their own title bar buttons. VS Code and Bazaar
   no longer show two sets of buttons.

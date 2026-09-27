@@ -1,0 +1,6 @@
+#!/bin/sh
+# qalc for the calculator in Search (rofi-calc -qalc-binary). libqalculate
+# can download exchange rates by itself; this turns that off, so Search never
+# goes online (PROJECT_PLAN.md OFF-1, FEAT-9). Conversions use the rates
+# already on disk, if any.
+exec qalc -s "update exchange rates 0" "$@"

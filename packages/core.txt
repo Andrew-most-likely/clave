@@ -8,6 +8,6 @@ networkmanager network-manager-applet upower
 # Screenshots and text recognition
 grim slurp satty tesseract tesseract-data-eng
 # Emoji picker, launcher
-rofi rofi-emoji
+rofi rofi-emoji rofi-calc
 # Helpers used by the shell and scripts
 jq python-gobject libnotify swayosd
