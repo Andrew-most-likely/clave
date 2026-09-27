@@ -92,6 +92,39 @@ if [ -d "/usr/lib/modules/$(uname -r)" ]; then now=--now; else
 fi
 
 # --------------------------------------------------------------------------
+# compat_files: the upgrade check (COMP-9). Part of the look group; also its
+# own group "compat", which install.sh --update runs when these changed.
+compat_files() {
+    say "Upstream compatibility check (pacman hook)"
+    # After an upgrade of a package Clave talks to, a pacman hook says
+    # whether this Clave release works with it. It runs a root-owned copy of
+    # clave-compat and reads a copy of compat.json, never the checkout.
+    place "$repo/compat.json" /usr/share/clave/compat.json 644
+    place "$repo/home/.local/bin/clave-compat" /usr/local/lib/clave/clave-compat 755
+    local hook=/etc/pacman.d/hooks/clave-doctor.hook
+    install -d /etc/pacman.d/hooks
+    backup "$hook"
+    {
+        echo "# Written by Clave (scripts/system.sh) from ci/watched.txt. PROJECT_PLAN.md COMP-9."
+        echo "# Warns after an upgrade that this Clave release was not tested with; never"
+        echo "# stops the transaction."
+        echo "[Trigger]"
+        echo "Operation = Install"
+        echo "Operation = Upgrade"
+        echo "Type = Package"
+        awk '($1 == "repo" || $1 == "aur") { print "Target = " $2 }' "$repo/ci/watched.txt"
+        echo
+        echo "[Action]"
+        echo "Description = Checking Clave compatibility..."
+        echo "When = PostTransaction"
+        echo "NeedsTargets"
+        echo "Exec = /usr/local/lib/clave/clave-compat --hook"
+    } > "$hook"
+    chmod 644 "$hook"
+    record "$hook"
+    echo "  $hook"
+}
+
 if has look; then
     say "Clave look: system files"
     place_group look
@@ -147,34 +180,15 @@ if has look; then
     find /etc/sddm.conf.d -maxdepth 1 \( -name '*.bak*' -o -name '*~' \) -exec mv -t /etc/sddm.conf.d.backup/ {} +
     systemctl is-enabled -q display-manager.service 2>/dev/null || systemctl enable sddm.service
 
-    # After an upgrade of a package Clave talks to, a pacman hook says
-    # whether this Clave release works with it. It runs a root-owned copy of
-    # clave-compat and reads a copy of compat.json, never the checkout.
-    say "Upstream compatibility check (pacman hook)"
-    place "$repo/compat.json" /usr/share/clave/compat.json 644
-    place "$repo/home/.local/bin/clave-compat" /usr/local/lib/clave/clave-compat 755
-    hook=/etc/pacman.d/hooks/clave-doctor.hook
-    install -d /etc/pacman.d/hooks
-    backup "$hook"
-    {
-        echo "# Written by Clave (scripts/system.sh) from ci/watched.txt. PROJECT_PLAN.md COMP-9."
-        echo "# Warns after an upgrade that this Clave release was not tested with; never"
-        echo "# stops the transaction."
-        echo "[Trigger]"
-        echo "Operation = Install"
-        echo "Operation = Upgrade"
-        echo "Type = Package"
-        awk '($1 == "repo" || $1 == "aur") { print "Target = " $2 }' "$repo/ci/watched.txt"
-        echo
-        echo "[Action]"
-        echo "Description = Checking Clave compatibility..."
-        echo "When = PostTransaction"
-        echo "NeedsTargets"
-        echo "Exec = /usr/local/lib/clave/clave-compat --hook"
-    } > "$hook"
-    chmod 644 "$hook"
-    record "$hook"
-    echo "  $hook"
+    compat_files
+fi
+
+if has compat && ! has look; then
+    compat_files
+fi
+if [ "${groups[*]}" = compat ]; then
+    say "Done."
+    exit 0
 fi
 
 # --------------------------------------------------------------------------

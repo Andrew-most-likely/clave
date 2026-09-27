@@ -126,6 +126,24 @@ if [ "$update" -eq 0 ]; then
     run systemctl --user disable --now usbguard-notifier.service 2>/dev/null || true
 fi
 
+# The upgrade check (COMP-9) reads root-owned copies of compat.json and
+# clave-compat. An update that changed them refreshes them, which needs sudo:
+# only from a terminal, and only where the system part was installed.
+compat_current() {
+    local hook=/etc/pacman.d/hooks/clave-doctor.hook
+    cmp -s "$repo/compat.json" /usr/share/clave/compat.json &&
+        cmp -s "$repo/home/.local/bin/clave-compat" /usr/local/lib/clave/clave-compat &&
+        [ "$(awk '$1 == "repo" || $1 == "aur" { print $2 }' "$repo/ci/watched.txt")" = "$(sed -n 's/^Target = //p' "$hook" 2>/dev/null)" ]
+}
+if [ "$update" -eq 1 ] && [ -e /var/lib/clave/installed-files ] && ! compat_current; then
+    if [ -t 0 ]; then
+        say "Upgrade check (sudo): compatibility list and pacman hook"
+        run sudo "$repo/scripts/system.sh" compat || warn "Not updated; run: sudo $repo/scripts/system.sh compat"
+    else
+        warn "The upgrade check is out of date; run: sudo $repo/scripts/system.sh compat"
+    fi
+fi
+
 # --- system part -----------------------------------------------------------
 if [ "$user_only" -eq 0 ]; then
     groups=(look desktop)
