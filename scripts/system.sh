@@ -54,17 +54,31 @@ place_group() {  # place_group GROUP: install every file of system/GROUP
     done < <(find "$base" -type f -print0 | sort -z)
 }
 
-add_cmdline() {  # add_cmdline FLAG...: append missing kernel flags to /etc/kernel/cmdline (UKI setups)
-    local f=/etc/kernel/cmdline flag
-    if [ ! -f "$f" ]; then
-        echo "  /etc/kernel/cmdline not found (not a UKI setup). Add these flags to your bootloader by hand:"
+# add_cmdline FLAG...: add missing kernel flags. UKI setups read
+# /etc/kernel/cmdline; GRUB setups read /etc/default/grub, and grub.cfg is
+# written again at the end (it also picks up a newly installed kernel).
+need_grub=0
+add_cmdline() {
+    local f flag
+    if [ -f /etc/kernel/cmdline ]; then
+        f=/etc/kernel/cmdline
+        backup "$f"
+        for flag in "$@"; do
+            grep -qw -- "${flag%%=*}" "$f" || sed -i "s|\$| $flag|" "$f"
+        done
+    elif [ -f /etc/default/grub ] && command -v grub-mkconfig >/dev/null; then
+        f=/etc/default/grub
+        backup "$f"
+        for flag in "$@"; do
+            grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=.*[\" ]${flag%%=*}[=\" ]" "$f" \
+                || sed -i -E "s|^(GRUB_CMDLINE_LINUX_DEFAULT=\"[^\"]*)\"|\1 $flag\"|" "$f"
+        done
+        need_grub=1
+    else
+        echo "  No /etc/kernel/cmdline (UKI) or GRUB found. Add these flags to your bootloader by hand:"
         echo "    $*"
         return 1
     fi
-    backup "$f"
-    for flag in "$@"; do
-        grep -qw -- "${flag%%=*}" "$f" || sed -i "s|\$| $flag|" "$f"
-    done
     return 0
 }
 
@@ -104,8 +118,9 @@ if has look; then
     rm -rf /usr/share/sddm/themes/clave
     cp -r "$repo/home/.local/share/clave/sddm-clave" /usr/share/sddm/themes/clave
     walls="$home/.local/share/clave/wallpapers"
-    bg=$(find "$walls" -maxdepth 1 -iname 'whitesur-dark*' 2>/dev/null | head -n1)
-    [ -n "$bg" ] || bg=$(find "$walls" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1)
+    # The folder is missing when the wallpaper download failed.
+    bg=$(find "$walls" -maxdepth 1 -iname 'whitesur-dark*' 2>/dev/null | head -n1 || true)
+    [ -n "$bg" ] || bg=$(find "$walls" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1 || true)
     # A background chosen in System Settings (clave-admin) wins.
     if [ -f "$state/login-background.png" ]; then install -m644 "$state/login-background.png" /usr/share/sddm/themes/clave/background.png
     elif [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/clave/background.png
@@ -191,6 +206,11 @@ fi
 if [ "$need_initramfs" -eq 1 ]; then
     say "Rebuilding initramfs / UKI (mkinitcpio -P)"
     mkinitcpio -P
+fi
+
+if [ "$need_grub" -eq 1 ]; then
+    say "Boot menu (grub-mkconfig)"
+    grub-mkconfig -o /boot/grub/grub.cfg
 fi
 
 say "System part done. Reboot to see the boot splash and login screen."

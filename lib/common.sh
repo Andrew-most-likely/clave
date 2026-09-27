@@ -62,16 +62,25 @@ preflight() {
     fi
 }
 
-aur_helper() { command -v paru || command -v yay || true; }
+# An AUR helper that runs. A prebuilt one (paru-bin, yay-bin) stops working
+# when pacman's libalpm moves on, so it only counts if it starts.
+aur_helper() {
+    local h
+    for h in paru yay; do
+        command -v "$h" >/dev/null && "$h" --version >/dev/null 2>&1 && { command -v "$h"; return; }
+    done
+    true
+}
 
+# Builds yay from source, so it links the libalpm that is installed now.
 bootstrap_aur_helper() {
     [ -n "$(aur_helper)" ] && return
-    say "No AUR helper found: installing paru"
+    say "No working AUR helper found: building yay"
     run sudo pacman -S --needed --noconfirm base-devel git
     local tmp
     tmp=$(mktemp -d)
-    run git clone -q --depth 1 https://aur.archlinux.org/paru-bin.git "$tmp/paru-bin"
-    (cd "$tmp/paru-bin" && run makepkg -si --noconfirm)
+    run git clone -q --depth 1 https://aur.archlinux.org/yay.git "$tmp/yay"
+    (cd "$tmp/yay" && run makepkg -si --noconfirm --needed -r)
     rm -rf "$tmp"
 }
 
@@ -87,7 +96,7 @@ show_plan() {
   clave
   -------------------
   Repo:        $repo
-  Packages:    $([ "$packages" -eq 1 ] && echo "yes (AUR helper: ${helper:-paru, installed first})" || echo no)
+  Packages:    $([ "$packages" -eq 1 ] && echo "yes (AUR helper: ${helper:-yay, built first})" || echo no)
   System part: $([ "$user_only" -eq 1 ] && echo "no (--user-only)" || echo "yes (sudo): login screen, boot splash, services")
   Hardening:   $([ "$harden" -eq 1 ] && echo "yes (default; --no-harden skips it), explained before it runs" || echo "no (--no-harden)")
   Moved aside:${old:- nothing}
@@ -122,7 +131,7 @@ install_packages() {  # install_packages GROUP...: packages/GROUP.txt, GROUP-aur
     if [ ${#list[@]} -gt 0 ]; then
         bootstrap_aur_helper
         say "Packages (AUR)"
-        run "$(aur_helper || echo paru)" -S --needed --noconfirm "${list[@]}"
+        run "$(aur_helper)" -S --needed --noconfirm "${list[@]}"
     fi
 
     mapfile -t list < <(pkgs "${flat[@]}")

@@ -7,6 +7,8 @@
 #     https://github.com/vinceliuice/WhiteSur-wallpapers
 # The cursor and WhiteSur icons/Kvantum come from the AUR (packages/look-aur.txt).
 set -euo pipefail
+# WhiteSur's installer stops without a terminal type (scripted installs, CI).
+export TERM="${TERM:-dumb}"
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/clave/src"
 mkdir -p "$cache"
 
