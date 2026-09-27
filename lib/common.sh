@@ -245,7 +245,9 @@ install_home_files() {
         changed=$((changed + 1))
         if [ "$DRY" -eq 1 ]; then echo "  [dry-run] ~/$rel"; continue; fi
         mkdir -p "$(dirname "$dest")"
-        if [ -e "$dest" ] && [ ! -e "$BACKUPS/$rel" ]; then
+        # Only the user's own copy is kept: a file an earlier Clave install
+        # wrote is not a backup, and uninstall would put it back.
+        if [ -e "$dest" ] && [ ! -e "$BACKUPS/$rel" ] && ! grep -qxF "$dest" "$STATE/installed-files" 2>/dev/null; then
             mkdir -p "$(dirname "$BACKUPS/$rel")"
             cp -a "$dest" "$BACKUPS/$rel"
         fi
