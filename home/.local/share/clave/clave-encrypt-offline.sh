@@ -19,7 +19,7 @@ die()  { printf '\033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
 for t in cryptsetup systemd-cryptenroll blkid findmnt; do
     command -v "$t" >/dev/null || die "Missing $t: use the Arch live USB."
 done
-if findmnt -rno SOURCE / | grep -q "$ROOT_PARTUUID"; then
+if [ "$(readlink -f "/dev/disk/by-partuuid/$ROOT_PARTUUID")" = "$(findmnt -nvo SOURCE /)" ]; then
     die "This is the installed system. Boot the Arch live USB and run it from there."
 fi
 
