@@ -14,8 +14,8 @@
 # Position, orientation, resolution and scale of each screen come from
 # System Settings > Displays (macos-displays spec), when set there.
 
-LAPTOP="eDP-1"
-LAPTOP_SCALE=1.5          # keep in sync with custom.lua
+# The built-in panel: eDP, LVDS or DSI. Empty on desktops.
+LAPTOP=$(hyprctl monitors all -j | jq -r '[.[].name | select(test("^(eDP|LVDS|DSI)-"))][0] // empty')
 STATE="${XDG_CACHE_HOME:-$HOME/.cache}/display-mode"
 THEME="$HOME/.config/rofi/macos-display.rasi"
 CONFIRM_SECONDS=15
@@ -173,6 +173,16 @@ menu() {
         -theme "$THEME" -mesg "Display" -a "$active" -selected-row "$active") || return
     [ -n "$choice" ] && choose "${modes[$choice]}"
 }
+
+# Desktops have no built-in panel: the modes are about the laptop screen, so
+# only keep every screen's wallpaper right.
+if [ -z "$LAPTOP" ]; then
+    case "$1" in
+        --hotplug) sleep 1; fix_wallpaper ;;
+        *) notify-send -a "Displays" "Arrange screens in System Settings > Displays" ;;
+    esac
+    exit 0
+fi
 
 case "$1" in
     "")                                  pkill -x rofi || menu ;;

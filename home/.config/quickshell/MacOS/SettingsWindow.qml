@@ -119,7 +119,8 @@ Scope {
     // ==========================================
     // Everything goes through ~/.local/bin/macos-displays, which saves it per
     // screen (displays.json) so display-mode.sh re-applies it on hotplug.
-    readonly property string laptop: "eDP-1"
+    // The built-in panel (eDP, LVDS or DSI); empty on desktops.
+    readonly property string laptop: (root.displays.find(m => /^(eDP|LVDS|DSI)-/.test(m.name)) || { "name": "" }).name
     property var displays: []
     property string selDisplay: ""        // description of the selected screen
     property bool arranging: false        // a screen is being dragged

@@ -18,12 +18,12 @@ monitor description (make, model, serial), so they follow a screen to any port:
   layouts:  {"DESC|DESC|...": {DESC: [x, y]}}  one per set of screens in use
 """
 import json
+import re
 import os
 import subprocess
 import sys
 
-LAPTOP = "eDP-1"
-LAPTOP_SCALE = 1.5  # keep in sync with custom.lua and display-mode.sh
+LAPTOP_NAME = re.compile(r"(eDP|LVDS|DSI)-")  # built-in panels
 FILE = os.path.expanduser("~/.config/macos-look/displays.json")
 
 
@@ -66,10 +66,15 @@ def layout_key(descs):
     return "|".join(sorted(descs))
 
 
+def is_laptop(name):
+    return bool(LAPTOP_NAME.match(name))
+
+
 def default_scale(m):
-    if m["name"] == LAPTOP:
-        return LAPTOP_SCALE
     widest = max([int(x.split("x")[0]) for x in m.get("availableModes", [])] or [0])
+    if is_laptop(m["name"]):
+        # Small, dense panels: 2880x1800 at 14" is 1.5, 3840 wide is 2.
+        return 2 if widest >= 3200 else 1.5 if widest >= 2560 else 1
     return 2 if widest >= 3840 else 1.25 if widest >= 2560 else 1
 
 
@@ -155,7 +160,7 @@ def cmd_spec(name, mode):
     if mode == "extend":
         used = mons
     elif mode == "external":
-        used = [x for x in mons if x["name"] != LAPTOP]
+        used = [x for x in mons if not is_laptop(x["name"])]
     else:  # laptop, duplicate: one screen has a place
         used = [m]
     lay = d["layouts"].get(layout_key(x["description"] for x in used), {})
@@ -163,7 +168,7 @@ def cmd_spec(name, mode):
     if p:
         pos = f"{p[0]}x{p[1]}"
     else:
-        pos = "0x0" if name == LAPTOP or len(used) == 1 else "auto-right"
+        pos = "0x0" if is_laptop(name) or len(used) == 1 else "auto-right"
     print(fields(m, d, pos))
 
 
