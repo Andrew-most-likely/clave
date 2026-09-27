@@ -21,6 +21,9 @@ restore() {  # restore FILE [sudo]: oldest backup = the state before the first i
 if [ -f "$STATE/installed-files" ]; then
     say "Files in $HOME"
     while IFS= read -r f; do restore "$f"; done < "$STATE/installed-files"
+    # Directories the install created and that are now empty.
+    while IFS= read -r f; do dirname "$f"; done < "$STATE/installed-files" | sort -ru \
+        | while IFS= read -r d; do rmdir -p --ignore-fail-on-non-empty "$d" 2>/dev/null || true; done
     rm -f "$STATE/installed-files"
     systemctl --user disable --now home-cleanup.timer 2>/dev/null || true
 else

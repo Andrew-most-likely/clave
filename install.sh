@@ -54,7 +54,7 @@ install_home_files
 
 say "Genie shaders and Hyprland plugins"
 if [ "$update" -eq 0 ] || changed_since_last_install 'DockApp/shaders|hypr-minimize|hyprbars'; then
-    run "$HOME/.config/quickshell/DockApp/shaders/build.sh"
+    run "$HOME/.config/quickshell/DockApp/shaders/build.sh" || warn "Shader build failed: the genie effect falls back to a plain fade"
     run "$HOME/.local/share/macos-look/rebuild-plugins.sh" || warn "Plugin build failed; see ~/.cache/macos-look/rebuild-plugins.log"
 else
     echo "  unchanged"
