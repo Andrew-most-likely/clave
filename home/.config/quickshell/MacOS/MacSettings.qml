@@ -22,8 +22,8 @@ Singleton {
 
     readonly property var defaults: ({
         "menubar":    { "batteryPercent": true, "clock24h": root.locale24h, "showDate": true, "showDay": true },
-        "hotCorners": { "topLeft": "missioncontrol", "topRight": "notifications",
-                        "bottomLeft": "launchpad", "bottomRight": "none" },
+        "hotCorners": { "topLeft": "none", "topRight": "none",
+                        "bottomLeft": "none", "bottomRight": "none" },
         "windows":    { "minimizeEffect": "genie", "trafficLights": true },
         "trackpad":   { "tapToClick": true, "naturalScroll": true },
         "mouse":      { "speed": 0, "acceleration": true, "naturalScroll": false, "leftHanded": false },

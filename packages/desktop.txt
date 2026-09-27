@@ -5,7 +5,7 @@ avahi nss-mdns
 exfatprogs ntfs-3g dosfstools
 man-db man-pages
 gnome-calculator gnome-disk-utility baobab gnome-text-editor loupe file-roller nautilus snapshot
-timeshift bitwarden unrar unzip 7zip
+unrar unzip 7zip
 hunspell hunspell-en_us
 noto-fonts noto-fonts-cjk noto-fonts-emoji noto-fonts-extra
 ttf-liberation ttf-dejavu ttf-carlito ttf-caladea

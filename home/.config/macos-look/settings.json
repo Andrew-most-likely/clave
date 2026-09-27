@@ -5,9 +5,9 @@
         "showDay": true
     },
     "hotCorners": {
-        "topLeft": "missioncontrol",
-        "topRight": "notifications",
-        "bottomLeft": "launchpad",
+        "topLeft": "none",
+        "topRight": "none",
+        "bottomLeft": "none",
         "bottomRight": "none"
     },
     "windows": {
