@@ -24,6 +24,9 @@
 - Weather, Clock and Maps never look up the location online; they ask for a city.
 - `htop` is no longer installed (Activity Monitor replaces it); an update says it can be removed.
 - Fix: uninstalling after an update no longer puts the previous release's files back.
+- Fix: System Settings no longer waits forever for Bluetooth on a computer without it, which kept some
+  values from showing.
+- Fix: without an audio output, each notification no longer comes with a "Failed to run script" notice.
 
 First standalone release, and the first under the name Clave. Earlier versions were an overlay for ML4W
 dotfiles, published as arch-macos-hyprland.

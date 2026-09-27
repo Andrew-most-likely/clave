@@ -128,6 +128,17 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   Before v1.1.0 is published, check whether a close layout match is a trade-dress risk and record the
   result here.
 
+  Review status (2026-09-27): **open, needs Andrew's review, and a lawyer's if in doubt.** This note makes
+  no legal judgment. Items flagged for that review:
+  - The five surfaces in the table above. Each uses Clave's own icons (`home/.config/quickshell/Clave/icons`),
+    colors from the Clave theme and no artwork from the other company. The layouts are close by design.
+  - GTK4 traffic-light window buttons on the left (APP-3), drawn in CSS with Clave's own colors.
+  - Four "Shown as" names in APP-1 are the same words as product names of the company Clave is modeled on:
+    Stickies, Voice Memos, Keychain, and Freeform (shown as "Freeform board"). The other names are generic
+    words. `scripts/name-check.sh` does not flag these four, because they are also ordinary words. Each
+    name is one entry in `clave-prefs` (`APP_NAMES`) and can be changed there without other changes.
+  - The screenshot shortcuts Shift+Super+3/4/5 match the other desktop's key numbers.
+
 ### 5.2 Security
 
 - **SEC-1 Hardened by default.** This is final. The installer installs the hardening layer unless the user
@@ -222,6 +233,7 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | `apparmor`, `auditd` | harden | Mandatory access control, audit log |
   | `arch-audit.timer` | harden | Daily CVE check |
   | `aidecheck.timer`, `aide-refresh.service` | harden | File integrity check, baseline refresh after upgrades |
+  | `geoclue` (D-Bus activated, v1.1.0) | apps | Location for Weather, Clock and Maps. Starts only when one of them asks and stops after; its network sources are off (APP-6) |
 
   Listeners inside the shell, all event-driven, none polling:
 
@@ -231,6 +243,16 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | `gio monitor` on the Trash | Dock's Trash icon |
   | `swaync-client -s` | Notification Center state |
   | `journalctl -k -f`, only while USBGuard runs | Notice about blocked USB devices |
+
+  Timers and processes added in v1.1.0, none of which run when their window is closed (PERF-3):
+
+  | Timer or process | Runs only |
+  |---|---|
+  | Activity Monitor's 2-second refresh (SHELL-3) | While Activity Monitor or Force Quit is open |
+  | Calendar's reminder check (APP-8) | While Calendar is open |
+  | `wf-recorder` and the menu bar's stop button (SHELL-1) | While recording |
+  | `qs -p` for Notes, Calendar and Contacts (APP-8, APP-9) | While the app is open |
+  | `clave-displays lid` (SHELL-2) | Once, when the lid opens or closes |
 
   Removed in this check: two polling timers (Wi-Fi every 10 seconds, Trash every 5 seconds), and
   `usbguard-notifier`, which repeated the shell's own USB notice. The startup chime went in phase 2.
@@ -305,9 +327,9 @@ Quickshell on top of open-source libraries (section 5.8).
   | Scanner | Scanner | `simple-scan` | GTK3 | SANE starts no service |
   | Remote screen (client only) | Screen Sharing | `gnome-connections` | GTK4 | No listener |
   | System log | Console | `gnome-logs` | GTK4 | |
-  | Hardware report | System Information | `hardinfo2` | GTK3 | Check that benchmark sync stays off (step 1) |
+  | Hardware report | System Information | `hardinfo2` | GTK3 | Benchmark sync only when Synchronize is pressed (step 1) |
   | Disks | Disk Utility | `gnome-disk-utility` | GTK4 | Back from extras (SW-4) |
-  | Keys and certificates | Keychain | `seahorse` | GTK3 | Back from extras (SW-4). Keyserver lookups only on request (check in step 1) |
+  | Keys and certificates | Keychain | `seahorse` | GTK3 | Back from extras (SW-4). Keyserver lookups only on request; no connection at start (step 1) |
   | Backups | Backups | `timeshift` | GTK3 | Installed, not configured. Nothing runs until the user sets it up |
 
   Already shipped and unchanged: Files (`nautilus`), Text Editor, Calculator, Loupe, File Roller, and
@@ -347,8 +369,11 @@ Quickshell on top of open-source libraries (section 5.8).
   ```
 
   `clave-prefs` writes the override `.desktop` file with that `Icon=`. It accepts only local PNG and SVG
-  files and copies them to `~/.local/share/clave/icons/`, the same checks as the logo (FEAT-6). A picker in
-  System Settings joins the logo picker in section 13.
+  files and copies them to `~/.local/share/clave/icons/`. The logo has no such checks yet (FEAT-6), so
+  `clave-prefs icon set ID FILE` has its own: the path must resolve to a regular file, `file --mime-type`
+  must say PNG or SVG, and the picture is re-encoded (PNG with `magick`, 256×256, metadata stripped).
+  `clave-prefs icon reset ID` goes back to the theme icon. System Settings > Appearance has an App Icons
+  row for both.
 
 - **APP-5 Default apps.** The installer sets the MIME defaults: Calendar for `text/calendar`, Contacts for
   `text/vcard`, Videos for video types, Music for audio types, Books for EPUB, and Maps for `geo:` links.
@@ -369,14 +394,16 @@ Quickshell on top of open-source libraries (section 5.8).
   PERF-2 after the clean-VM check.
 
 - **APP-8 Calendar and Contacts.** Clave apps drawn in Quickshell (section 5.8).
-  - Each one runs as its own process (`qs -c clave-calendar`, `qs -c clave-contacts`). It starts when
-    opened and exits when its window closes, so a crash cannot take the shell down. No new runtime:
+  - Each one runs as its own process (`clave-app calendar`, `clave-app contacts`, which run
+    `qs -n -p ~/.config/quickshell/clave-NAME.qml`). `qs -c` does not work: Quickshell ignores
+    subfolders of a config that has a `shell.qml`. It starts when opened and exits when its window closes, so a crash cannot take the shell down. No new runtime:
     Quickshell and Python are already required.
   - Data is plain files: one `.ics` file per calendar in `~/.local/share/clave/calendars/`, and one `.vcf`
     file per contact in `~/.local/share/clave/contacts/`. Importing a file means copying it there. Other apps
     and backups can read them.
   - Open-source libraries read and write the files: `python-icalendar` (recurrence through
-    `python-dateutil`) and `python-vobject`. Clave code never parses the formats itself.
+    `python-dateutil`) and `python-vobject`. Clave code never parses the formats itself. The QML calls
+    `clave-pim`, which reads and writes the files with these libraries and prints JSON.
   - Views: Calendar has day, week, month and year views, a sidebar with calendars and a mini month, and
     event details in a popover. Contacts has a list with an index and a card view. Both use the 1:1
     layout (BR-11).
@@ -384,9 +411,9 @@ Quickshell on top of open-source libraries (section 5.8).
     is no alarm service (PERF-1). The Clock app is for alarms.
   - No sync, no accounts, no network.
 
-- **APP-9 Notes.** A Clave app like APP-8. Notes are Markdown files in `~/Documents/Notes`, one folder per
-  folder in the sidebar. Formatting shows in a QML `TextEdit` (rich text), with no web engine. Search looks
-  only inside that folder.
+- **APP-9 Notes.** A Clave app like APP-8 (`clave-app notes`). Notes are Markdown files in
+  `~/Documents/Notes`, one folder per folder in the sidebar. Formatting shows in a QML `TextEdit` (Qt's
+  Markdown reader and writer, `TextDocument`), with no web engine. Search looks only inside that folder.
 
 ### 5.8 Clave apps: open-source engines, Clave interface
 
@@ -413,19 +440,22 @@ a shell.
   settings to be. Its engine changes to Hyprland's own monitor rules.
   - Hyprland applies `desc:` rules (make, model, serial) by itself when a screen is plugged in. So
     per-screen resolution, scale, rotation and position need no Clave script and no daemon. The pane
-    writes the rules to `~/.config/clave/monitors.lua`, which `custom.lua` loads, and applies them
-    with `hyprctl`.
+    keeps its settings in `~/.config/clave/displays.json` (version 2, one entry per screen description)
+    and `clave-displays` writes the rules from it to `~/.config/clave/monitors.lua`. `hyprland.lua` loads
+    that file right after the user's `monitors.lua`, so the user's file still works and `custom.lua`
+    stays the user's own. The rules are applied at once with `hyprctl`.
   - Mirroring: Hyprland's `mirror` monitor option, set from the pane ("Use as: Mirror for …") and from the
     Mirroring button in Control Center. The Super+P menu is removed.
-  - Lid closed with a second screen: keep one bind in `custom.lua` that turns the built-in panel off and on
-    with `hyprctl`. That is the only glue left.
+  - Lid closed with a second screen: two switch binds in `clave/binds.lua` run `clave-displays lid
+    closed|open`, which turns the built-in panel off and on with `hyprctl`. That is the only glue left.
   - Rejected: `nwg-displays` (a GNOME-style window, and it writes hyprlang, not Lua), `kanshi` (a daemon
     that does what `desc:` rules already do; it also has no mirroring), `wl-mirror` (mirrors into a
     window, not onto a screen).
   - Lost: a separate layout for each set of connected screens. `desc:` rules store one position per screen.
     Check on the dock with the two Dell screens whether this matters in practice.
-  - Migration: `displays.json` is converted to `monitors.lua` once. Removes: `clave-displays`,
-    `display-mode.sh`, `clave-display.rasi` (APP-2).
+  - Migration: `clave-displays migrate` converts version 1 of `displays.json` (keyed by connector name)
+    to version 2 once, on update. `clave-displays` stays as the pane's engine. Removes: `display-mode.sh`,
+    `clave-display.rasi` and the Super+P menu (APP-2).
 
 - **SHELL-3 Activity Monitor.** A Quickshell window, opened from Apps and from Search, with CPU, Memory,
   Disk and Network tabs, a process list, Quit (SIGTERM) and Force Quit (SIGKILL). The Force Quit dialog
@@ -584,8 +614,8 @@ Each phase ends when its exit criteria are met.
 | 3 | Settings: FEAT-4, FEAT-1, FEAT-7 (BR-5), ISSUE-1 | Each setting works and costs nothing when off. |
 | 4 | Release model: SEC-1, SEC-2, SW-3, PERF-2 | Hardened install round trip passes. Inventory matches the system. |
 | 5 | Sections 9 and 10 | Findings added to this plan as requirements or rejected with a reason. (done) |
-| 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. |
-| 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. |
+| 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. (built; waiting on the dock check and the BR-11 review) |
+| 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. (done in the VM: `tests/vm-encrypt.py` passes for GRUB, systemd-boot, Limine and the interrupted run) |
 
 Phase 4 must finish before the public release. Phase 6 comes after v1.0.0, so it does not block that release.
 Phase 7 is security work and does not depend on phase 6: start it first. The status check and the warnings
@@ -598,6 +628,30 @@ Phase 6 steps, in order:
    makes no network calls (APP-7); that Hardinfo2 and Seahorse make no network calls unless asked (APP-1);
    a round trip of a real `.ics` and `.vcf` export through the Python libraries (APP-8); how much of each GTK4 app `gtk.css` can
    reach (APP-3). Write each result in this plan. If a check fails, change the requirement first.
+
+   Results on 2026-09-27 (desktop test VM `tests/vm-desktop.py`, Hyprland with software rendering,
+   one QEMU screen):
+   - `wf-recorder` without the portal: records the screen on Hyprland (screencopy). With the portal:
+     not checked; SHELL-1 does not use it.
+   - geoclue: started when Clock opened (D-Bus activation) and stopped by itself after 60 seconds unused.
+     All its sources are off in `90-clave.conf`, so it has nothing to look up online.
+   - Hardinfo2 and Seahorse: no network connection after opening (only the test's SSH sessions in
+     `ss`). Hardinfo2's Synchronize button connects only when pressed.
+   - `.ics` and `.vcf`: `tests/pim-test.sh` passes with the Arch packages (python-icalendar 7.3.0,
+     python-vobject 0.9.9, python-dateutil 2.9.0), including an export with time zones, RRULE, EXDATE
+     and an overridden repeat.
+   - GTK4 (`gtk-4.0/clave.css`): Clock shows one set of traffic lights on the left. The dimmer yellow
+     button needs a look on real hardware.
+   - Names and defaults: all 22 "Shown as" names from APP-1 appear, and the MIME defaults of APP-5 are
+     set. `org.gnome.*` in the built-in no-bar list already covers Scanner, Keychain and Photos;
+     Hardinfo2 has no title bar of its own and keeps Clave's.
+   - Not possible in a VM: `desc:` rules on dock hotplug and the lid (SHELL-2). They are on the release
+     checklist, on the real laptop with the two Dell screens.
+   - Found and fixed in this check: Activity Monitor's column header took half the table; process
+     names were cut at 15 characters; Calendar was taller than an 800-pixel screen; Contacts showed an
+     empty card at start; System Settings waited forever for `bluetoothctl` without Bluetooth, and
+     so never showed the Disk Encryption status; `clave-sound` without an audio output made swaync
+     report every notification as a failed script.
 2. **Packages.** Create `packages/apps.txt` (APP-1). Move Disks, Snapshot and Passwords and Keys from
    extras. Remove `htop`. Add the geoclue config (APP-6) to `system/desktop`.
 3. **Theme and names.** Extend `gtk-4.0/gtk.css` (APP-3), the `.desktop` name overrides and the `icons`
@@ -644,15 +698,19 @@ These ideas are on hold. They are not part of v1.0.0.
 
 ## 14. Open questions
 
-- **Mail.** Should the public build ship a mail app (Geary, GTK3)? The author uses webmail. Geary keeps a
-  background process for new-mail notices, which PERF-1 would have to justify.
-- **Dictionary.** `gnome-dictionary` is archived upstream and looks up words online. No maintained offline
-  GTK dictionary is in the Arch repositories. Leave it out, or accept it?
-- **One password or two with Disk Encryption.** With SEC-5 the user types the disk passphrase at boot and
-  then the login password. Logging in automatically after the disk unlocks would skip the second prompt, but
-  GNOME Keyring then no longer unlocks at login (SEC-4). Keep both prompts, or find a way to unlock the keyring
-  from the disk passphrase?
-- **Per-set display layouts.** Does losing them (SHELL-2) matter? Decide after the step 1 check.
+Resolved on 2026-09-27:
+
+- **Mail.** Geary is in `--extras` only, not in the default install. The installer turns its
+  `run-in-background` setting off, so it keeps no process for new-mail notices (PERF-1).
+- **Dictionary.** `gnome-dictionary` is in `--extras` only. It looks words up online when asked and does
+  nothing in the background.
+- **One password or two with Disk Encryption.** Keep both prompts: the disk passphrase at boot, then the
+  login password, which unlocks GNOME Keyring (SEC-4). No automatic login.
+
+Still open:
+
+- **Per-set display layouts.** Does losing them (SHELL-2) matter? Check on the dock with the two Dell
+  screens before tagging v1.1.0.
 
 ## Appendix: source notes
 
