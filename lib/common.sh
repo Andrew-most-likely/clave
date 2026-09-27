@@ -164,6 +164,29 @@ move_aside_old_setup() {
         moved=1
     done
     [ "$moved" -eq 1 ] || echo "  nothing to move"
+    migrate_ml4w_data
+}
+
+# Carry over what ML4W users set up: wallpapers, the current picture and the
+# pinned Dock apps. Nothing is removed from ML4W's folders.
+migrate_ml4w_data() {
+    local walls="$HOME/.local/share/macos-look/wallpapers" cur
+    if [ -d "$HOME/.config/ml4w/wallpapers" ]; then
+        run mkdir -p "$walls"
+        run cp -n "$HOME"/.config/ml4w/wallpapers/*.{jpg,jpeg,png,webp} "$walls/" 2>/dev/null || true
+        echo "  copied ML4W wallpapers"
+    fi
+    cur=$(cat "$HOME/.cache/ml4w/hyprland-dotfiles/current_wallpaper" 2>/dev/null || true)
+    if [ -f "$cur" ] && [ ! -e "$HOME/.config/macos-look/wallpaper" ]; then
+        run mkdir -p "$HOME/.config/macos-look"
+        [ "$DRY" -eq 1 ] || printf '%s\n' "$cur" > "$HOME/.config/macos-look/wallpaper"
+        echo "  kept your wallpaper"
+    fi
+    if [ -f "$HOME/.config/ml4w-dock/dock.json" ] && [ ! -e "$HOME/.config/macos-look/dock.json" ]; then
+        run mkdir -p "$HOME/.config/macos-look"
+        run cp "$HOME/.config/ml4w-dock/dock.json" "$HOME/.config/macos-look/dock.json"
+        echo "  kept your Dock"
+    fi
 }
 
 fill_placeholders() {
