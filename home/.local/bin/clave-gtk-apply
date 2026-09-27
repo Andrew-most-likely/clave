@@ -15,3 +15,6 @@ size=$(get gtk-cursor-theme-size)
 gsettings set $schema cursor-size  "${size:-24}"
 gsettings set $schema font-name    "$(get gtk-font-name)"
 gsettings set $schema color-scheme "$scheme"
+# Window buttons on the left, in traffic-light order (APP-3).
+layout=$(get gtk-decoration-layout)
+gsettings set org.gnome.desktop.wm.preferences button-layout "${layout:-close,minimize,maximize:}"

@@ -299,6 +299,22 @@ recovery USB at hand."
     ask "Apply hardening?" y
 }
 
+# Packages an earlier release installed and a Clave app now replaces
+# (APP-2). They are never removed here: the user may use them for other
+# things. The list is printed once per package.
+REPLACED_PACKAGES=("htop:Activity Monitor (Apps > Activity Monitor); btop stays in extras for the terminal")
+report_replaced_packages() {
+    local entry pkg why seen="$STATE/replaced-reported"
+    for entry in "${REPLACED_PACKAGES[@]}"; do
+        pkg=${entry%%:*} why=${entry#*:}
+        pacman -Qq "$pkg" >/dev/null 2>&1 || continue
+        grep -qxF "$pkg" "$seen" 2>/dev/null && continue
+        echo "  $pkg is no longer part of Clave. Replaced by: $why"
+        echo "    Remove it if you do not use it: sudo pacman -Rs $pkg"
+        [ "$DRY" -eq 1 ] || echo "$pkg" >> "$seen"
+    done
+}
+
 # Disk Encryption (SEC-5): says so when / or /home is not on LUKS and offers
 # the guided setup. Unless --yes: then the warning is only printed. Returns 0
 # when the user wants the setup now.

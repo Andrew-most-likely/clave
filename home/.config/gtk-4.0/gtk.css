@@ -1,2 +1,3 @@
-/* Clave: WhiteSur-Dark for libadwaita apps */
+/* Clave: WhiteSur dark for libadwaita apps, then clave.css (APP-3) */
 @import url("file://__HOME__/.local/share/themes/WhiteSur-Dark/gtk-4.0/gtk-dark.css");
+@import url("file://__HOME__/.config/gtk-4.0/clave.css");

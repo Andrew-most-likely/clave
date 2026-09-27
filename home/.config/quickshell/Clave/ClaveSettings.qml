@@ -42,7 +42,10 @@ Singleton {
         "privacy":    { "clipboardHistory": true, "clipboardKeep": false, "clipboardImages": false,
                         "albumArtOnline": false, "wallpaperApps": "ask", "capturePrompt": true },
         "features":   { "appSwitcher": true, "windowTiling": true, "screenRecording": true },
-        "accessibility": { "reduceMotion": false, "reduceTransparency": false, "increaseContrast": false }
+        "accessibility": { "reduceMotion": false, "reduceTransparency": false, "increaseContrast": false },
+        // App id -> local PNG or SVG shown instead of the app's icon (APP-4).
+        // clave-prefs icon set|reset writes it.
+        "icons":      {}
     })
 
     property var data: JSON.parse(JSON.stringify(defaults))

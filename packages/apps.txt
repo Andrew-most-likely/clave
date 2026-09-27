@@ -1,0 +1,11 @@
+# Standard apps (PROJECT_PLAN.md SW-4, APP-1). One app per role, all from the
+# Arch repositories. No background service, no Flatpak runtime, and no network
+# use unless the app's purpose needs it (APP-6).
+errands sticky gnome-weather gnome-clocks gnome-maps
+shotwell foliate gnome-podcasts amberol showtime
+gnome-sound-recorder snapshot gnome-font-viewer gnome-chess rnote
+simple-scan gnome-connections gnome-logs hardinfo2
+gnome-disk-utility seahorse timeshift
+# Engines of the Clave apps (section 5.8): screen recording, and the .ics and
+# .vcf files of Calendar and Contacts (APP-8)
+wf-recorder python-icalendar python-vobject python-dateutil

@@ -1,0 +1,69 @@
+/* Clave rules for GTK4 and libadwaita apps (PROJECT_PLAN.md APP-3), loaded
+ * after WhiteSur by gtk.css. Colors, radius and spacing only: a theme cannot
+ * move widgets, so each app keeps its own layout.
+ * The window buttons match the hyprbars traffic lights (hypr/clave/plugins.lua)
+ * and sit on the left (gtk-decoration-layout in settings.ini). The accent
+ * color comes from gsettings accent-color, which System Settings sets. */
+
+/* Traffic lights: 12 px dots, the symbol shows on hover. */
+windowcontrols button {
+    min-width: 12px;
+    min-height: 12px;
+    padding: 0;
+    margin: 0 4px;
+    border-radius: 999px;
+    box-shadow: none;
+    background-image: none;
+}
+windowcontrols button > image {
+    min-width: 12px;
+    min-height: 12px;
+    padding: 0;
+    border-radius: 999px;
+    -gtk-icon-size: 8px;
+    color: transparent;
+    background: none;
+    box-shadow: none;
+}
+windowcontrols button.close    { background-color: #ff5f57; }
+windowcontrols button.minimize { background-color: #febc2e; }
+windowcontrols button.maximize { background-color: #28c840; }
+windowcontrols:hover button.close > image    { color: #4d0000; }
+windowcontrols:hover button.minimize > image { color: #5a3e00; }
+windowcontrols:hover button.maximize > image { color: #004d00; }
+windowcontrols button:active { filter: brightness(0.85); }
+/* Inactive windows: grey dots, like the hyprbars inactive_button_color. */
+window:backdrop windowcontrols button.close,
+window:backdrop windowcontrols button.minimize,
+window:backdrop windowcontrols button.maximize {
+    background-color: alpha(currentColor, 0.19);
+}
+
+/* Header bars: flat, and a little taller like the shell's title bars. */
+headerbar {
+    min-height: 38px;
+    box-shadow: none;
+}
+
+/* Window and card corners: Theme.radiusPanel (18) for windows, radiusCard
+ * (14) for sheets and dialogs, radiusControl (6) for buttons and entries. */
+window.csd,
+window.csd > .window-frame {
+    border-radius: 12px;
+}
+window.dialog.message,
+dialog.alert floating-sheet,
+.card {
+    border-radius: 14px;
+}
+button:not(.circular):not(.flat),
+entry,
+spinbutton {
+    border-radius: 6px;
+}
+
+/* Sidebars: translucent like the shell's sidebar color. */
+.navigation-sidebar,
+.sidebar-pane {
+    background-color: alpha(currentColor, 0.04);
+}

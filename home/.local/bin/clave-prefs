@@ -22,6 +22,10 @@ Every "get" prints JSON; everything else changes one setting.
   clave-prefs appearance text-scale FACTOR
   clave-prefs loginwindow background FILE|wallpaper   login screen background
   clave-prefs loginwindow picture FILE                profile picture (also ~/.face)
+  clave-prefs apps names                   standard app names and custom icons (APP-4)
+  clave-prefs apps defaults [--missing-only]   default apps for file types (APP-5)
+  clave-prefs icon set APP_ID FILE         a local PNG or SVG as an app's icon
+  clave-prefs icon reset APP_ID
 
 Root-only changes go through pkexec /usr/local/bin/clave-admin (charge limit, login
 pictures) and
@@ -40,7 +44,12 @@ CONFIG = os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config"))
 
 
 def sh(*cmd, check=False):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        if check:
+            sys.exit(f"{cmd[0]} is not installed")
+        return ""
     if check and r.returncode != 0:
         sys.exit(r.stderr.strip() or f"{cmd[0]} failed")
     return r.stdout
@@ -292,6 +301,15 @@ THEMES = {
 }
 
 
+def gtk4_css(mode):
+    """gtk-4.0/gtk.css: WhiteSur for the mode, then Clave's own rules (APP-3)
+    for traffic-light window buttons, header bars, sidebars and radius."""
+    t = THEMES[mode]
+    return (f"/* Clave: WhiteSur {mode} for libadwaita apps, then clave.css (APP-3) */\n"
+            f'@import url("file://{HOME}/.local/share/themes/{t["gtk4css"]}");\n'
+            f'@import url("file://{CONFIG}/gtk-4.0/clave.css");\n')
+
+
 def set_ini(path, key, value):
     text = read(path)
     if not text:
@@ -321,9 +339,7 @@ def appearance(args):
             set_ini(ini, "gtk-icon-theme-name", t["icons"])
             set_ini(ini, "gtk-application-prefer-dark-theme",
                     ("1" if dark else "0") if v == "gtk-3.0" else ("true" if dark else "false"))
-        write(os.path.join(CONFIG, "gtk-4.0/gtk.css"),
-              f"/* Clave: WhiteSur {args[1]} for libadwaita apps */\n"
-              f'@import url("file://{HOME}/.local/share/themes/{t["gtk4css"]}");\n')
+        write(os.path.join(CONFIG, "gtk-4.0/gtk.css"), gtk4_css(args[1]))
         for v in ("qt5ct", "qt6ct"):
             set_ini(os.path.join(CONFIG, v, v + ".conf"), "icon_theme", t["icons"])
         set_ini(os.path.join(CONFIG, "Kvantum/kvantum.kvconfig"), "theme", t["kvantum"])
@@ -354,6 +370,191 @@ def appearance(args):
         sh("gsettings", "set", iface, "text-scaling-factor", str(f))
     else:
         sys.exit(__doc__)
+
+
+# ---------------------------------------------------------------- Standard apps (APP-4, APP-5)
+
+DATA = os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local/share"))
+USER_APPS = os.path.join(DATA, "applications")
+ICONS = os.path.join(DATA, "clave/icons")
+SETTINGS = os.path.join(CONFIG, "clave/settings.json")
+OVERRIDE_MARK = "X-Clave-Override"
+
+# Package -> the name the Dock, Apps and Search show (APP-1). Generic words
+# (BR-3, BR-11); the package's own desktop file is looked up with pacman.
+APP_NAMES = {
+    "errands": "Reminders", "sticky": "Stickies", "gnome-weather": "Weather",
+    "gnome-clocks": "Clock", "gnome-maps": "Maps", "shotwell": "Photos",
+    "foliate": "Books", "gnome-podcasts": "Podcasts", "amberol": "Music",
+    "showtime": "Videos", "gnome-sound-recorder": "Voice Memos", "snapshot": "Camera",
+    "gnome-font-viewer": "Fonts", "gnome-chess": "Chess", "rnote": "Freeform board",
+    "simple-scan": "Scanner", "gnome-connections": "Screen Sharing", "gnome-logs": "Console",
+    "hardinfo2": "System Information", "gnome-disk-utility": "Disk Utility",
+    "seahorse": "Keychain", "timeshift": "Backups",
+}
+
+# MIME type -> package or desktop id of the default app (APP-5).
+VIDEO = ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo",
+         "video/mpeg", "video/ogg", "video/x-m4v"]
+AUDIO = ["audio/mpeg", "audio/flac", "audio/x-flac", "audio/ogg", "audio/x-vorbis+ogg", "audio/opus",
+         "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav"]
+MIME_DEFAULTS = {"clave-calendar.desktop": ["text/calendar"],
+                 "clave-contacts.desktop": ["text/vcard", "text/x-vcard"],
+                 "showtime": VIDEO, "amberol": AUDIO,
+                 "foliate": ["application/epub+zip"], "gnome-maps": ["x-scheme-handler/geo"]}
+
+
+def package_desktop(pkg):
+    """The visible desktop file a package installs, or None."""
+    files = [l.split(" ", 1)[1] for l in sh("pacman", "-Ql", pkg).splitlines() if " " in l]
+    for f in sorted(files, key=len):
+        if f.startswith("/usr/share/applications/") and f.endswith(".desktop"):
+            e = desktop(f)
+            if e.get("Type") == "Application" and e.get("NoDisplay", "false") != "true":
+                return f
+    return None
+
+
+def find_desktop(app_id):
+    """A desktop id (with or without .desktop) looked up like app launchers do,
+    skipping Clave's own overrides."""
+    name = app_id if app_id.endswith(".desktop") else app_id + ".desktop"
+    dirs = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")
+    for d in dirs:
+        p = os.path.join(d, "applications", name)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def settings_icons():
+    try:
+        with open(SETTINGS) as f:
+            icons = json.load(f).get("icons", {})
+        return icons if isinstance(icons, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def local_image(path):
+    """A local PNG or SVG file (the wallpaper-portal check): resolved, a regular
+    file, and of the right type by its content, not its name."""
+    p = os.path.realpath(os.path.expanduser(path))
+    if not os.path.isfile(p):
+        return None, f"no such file: {path}"
+    mime = sh("file", "--brief", "--mime-type", p).strip()
+    if mime not in ("image/png", "image/svg+xml"):
+        return None, f"not a PNG or SVG picture: {path} ({mime})"
+    return p, mime
+
+
+def icon_png(app_id, src):
+    """Converts an icon to a 256 px PNG in ~/.local/share/clave/icons, as the
+    user. Returns its path, or None with a reason on stderr."""
+    p, mime = local_image(src)
+    if not p:
+        print(mime, file=sys.stderr)
+        return None
+    os.makedirs(ICONS, exist_ok=True)
+    dst = os.path.join(ICONS, re.sub(r"[^A-Za-z0-9._-]", "_", app_id) + ".png")
+    if mime == "image/svg+xml":
+        cmd = ["rsvg-convert", "-w", "256", "-h", "256", "-a", p, "-o", dst + ".tmp"]
+    else:
+        cmd = ["magick", "png:" + p + "[0]", "-resize", "256x256", "-strip", "png:" + dst + ".tmp"]
+    if subprocess.run(cmd, capture_output=True).returncode != 0:
+        print(f"cannot read the picture: {src}", file=sys.stderr)
+        return None
+    os.replace(dst + ".tmp", dst)
+    return dst
+
+
+def write_override(src, name=None, icon=None):
+    """A copy of the desktop file in ~/.local/share/applications with Name=
+    and/or Icon= changed. Exec and the rest stay the package's own, so the
+    copy is written again at each install and update (APP-4)."""
+    dst = os.path.join(USER_APPS, os.path.basename(src))
+    if os.path.exists(dst) and OVERRIDE_MARK not in read(dst):
+        return False          # the user's own file wins
+    text = open(src).read()
+    head, sep, rest = text.partition("\n[")  # only the [Desktop Entry] group
+    if name:
+        head = re.sub(r"^Name(\[[^\]]*\])?=.*\n?", "", head, flags=re.M)
+        head = head.replace("[Desktop Entry]\n", f"[Desktop Entry]\nName={name}\n", 1)
+    if icon:
+        head = re.sub(r"^Icon=.*$", f"Icon={icon}", head, flags=re.M)
+        if not re.search(r"^Icon=", head, re.M):
+            head = head.rstrip("\n") + f"\nIcon={icon}\n"
+    head = head.rstrip("\n") + f"\n{OVERRIDE_MARK}=true\n"
+    write(dst, head + (sep + rest if sep else ""))
+    return True
+
+
+def apps(args):
+    if args[:1] == ["names"]:
+        # Names and icons for the standard apps, icons for any other app, and
+        # overrides whose app is gone are removed.
+        icons = settings_icons()
+        done = set()
+        for pkg, name in APP_NAMES.items():
+            src = package_desktop(pkg)
+            if not src:
+                continue
+            app_id = os.path.basename(src)[:-len(".desktop")]
+            icon = icons.get(app_id) or icons.get(app_id + ".desktop")
+            write_override(src, name, icon_png(app_id, icon) if icon else None)
+            done.add(os.path.basename(src))
+        for app_id, icon in icons.items():
+            src = find_desktop(app_id)
+            if src and os.path.basename(src) not in done:
+                png = icon_png(app_id, icon)
+                if png:
+                    write_override(src, icon=png)
+                    done.add(os.path.basename(src))
+        for p in glob.glob(os.path.join(USER_APPS, "*.desktop")):
+            if OVERRIDE_MARK in read(p) and os.path.basename(p) not in done:
+                os.unlink(p)
+        sh("update-desktop-database", "-q", USER_APPS)
+    elif args[:1] == ["defaults"]:
+        # --missing-only: only types that have no default yet (updates).
+        missing_only = "--missing-only" in args
+        for app, types in MIME_DEFAULTS.items():
+            src = os.path.join(USER_APPS, app) if app.endswith(".desktop") else package_desktop(app)
+            if not src or not os.path.exists(src):
+                continue
+            for t in types:
+                if missing_only and sh("xdg-mime", "query", "default", t).strip():
+                    continue
+                sh("xdg-mime", "default", os.path.basename(src), t)
+    else:
+        sys.exit(__doc__)
+
+
+def icon(args):
+    """icon set APP_ID FILE | icon reset APP_ID: the icons map in settings.json."""
+    if args[:1] not in (["set"], ["reset"]) or len(args) != (3 if args[0] == "set" else 2):
+        sys.exit(__doc__)
+    app_id = args[1].removesuffix(".desktop")
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", app_id):
+        sys.exit(f"not an app id: {args[1]}")
+    if args[0] == "set":
+        p, why = local_image(args[2])
+        if not p:
+            sys.exit(why)
+    try:
+        with open(SETTINGS) as f:
+            s = json.load(f)
+    except (OSError, ValueError):
+        s = {}
+    icons = s.setdefault("icons", {})
+    if args[0] == "set":
+        icons[app_id] = args[2]
+    else:
+        icons.pop(app_id, None)
+        png = os.path.join(ICONS, app_id + ".png")
+        if os.path.exists(png):
+            os.unlink(png)
+    write(SETTINGS, json.dumps(s, indent=2) + "\n")
+    apps(["names"])
 
 
 def loginwindow(args):
@@ -409,6 +610,10 @@ def main():
         appearance(rest)
     elif cmd == "loginwindow":
         loginwindow(rest)
+    elif cmd == "apps":
+        apps(rest)
+    elif cmd == "icon":
+        icon(rest)
     else:
         sys.exit(__doc__)
 

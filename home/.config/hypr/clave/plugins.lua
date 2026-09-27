@@ -56,7 +56,10 @@ if bars then
     -- to it in System Settings > Desktop & Dock > Windows.
     hl.window_rule({
         name  = "clave-no-bar-csd",
-        match = { class = "^(firefox|steam|code|code-oss|vscodium|codium|io\\.github\\.kolunmi\\.Bazaar|org\\.gnome\\..*|nautilus|.*pavucontrol|blueman-.*|nm-connection-editor|nwg-.*|virt-manager|satty|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1|io\\.elementary\\..*|fsearch|io\\.github\\.cboxdoerfer\\.FSearch)$" },
+        match = { class = "^(firefox|steam|code|code-oss|vscodium|codium|io\\.github\\.kolunmi\\.Bazaar|org\\.gnome\\..*|nautilus|.*pavucontrol|blueman-.*|nm-connection-editor|nwg-.*|virt-manager|satty|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1|io\\.elementary\\..*|fsearch|io\\.github\\.cboxdoerfer\\.FSearch|" ..
+            -- standard apps that draw their own title bar (APP-3)
+            "io\\.github\\.mrvladus\\.List|sticky|com\\.github\\.johnfactotum\\.Foliate|io\\.bassi\\.Amberol|" ..
+            "com\\.github\\.flxzt\\.rnote)$" },
         ["hyprbars:no_bar"] = true,
     })
     local extra = {}
