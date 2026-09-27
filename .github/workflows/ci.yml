@@ -33,11 +33,12 @@ jobs:
         run: find home/.config/hypr examples -name '*.lua' -print0 | xargs -0 -n1 luac -p
 
       - name: Hyprland config
+        # Hyprland does not run as root, and the container's user is root.
         run: |
-          export XDG_RUNTIME_DIR=/tmp/xdg && mkdir -p "$XDG_RUNTIME_DIR"
-          out=$(Hyprland --verify-config -c "$PWD/home/.config/hypr/hyprland.lua" 2>&1)
-          echo "$out" | tail -n 20
-          echo "$out" | grep -q 'config ok'
+          useradd -m checker
+          su checker -c 'export XDG_RUNTIME_DIR=/tmp/xdg-checker HOME=/home/checker && mkdir -p "$XDG_RUNTIME_DIR" &&
+            Hyprland --verify-config -c "$PWD/home/.config/hypr/hyprland.lua" 2>&1 || true' | tee /tmp/verify.log | tail -n 20
+          grep -q 'config ok' /tmp/verify.log
 
       - name: QML syntax
         run: |

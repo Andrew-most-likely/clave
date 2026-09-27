@@ -83,6 +83,13 @@ add_cmdline() {
 }
 
 need_initramfs=0
+# After a kernel update without a reboot, the running kernel's modules are
+# gone and services such as nftables cannot start. Then services are only
+# enabled, and start at the next boot.
+if [ -d "/usr/lib/modules/$(uname -r)" ]; then now=--now; else
+    now=
+    echo "  The running kernel was updated and its modules are gone: services start after a reboot."
+fi
 
 # --------------------------------------------------------------------------
 if has look; then
@@ -154,7 +161,7 @@ if has desktop; then
         sed -i '/^#\[multilib\]$/{s/^#//;n;s/^#//}' /etc/pacman.conf
     fi
     systemctl daemon-reload
-    systemctl enable --now cups.socket avahi-daemon.service bluetooth.service paccache.timer
+    systemctl enable $now cups.socket avahi-daemon.service bluetooth.service paccache.timer
     systemctl restart systemd-resolved.service 2>/dev/null || true
     systemctl restart systemd-journald.service
 fi
@@ -189,7 +196,7 @@ if has harden; then
 
     say "Services"
     sysctl --system >/dev/null
-    systemctl enable --now nftables.service apparmor.service auditd.service usbguard.service \
+    systemctl enable $now nftables.service apparmor.service auditd.service usbguard.service \
         opensnitchd.service arch-audit.timer
     augenrules --load >/dev/null 2>&1 || true
     /usr/local/sbin/strip-suid
