@@ -277,6 +277,57 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 - **COMP-3** GTK3, GTK4/libadwaita, Qt5, Qt6 and Flatpak apps follow the theme.
 - **COMP-4** Laptops and desktops, one or more screens, with no assumptions about panel names.
 
+Arch is a rolling release, so Clave cannot pin the versions of the software it depends on. Hyprland,
+Quickshell, the hyprbars plugin, WhiteSur, GTK4 and libadwaita can each break Clave in an ordinary update.
+COMP-5 to COMP-9 tell the maintainer on GitHub when that happens, and tell the user whether a Clave update
+is needed. The rule is: the cheapest checks that work, no paid services, and nothing new running on the
+user's machine.
+
+- **COMP-5 Upstream watch (GitHub).** A workflow, `.github/workflows/upstream.yml`, runs once a day.
+  - It finds the current version of everything Clave depends on: repo packages with `pacman -Sy` and
+    `pacman -Si` in an `archlinux` container (no `-Syu`), AUR packages through the AUR RPC `info` call,
+    and WhiteSur with `git ls-remote`.
+  - It compares them with the last green manifest, kept on an orphan branch `ci-state`. Users never follow
+    that branch, so its commits need no signature.
+  - `ci/watched.txt` lists the packages Clave talks to directly: for example hyprland, quickshell,
+    hyprlock, hypridle, swaync, rofi, sddm, plymouth, gtk4, libadwaita, qt6-declarative and WhiteSur. When
+    one of them changes, the workflow runs the lint and install jobs of `ci.yml` (made reusable with
+    `workflow_call`). Any other change only updates the manifest.
+  - This replaces the weekly `schedule` in `ci.yml`, which is removed.
+- **COMP-6 Result as an issue.** When the run fails, the workflow opens or updates one issue with the label
+  `upstream-break`. The issue lists the version changes and the step that failed. That issue is the signal
+  that Clave needs an update. When the run passes, the new versions become the last known good manifest
+  on `ci-state`.
+- **COMP-7 Compatibility file.** `compat.json` in the repo root. Only signed maintainer commits change it.
+  It lists the versions each Clave release was tested with, and the known breaks as
+  `{package, from, fixed_in_clave, issue}`. It reaches users inside the signed checkout that `clave-update`
+  already verifies: no new download and no new trust path. The workflow never commits to `main`, because
+  `clave-update` requires the newest commit to be signed.
+- **COMP-8 `clave-doctor`.** A command on the user's machine, not a service.
+  - Local checks, always run: `Hyprland --verify-config` on the user's config; the hyprbars plugin was
+    built for the running Hyprland; the last Quickshell log has no QML errors; the WhiteSur and GTK4
+    assets link exists; no Clave user unit has failed; and the installed watched packages against
+    `compat.json` in the local checkout.
+  - Each package gets one of three results: *OK*; *Untested* (newer than tested, no known break); or
+    *Update Clave* (inside a known break that a later release fixes, so run `clave-update`). A known break
+    with no fix yet shows the issue link.
+  - `clave-doctor --fetch` fetches the repo, verifies the tag with the same `verify()` as `clave-update`,
+    and then compares against the newest signed `compat.json`. This is the only part that uses the
+    network, and only when asked (SEC-3).
+  - `clave-update` runs `clave-doctor` at the end.
+- **COMP-9 Pacman hook.** `/etc/pacman.d/hooks/clave-doctor.hook` runs after a transaction that changes a
+  watched package (`NeedsTargets`).
+  - It reads only `/usr/share/clave/compat.json`, a copy that the installer writes.
+  - It prints warnings and never stops the transaction: a stopped upgrade leaves a partial upgrade, which
+    is worse on Arch.
+  - It leaves a flag in `/var/lib/clave/`. The shell shows one notification at the next login and clears
+    the flag, the same pattern as SEC-5.
+
+Answers to the section 3 questions for COMP-5 to COMP-9: they improve reliability and tell the user what to
+do; no service, listener or timer runs on the user's machine (PERF-1); the network is used only with
+`--fetch`; the attack surface grows by one root hook that reads JSON and prints text, and never runs code
+from the checkout; everything on the user's side is local.
+
 ### 5.6 Software footprint
 
 - **SW-1** The public release ships only what the visual layer, the built features, the hardening and the
@@ -616,6 +667,7 @@ Each phase ends when its exit criteria are met.
 | 5 | Sections 9 and 10 | Findings added to this plan as requirements or rejected with a reason. (done) |
 | 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. (built; waiting on the dock check and the BR-11 review) |
 | 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. (done in the VM: `tests/vm-encrypt.py` passes for GRUB, systemd-boot, Limine and the interrupted run) |
+| 8 | Upstream compatibility (COMP-5 to COMP-9): see the steps below | A test change to a watched package opens an `upstream-break` issue. `clave-doctor` shows all three results on the live machine and the clean VM. Actions use stays under 300 minutes a month. |
 
 Phase 4 must finish before the public release. Phase 6 comes after v1.0.0, so it does not block that release.
 Phase 7 is security work and does not depend on phase 6: start it first. The status check and the warnings
@@ -661,6 +713,23 @@ Phase 6 steps, in order:
 5. **Migration and cleanup.** Remove the replaced files on update (APP-2) and convert `displays.json`.
    Extend `tests/migrate-test.sh`.
 6. **Docs.** README feature list, CHANGELOG, PERF-2, BR-11 review.
+
+Phase 8 does not depend on phases 6 and 7. Steps 1 to 3 can ship in a v1.0.x update. Steps, in order:
+
+1. **Watch.** `ci/watched.txt`, the `ci-state` branch and `upstream.yml`. Make `ci.yml` reusable and
+   remove its weekly schedule (COMP-5).
+2. **Issue.** The issue step with `gh`, `GITHUB_TOKEN` and `issues: write` (COMP-6).
+3. **Compatibility file.** `compat.json` and its format. The installer copies it to `/usr/share/clave/`
+   (COMP-7).
+4. **Doctor.** The local checks, then `--fetch`, then the call at the end of `clave-update` (COMP-8).
+5. **Hook.** The pacman hook and the notification at the next login (COMP-9).
+6. **Trial, not a requirement yet.** A headless Hyprland and Quickshell start, and a screenshot compared
+   with saved baselines, on GitHub's runners. They have no GPU, so try `LIBGL_ALWAYS_SOFTWARE=1`. If it
+   is reliable, add it as COMP-10. If not, run it in the VM before each release.
+
+Cost: the repo is private, and GitHub Pro includes 3,000 Actions minutes a month. The daily version check
+takes about 2 minutes, about 60 minutes a month. The full suite runs only when a watched package changes:
+about 10 runs of 10 minutes, about 100 minutes a month. Public repos use standard runners for free.
 
 ## 12. Release criteria for v1.0.0
 
@@ -735,3 +804,4 @@ Every item in `Notes.md` maps to this plan:
 | 15 Login screen work | FEAT-4, ISSUE-4 |
 | 16 Architecture principle | Section 3 |
 | Terminal logo bug | ISSUE-3 |
+| 17 Upstream compatibility | COMP-5 to COMP-9, phase 8 |

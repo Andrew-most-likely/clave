@@ -283,4 +283,11 @@
 
  The visual layer should remain lightweight, secure, and maintainable while providing a highly faithful Apple-style experience.
 
+ ## 17\. Upstream Compatibility
+
+ - The open-source software the pack uses updates on its own, because Arch is rolling.
+- Add a GitHub CI/CD check that finds out when an upstream update breaks Clave and says whether a Clave update is needed.
+- Add a clave doctor that runs on the user's PC and says whether a Clave update is needed.
+- Keep it cheap: use the GitHub Pro minutes, no paid services.
+
  the drawn in apple in the console some times breaks when leaving claude and continues to draw the apple on top of the text in the console window
