@@ -1,6 +1,29 @@
 # Changelog
 
-## v1.0.0 (2026-09-27)
+## v1.1.0 (unreleased)
+
+- **Disk Encryption.** Clave says when the disk is not encrypted: in the installer, in System Settings >
+  Privacy & Security, and once at the first login. `clave-encrypt setup` explains a reinstall with LUKS2, or
+  encrypts this install in place (systemd-boot, GRUB or Limine; ext4 or btrfs) with a recovery key. The boot
+  splash asks for the passphrase in the lock screen's style. See [docs/ENCRYPTION.md](docs/ENCRYPTION.md).
+- **Standard apps.** Reminders, Stickies, Weather, Clock, Maps, Photos, Books, Podcasts, Music, Videos, Voice
+  Memos, Camera, Fonts, Chess, Freeform board, Scanner, Screen Sharing, Console, System Information, Disk
+  Utility, Keychain and Backups, all from the Arch repositories and none with a background service. An update
+  offers to install them. Mail and Dictionary are in `--extras`. Any app's icon can be changed in System
+  Settings > Appearance.
+- **Notes, Calendar and Contacts**, drawn in the shell's style. Notes are Markdown files in
+  `~/Documents/Notes`; calendars and contacts are `.ics` and `.vcf` files in `~/.local/share/clave`. No
+  accounts, no sync.
+- **Activity Monitor** with CPU, Memory, Disk and Network. Force Quit (`Super+Alt+Esc`) opens it too.
+- **Screenshot toolbar** on `Shift+Super+5`: capture a window you click, a screen or an area, record the screen,
+  set a timer, choose where to save. A thumbnail in the corner opens markup. `Shift+Super+3/4` work as before.
+- **Displays** remembers each screen's settings by the screen itself, and Hyprland applies them as soon as it
+  is plugged in. Each screen can extend the desktop, mirror another screen or be off. Control Center's
+  Mirroring button mirrors the built-in screen. The `Super+P` menu is gone.
+- GTK4 apps get traffic-light window buttons on the left, and rounder corners.
+- Weather, Clock and Maps never look up the location online; they ask for a city.
+- `htop` is no longer installed (Activity Monitor replaces it); an update says it can be removed.
+- Fix: uninstalling after an update no longer puts the previous release's files back.
 
 First standalone release, and the first under the name Clave. Earlier versions were an overlay for ML4W
 dotfiles, published as arch-macos-hyprland.

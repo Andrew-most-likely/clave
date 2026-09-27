@@ -73,7 +73,7 @@ This keeps your files and settings. It rewrites every block of the partitions, w
    - runs `cryptsetup reencrypt --encrypt --type luks2 --reduce-device-size 32M`;
    - enrolls a recovery key with `systemd-cryptenroll --recovery-key`.
 
-   You choose the passphrase for `/`. `/home` unlocks with a key file stored inside the encrypted `/`, so
+   `cryptsetup` asks you to type `YES` before it starts on each partition. You choose the passphrase for `/`. `/home` unlocks with a key file stored inside the encrypted `/`, so
    there is one prompt at startup. The recovery key is shown once and saved nowhere: write it down. A swap
    partition gets a new random key at every boot, and hibernating to it stops working.
 4. **Finish.** Reboot and choose **Clave (encrypted)**. Type the passphrase, log in, and run

@@ -60,13 +60,18 @@ install to the new names and keeps your settings, Dock, wallpaper and your own f
 - Dock with magnification, running indicators, pinning, and the genie minimize animation. The animation uses
   GLSL shaders and a small Hyprland plugin, `hypr-minimize`.
 - Traffic-light title bars from `hyprbars`, built from source for your Hyprland version
-- Overview, hot corners, Search (apps, and a calculator one `Ctrl+Tab` away that works offline), Apps and
-  Force Quit
+- Overview, hot corners, Search (apps, and a calculator one `Ctrl+Tab` away that works offline), Apps,
+  Activity Monitor (CPU, memory, disk and network, with Quit and Force Quit) and Force Quit
 - System Settings (`Super+,`) with panes for Wi-Fi & Bluetooth, Displays, Sound, Battery, Appearance (light or
   dark, text size), Desktop & Dock, Wallpaper, Control Center, Notifications, Lock Screen, Login Items,
   Printers & Scanners, Date & Time, Trackpad, Mouse, Keyboard, and Privacy & Security
-- Screenshots: `Shift+Super+3/4/5` save the image to `~/Pictures/Screenshots` and copy it to the clipboard.
-  Click the notification to mark up the image.
+- Screenshots and screen recording: `Shift+Super+3/4` capture the screen or an area at once, and
+  `Shift+Super+5` opens a toolbar (screen, a window you click, an area, recording, a timer and where to save).
+  Images go to `~/Pictures/Screenshots` and the clipboard; click the thumbnail in the corner to mark one up.
+- Displays: resolution, scale, rotation and arrangement per screen, remembered by the screen itself, and
+  mirroring from Control Center
+- Clave apps, drawn in the shell's style: Notes (Markdown files in `~/Documents/Notes`), Calendar (`.ics`
+  files) and Contacts (`.vcf` files). No accounts and no sync: the files are yours.
 - Clipboard history (`Super+V`), emoji picker (`Ctrl+Super+Space`), Night Light, and a keyboard shortcut list
   (`Super+/`)
 - A lock screen and idle timeouts, an SDDM login screen, and a Plymouth boot splash
@@ -78,8 +83,17 @@ fingers for Apps, and spread 4 fingers for full screen.
 freedesktop sound theme. Qt5, Qt6,
 GTK4/libadwaita and Flatpak apps all follow the theme.
 
+**Standard apps** (`packages/apps.txt`, all from the Arch repositories): Reminders, Stickies, Weather, Clock,
+Maps, Photos, Books, Podcasts, Music, Videos, Voice Memos, Camera, Fonts, Chess, Freeform board, Scanner,
+Screen Sharing, Console, System Information, Disk Utility, Keychain and Backups, next to Files, Text Editor,
+Calculator and the image and archive viewers. None of them runs a background service. Only Weather, Maps and
+Podcasts go online, and only while open. Change any app's icon in System Settings > Appearance.
+
 **Desktop essentials:** GNOME Keyring, printing (CUPS and mDNS discovery), Bluetooth, exFAT and NTFS support,
-common GNOME apps, CJK and emoji fonts, zram, a journald size cap, and weekly cache cleanup.
+CJK and emoji fonts, zram, a journald size cap, and weekly cache cleanup.
+
+**Disk Encryption:** Clave says when the disk is not encrypted and guides the setup, either a reinstall with
+LUKS2 or encrypting this install in place. See [docs/ENCRYPTION.md](docs/ENCRYPTION.md).
 
 **Hardening** (on by default; `--no-harden` skips it. If it locks you out, see [docs/RECOVERY.md](docs/RECOVERY.md).)
 - The `linux-hardened` kernel with lockdown, IOMMU and init_on_free flags
@@ -104,10 +118,10 @@ Press `Super+/` to see all of them.
 | `Super+,` | System Settings | `Super+Alt+Arrows` | Swap windows |
 | `Super+N` | Notification Center | `Super+Shift+Arrows` | Resize the window |
 | `Super+Ctrl+N` | Control Center | `Super+S` | Scratchpad |
-| `Super+V` | Clipboard history | `Shift+Super+3/4/5` | Screenshot: screen / area / window |
-| `Ctrl+Super+Space` | Emoji & Symbols | `Shift+Super+6` | Copy text from the screen (OCR) |
-| `Super+L` | Lock screen | `Super+Alt+Esc` | Force Quit |
-| `Super+P` | Display mode | `Super+Alt+G` | Game mode (turns effects off) |
+| `Super+V` | Clipboard history | `Shift+Super+3/4` | Screenshot: screen / area |
+| `Ctrl+Super+Space` | Emoji & Symbols | `Shift+Super+5` | Screenshot and recording toolbar |
+| `Super+L` | Lock screen | `Shift+Super+6` | Copy text from the screen (OCR) |
+| `Super+Alt+Esc` | Force Quit | `Super+Alt+G` | Game mode (turns effects off) |
 
 ## Customize
 
