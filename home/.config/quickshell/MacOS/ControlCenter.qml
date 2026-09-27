@@ -18,7 +18,8 @@ import QtQuick.Effects
 //   [ Sound                                           ]
 //   [ Now Playing                                     ]
 //
-// Wi-Fi uses nmcli, the VPN row Mullvad's CLI, Focus is swaync's Do Not
+// Wi-Fi uses nmcli, the VPN row Mullvad's CLI or else the first NetworkManager
+// VPN/WireGuard connection, Focus is swaync's Do Not
 // Disturb, Night Shift runs hyprsunset and Screen Mirroring opens the display
 // mode menu (hypr/scripts/display-mode.sh).
 //   qs ipc call controlcenter toggle | open | close
@@ -86,6 +87,8 @@ PanelWindow {
     property string ssid: ""
     property bool vpnOn: false
     property bool hasVpn: false
+    property string vpnKind: ""      // "mullvad" or "nm"
+    property string vpnName: ""
     property bool dnd: false
     property bool nightShift: false
     property real brightness: 1
@@ -111,7 +114,10 @@ PanelWindow {
         command: ["sh", "-c",
             "echo wifi=$(nmcli -t radio wifi 2>/dev/null);"
             + "echo ssid=$(nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | sed -n 's/^yes://p' | head -n1);"
-            + "command -v mullvad >/dev/null && echo vpn=$(mullvad status 2>/dev/null | head -n1);"
+            + "if command -v mullvad >/dev/null; then echo vpnkind=mullvad; echo vpn=$(mullvad status 2>/dev/null | head -n1);"
+            + "else c=$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | sed -n 's/:\\(vpn\\|wireguard\\)$//p' | head -n1);"
+            + " if [ -n \"$c\" ]; then echo vpnkind=nm; echo vpnname=$c;"
+            + "  nmcli -t -f NAME connection show --active | grep -qxF \"$c\" && echo vpn=Connected || echo vpn=Disconnected; fi; fi;"
             + "echo dnd=$(swaync-client -D 2>/dev/null);"
             + "pgrep -x hyprsunset >/dev/null && echo night=1 || echo night=0"]
         stdout: StdioCollector {
@@ -125,6 +131,8 @@ PanelWindow {
                 root.wifiOn = v.wifi === "enabled"
                 root.ssid = v.ssid || ""
                 root.hasVpn = v.vpn !== undefined
+                root.vpnKind = v.vpnkind || ""
+                root.vpnName = v.vpnname || ""
                 root.vpnOn = v.vpn === "Connected"
                 root.dnd = v.dnd === "true"
                 root.nightShift = v.night === "1"
@@ -339,15 +347,19 @@ PanelWindow {
                             visible: root.hasVpn
                             icon: "icons/shield.svg"
                             label: "VPN"
-                            detail: root.vpnOn ? "Mullvad" : "Not Connected"
+                            detail: !root.vpnOn ? "Not Connected"
+                                : root.vpnKind === "mullvad" ? "Mullvad" : root.vpnName
                             on: root.vpnOn
                             onToggled: {
                                 root.vpnOn = !root.vpnOn
-                                root.run(["mullvad", root.vpnOn ? "connect" : "disconnect"])
+                                if (root.vpnKind === "mullvad")
+                                    root.run(["mullvad", root.vpnOn ? "connect" : "disconnect"])
+                                else
+                                    root.run(["nmcli", "connection", root.vpnOn ? "up" : "down", "id", root.vpnName])
                             }
                             onOpened: {
                                 root.close()
-                                Quickshell.execDetached(["mullvad-vpn"])
+                                Quickshell.execDetached(root.vpnKind === "mullvad" ? ["mullvad-vpn"] : ["nm-connection-editor"])
                             }
                         }
                         Item { Layout.fillHeight: true }

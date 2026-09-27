@@ -26,14 +26,7 @@
   "scripts": {
     "macos-alert-sound": {
       "exec": "__HOME__/.local/bin/macos-sound message-new-instant",
-      "app-name": "^(?!(Screen Capture|grimblast)$).*"
-    }
-  },
-  "notification-visibility": {
-    "example-name": {
-      "state": "muted",
-      "urgency": "Normal",
-      "app-name": "Spotify"
+      "app-name": "^(?!Screenshot$).*"
     }
   },
   "widgets": [

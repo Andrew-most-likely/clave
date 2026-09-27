@@ -1,7 +1,6 @@
 {
     "menubar": {
         "batteryPercent": true,
-        "clock24h": false,
         "showDate": true,
         "showDay": true
     },

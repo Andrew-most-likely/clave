@@ -10,4 +10,4 @@ hunspell hunspell-en_us
 noto-fonts noto-fonts-cjk noto-fonts-emoji noto-fonts-extra
 ttf-liberation ttf-dejavu ttf-carlito ttf-caladea
 pacman-contrib zram-generator flatpak
-blueman bluez bluez-utils power-profiles-daemon thermald
+blueman bluez bluez-utils power-profiles-daemon

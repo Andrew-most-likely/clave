@@ -17,9 +17,11 @@ Singleton {
 
     readonly property string home: Quickshell.env("HOME")
     readonly property string dir: home + "/.config/macos-look"
+    // 24-hour clock where the locale uses one (no AM/PM in its time format).
+    readonly property bool locale24h: !/a|AP/i.test(Qt.locale().timeFormat(Locale.ShortFormat))
 
     readonly property var defaults: ({
-        "menubar":    { "batteryPercent": true, "clock24h": false, "showDate": true, "showDay": true },
+        "menubar":    { "batteryPercent": true, "clock24h": root.locale24h, "showDate": true, "showDay": true },
         "hotCorners": { "topLeft": "missioncontrol", "topRight": "notifications",
                         "bottomLeft": "launchpad", "bottomRight": "none" },
         "windows":    { "minimizeEffect": "genie", "trafficLights": true },

@@ -5,7 +5,7 @@ local caps = mac.caps_lock or ""
 hl.config({
     input = {
         kb_layout      = mac.kb_layout or "us",
-        kb_options     = "grp:alt_shift_toggle" .. (caps ~= "" and ("," .. caps) or ""),
+        kb_options     = caps,  -- e.g. "ctrl:nocaps"; System Settings > Keyboard
         repeat_rate    = mac.repeat_rate or 25,
         repeat_delay   = mac.repeat_delay or 600,
         follow_mouse   = 1,

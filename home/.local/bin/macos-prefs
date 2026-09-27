@@ -105,9 +105,22 @@ def usb():
 
 # ---------------------------------------------------------------- Battery / time
 
+def system_battery():
+    """The laptop battery: type Battery, not a device's (mouse, pen)."""
+    for b in sorted(glob.glob("/sys/class/power_supply/*/")):
+        if read(b + "type", "") == "Battery" and read(b + "scope", "System") != "Device":
+            return b
+    return None
+
+
 def battery():
-    b = "/sys/class/power_supply/BAT0/"
-    full, design = read(b + "charge_full", "0"), read(b + "charge_full_design", "0")
+    b = system_battery()
+    if not b:
+        out({"health": 0, "cycles": 0, "limit": 100, "profile": "", "profiles": []})
+        return
+    # Some batteries report energy (µWh) instead of charge (µAh).
+    kind = "charge" if os.path.exists(b + "charge_full") else "energy"
+    full, design = read(b + kind + "_full", "0"), read(b + kind + "_full_design", "0")
     health = round(100 * int(full) / int(design)) if int(design) else 0
     out({"health": health, "cycles": int(read(b + "cycle_count", "0") or 0),
          "limit": int(read(b + "charge_control_end_threshold", "100") or 100),

@@ -10,12 +10,16 @@
 #   macos-admin usb-list                   USBGuard devices, one per line
 set -eu
 
-BAT=/sys/class/power_supply/BAT0/charge_control_end_threshold
+# The laptop battery that supports a charge limit (BAT0, BAT1, CMB0, ...).
+BAT=$(for b in /sys/class/power_supply/*; do
+    [ "$(cat "$b/type" 2>/dev/null)" = Battery ] && [ -e "$b/charge_control_end_threshold" ] && { echo "$b/charge_control_end_threshold"; break; }
+done)
 CHARGE_CONF=/etc/tmpfiles.d/macos-charge-limit.conf
 
 case "${1:-}" in
     charge-limit)
         v=${2:-}
+        [ -n "$BAT" ] || { echo "macos-admin: this battery has no charge limit" >&2; exit 2; }
         if [ "$v" = off ]; then
             rm -f "$CHARGE_CONF"
             echo 100 > "$BAT"
