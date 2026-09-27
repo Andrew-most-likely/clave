@@ -239,7 +239,9 @@ FloatingWindow {
                 }
                 Connections {
                     target: root
-                    function onSelectedChanged(): void { if (root.current) card.fill(root.current) }
+                    // current also changes when the list reloads with the same
+                    // selection; not while editing, so typed changes stay.
+                    function onCurrentChanged(): void { if (root.current && !root.editing) card.fill(root.current) }
                     function onEditingChanged(): void { if (root.editing && root.current) card.fill(root.current) }
                 }
 

@@ -160,7 +160,7 @@ def main():
         stop()
     elif a[0] == "push":
         push()
-        sys.exit(run("cd ~/.local/src/clave && git add -A && git commit -qm vm --allow-empty && ./install.sh --update"))
+        sys.exit(run("cd ~/.local/src/clave && git init -q && git add -A && git commit -qm vm --allow-empty && ./install.sh --update"))
     elif a[0] == "run" and len(a) >= 2:
         sys.exit(run(" ".join(a[1:])))
     elif a[0] == "shot" and len(a) == 2:

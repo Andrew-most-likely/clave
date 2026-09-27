@@ -85,7 +85,9 @@ Scope {
             "echo \"nightlight=$(pgrep -x hyprsunset >/dev/null && echo 1 || echo 0)\";" +
             "echo \"brightness=$(brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d %)\";" +
             "echo \"wifi=$(nmcli radio wifi 2>/dev/null)\";" +
-            "echo \"bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
+            // bluetoothctl waits for bluetoothd forever, and bluetoothd does not
+            // run without an adapter: without the timeout nothing here loads.
+            "echo \"bt=$(timeout 2 bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
             "echo \"wallpaper=$(cat ~/.config/clave/wallpaper 2>/dev/null)\";" +
             "for kv in $(~/.local/bin/clave-idle get); do echo \"idle_$kv\"; done;" +
             "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
@@ -103,6 +105,8 @@ Scope {
                         s[line.slice(0, i)] = line.slice(i + 1)
                 })
                 root.st = s
+                // sections is assigned, not bound: rebuild it for the new values.
+                root.refreshPane()
             }
         }
     }

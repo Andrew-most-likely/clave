@@ -14,7 +14,7 @@ float("clave-force-quit",      { title = "^Force Quit Applications$" },   "420 4
 float("clave-activity",        { title = "^Activity Monitor$" },          "900 600")
 -- Clave apps (APP-8, APP-9), each its own Quickshell process
 float("clave-notes",           { class = "^org\\.quickshell$", title = "^Notes$" },    "960 620")
-float("clave-calendar",        { class = "^org\\.quickshell$", title = "^Calendar$" }, "1120 740")
+float("clave-calendar",        { class = "^org\\.quickshell$", title = "^Calendar$" }, "1000 640")
 float("clave-contacts",        { class = "^org\\.quickshell$", title = "^Contacts$" }, "820 600")
 float("clave-app-about",       { class = "^org\\.quickshell$", title = "^About .*" })
 -- Quick Look (sushi): Space in Nautilus

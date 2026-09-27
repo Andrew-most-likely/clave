@@ -15,4 +15,6 @@ fi
 if [ "$1" = "audio-volume-change" ]; then
     pkill -f "pw-play .*audio-volume-change.oga" 2>/dev/null
 fi
-exec pw-play "$f"
+# No output device (or a busy one) is not an error: swaync would report
+# every notification as a failed script.
+pw-play "$f" 2>/dev/null || true

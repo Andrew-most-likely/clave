@@ -142,7 +142,7 @@ Scope {
             "echo '#me'; id -u;" +
             " echo '#uptime'; cat /proc/uptime;" +
             " echo '#cpu'; head -n1 /proc/stat;" +
-            " echo '#ps'; ps -eo pid=,uid=,user:32=;" +
+            " echo '#ps'; ps -eo pid=,uid=,user:32=,args=;" +
             " echo '#stat'; cat /proc/[0-9]*/stat 2>/dev/null;" +
             " echo '#io'; grep -H -E '^(read|write)_bytes' /proc/[0-9]*/io 2>/dev/null;" +
             " echo '#mem'; free -b;" +
@@ -172,7 +172,9 @@ Scope {
         let users = {}
         ;(sec.ps || []).forEach(l => {
             const f = l.trim().split(/\s+/)
-            users[f[0]] = { "uid": parseInt(f[1]), "user": f[2] }
+            // The kernel cuts names at 15 characters; the program's file
+            // name from the command line is the full one.
+            users[f[0]] = { "uid": parseInt(f[1]), "user": f[2], "exe": (f[3] || "").split("/").pop() }
         })
         let io = {}
         ;(sec.io || []).forEach(l => {
@@ -195,8 +197,10 @@ Scope {
             if (!u) return
             if (!root.allProcesses && u.uid !== root.myUid) return
             const before = last ? last.ticks[pid] : undefined
+            let name = l.slice(a + 1, b)
+            if (name.length === 15 && u.exe.startsWith(name)) name = u.exe
             list.push({
-                "pid": parseInt(pid), "uid": u.uid, "user": u.user, "name": l.slice(a + 1, b),
+                "pid": parseInt(pid), "uid": u.uid, "user": u.user, "name": name,
                 "cpu": before !== undefined && dt > 0 ? (t - before) / hz / dt * 100 : 0,
                 "time": t / hz, "mem": parseInt(f[21]) * page,
                 "read": (io[pid] || {}).read || 0, "written": (io[pid] || {}).write || 0
@@ -461,6 +465,8 @@ Scope {
 
                         RowLayout {
                             Layout.fillWidth: true
+                            // A nested layout fills by default; the list gets the height.
+                            Layout.fillHeight: false
                             Layout.preferredHeight: 26
                             Layout.leftMargin: 10
                             Layout.rightMargin: 10

@@ -15,8 +15,8 @@ FloatingWindow {
     id: root
     title: "Calendar"
     color: Theme.window
-    implicitWidth: 1120
-    implicitHeight: 740
+    implicitWidth: 1000
+    implicitHeight: 640
     onVisibleChanged: if (!visible) Qt.quit()
 
     readonly property string pim: Quickshell.env("HOME") + "/.local/bin/clave-pim"
@@ -386,9 +386,11 @@ FloatingWindow {
                             anchors.top: parent.top
                             anchors.right: parent.right
                             anchors.margins: 4
-                            width: 24; height: 22; radius: 11
+                            // Wider than the circle for "1 Sep".
+                            width: Math.max(24, dayNum.implicitWidth + 12); height: 22; radius: 11
                             color: root.same(cell.day, new Date()) ? Theme.red : "transparent"
                             Text {
+                                id: dayNum
                                 textFormat: Text.PlainText
                                 anchors.centerIn: parent
                                 text: cell.day.getDate() === 1 ? Qt.formatDate(cell.day, "d MMM") : `${cell.day.getDate()}`
