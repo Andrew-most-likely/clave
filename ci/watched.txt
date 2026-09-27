@@ -1,0 +1,44 @@
+# Packages Clave talks to directly (PROJECT_PLAN.md COMP-5). When one of
+# them changes upstream, .github/workflows/upstream.yml runs the lint and
+# install jobs of ci.yml. The pacman hook (COMP-9) and clave-doctor (COMP-8)
+# check the same list against compat.json.
+#
+# Format: SOURCE NAME [URL]
+#   repo  an Arch repository package (pacman -Si)
+#   aur   an AUR package (AUR RPC)
+#   git   a git repository Clave downloads from (git ls-remote)
+
+# Compositor and its tools
+repo hyprland
+repo hyprlock
+repo hypridle
+repo hyprsunset
+repo xdg-desktop-portal-hyprland
+git hyprland-plugins https://github.com/hyprwm/hyprland-plugins
+
+# Shell
+repo quickshell
+repo qt6-declarative
+repo swaync
+repo swayosd
+repo rofi
+
+# Login and boot
+repo sddm
+repo plymouth
+repo cryptsetup
+
+# Theme
+repo gtk4
+repo libadwaita
+aur whitesur-icon-theme
+aur kvantum-theme-whitesur-git
+git WhiteSur-gtk-theme https://github.com/vinceliuice/WhiteSur-gtk-theme
+
+# Engines behind Clave's own tools (SHELL-1, APP-8)
+repo grim
+repo slurp
+repo wf-recorder
+repo satty
+repo python-icalendar
+repo python-vobject

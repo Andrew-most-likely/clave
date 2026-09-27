@@ -1,0 +1,129 @@
+# Daily upstream watch (PROJECT_PLAN.md COMP-5, COMP-6).
+#
+# Arch is a rolling release: Hyprland, Quickshell, GTK4 and the rest can
+# break Clave in an ordinary update. Once a day this finds the current
+# version of everything Clave installs or talks to and compares it with the
+# last known good list, kept on the orphan branch ci-state (users never
+# follow it). When a package in ci/watched.txt changed, the lint and install
+# jobs of ci.yml run. A pass makes the new list the last known good one; a
+# failure opens or updates one issue labelled upstream-break.
+name: Upstream
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: upstream
+  cancel-in-progress: false
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      watched: ${{ steps.diff.outputs.watched }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Last known good list
+        run: |
+          if git fetch -q --depth 1 origin ci-state; then git show FETCH_HEAD:manifest.txt > old.txt
+          else touch old.txt; fi
+
+      - name: Current versions
+        # pacman -Sy and -Si in an archlinux container, AUR RPC, git ls-remote
+        run: ci/upstream.sh versions > manifest.txt
+
+      - name: Compare
+        id: diff
+        run: |
+          ci/upstream.sh diff old.txt manifest.txt | tee changes.md
+          cat changes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upstream
+          path: |
+            manifest.txt
+            changes.md
+          retention-days: 7
+
+  test:
+    needs: versions
+    if: needs.versions.outputs.watched == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  record:
+    needs: [versions, test]
+    if: always() && needs.versions.result == 'success' && needs.versions.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # the ci-state branch
+      issues: write     # the upstream-break issue
+      actions: read     # which steps failed
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: upstream
+          path: ${{ runner.temp }}/upstream
+
+      - name: New last known good list
+        if: needs.test.result == 'success' || needs.test.result == 'skipped'
+        run: |
+          cp "$RUNNER_TEMP/upstream/manifest.txt" "$RUNNER_TEMP/manifest.txt"
+          if git fetch -q --depth 1 origin ci-state; then
+            git checkout -q -B ci-state FETCH_HEAD
+          else
+            git checkout -q --orphan ci-state
+            git rm -rqf .
+          fi
+          cp "$RUNNER_TEMP/manifest.txt" manifest.txt
+          git add manifest.txt
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "Last known good: $(date -u +%F)" -m "$RUN_URL"
+          git push -q origin ci-state
+
+      - name: Note that it passes again
+        if: needs.test.result == 'success'
+        run: |
+          n=$(gh issue list --label upstream-break --state open --json number --jq '.[0].number // empty')
+          [ -z "$n" ] || gh issue comment "$n" --body "Passes again with the current versions: $RUN_URL"
+
+      - name: Open or update the upstream-break issue
+        if: needs.test.result == 'failure'
+        run: |
+          failed=$(gh run view "$GITHUB_RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion == "failure")
+            | "- \(.name): \([.steps[] | select(.conclusion == "failure") | .name] | join(", "))"')
+          {
+            echo "An upstream update broke Clave's checks on $(date -u +%F). Clave needs an update, and"
+            echo "compat.json a known break entry once the cause is clear (PROJECT_PLAN.md COMP-6, COMP-7)."
+            echo
+            echo "Run: $RUN_URL"
+            echo
+            echo "## Failed"
+            echo "$failed"
+            echo
+            echo "## Changed since the last green run"
+            cat "$RUNNER_TEMP/upstream/changes.md"
+          } > body.md
+          gh label create upstream-break --color d73a4a --description "An upstream update broke Clave" 2>/dev/null || true
+          n=$(gh issue list --label upstream-break --state open --json number --jq '.[0].number // empty')
+          if [ -n "$n" ]; then
+            gh issue edit "$n" --body-file body.md
+            gh issue comment "$n" --body "Still failing: $RUN_URL"
+          else
+            gh issue create --title "Upstream update breaks Clave" --label upstream-break --body-file body.md
+          fi
