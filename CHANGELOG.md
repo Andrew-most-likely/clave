@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0 (unreleased)
+## v1.0.0 (2026-09-27)
 
 First standalone release, and the first under the name Clave. Earlier versions were an overlay for ML4W
 dotfiles, published as arch-macos-hyprland.
