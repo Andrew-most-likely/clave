@@ -41,18 +41,20 @@ done
 log_start
 preflight
 [ "$update" -eq 1 ] || show_plan
-migrate_home
 # --personal is remembered, so updates keep the personal fonts and cursor.
 if [ "$personal" -eq 1 ] && [ "$DRY" -eq 0 ]; then touch "$STATE/personal"; fi
 
 # --- packages --------------------------------------------------------------
+# First, so a failure here leaves the desktop as it was.
 if [ "$packages" -eq 1 ]; then
     lists=(core look desktop)
     [ "$harden" -eq 1 ] && lists+=(harden)
     [ "$extras" -eq 1 ] && lists+=(extras)
-    personal_on "$HOME" && lists+=(personal)
+    { [ "$personal" -eq 1 ] || personal_on "$HOME"; } && lists+=(personal)
     install_packages "${lists[@]}"
 fi
+
+migrate_home
 
 # --- files in $HOME --------------------------------------------------------
 [ "$update" -eq 1 ] || move_aside_old_setup

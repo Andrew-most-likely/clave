@@ -179,7 +179,7 @@ OLD_SYSTEM_PATHS=(
 # restore_or_remove PATH: put back the oldest PATH.bak-*, or remove PATH.
 restore_or_remove() {
     local bak
-    bak=$(ls -1d "$1".bak-* 2>/dev/null | sort | head -n1)
+    bak=$(ls -1d "$1".bak-* 2>/dev/null | sort | head -n1 || true)
     rm -rf "$1"
     if [ -n "$bak" ]; then mv "$bak" "$1"; echo "  restored $1"; else echo "  removed  $1"; fi
 }
@@ -189,7 +189,9 @@ restore_or_remove() {
 # Paths this version still uses carry over into the new record.
 migrate_system() {  # migrate_system NEW_STATE_DIR
     local old=/var/lib/$OLD f found=0
-    for f in "$old" "${OLD_SYSTEM_PATHS[@]}"; do [ -e "$f" ] && found=1; done
+    for f in "$old" "${OLD_SYSTEM_PATHS[@]}"; do
+        if [ -e "$f" ]; then found=1; fi
+    done
     [ "$found" -eq 1 ] || return 0
     say "Moving the earlier system install to the Clave names"
     systemctl disable macos-boot-chime.service 2>/dev/null || true
@@ -199,11 +201,14 @@ migrate_system() {  # migrate_system NEW_STATE_DIR
                 grep -qxF "$f" "$1/installed-files" 2>/dev/null || echo "$f" >> "$1/installed-files"
                 continue
             fi
-            [ -e "$f" ] && restore_or_remove "$f"
+            if [ -e "$f" ]; then restore_or_remove "$f"; fi
         done < "$old/installed-files"
     fi
+    # Only this project ever used these names, so any backup of them is an
+    # older copy of the project's own file: remove those too.
     for f in "${OLD_SYSTEM_PATHS[@]}"; do
-        [ -e "$f" ] && restore_or_remove "$f"
+        if [ -e "$f" ]; then rm -rf "$f"; echo "  removed  $f"; fi
+        rm -rf "$f".bak-*
     done
     rm -rf "$old"
     systemctl daemon-reload

@@ -107,10 +107,18 @@ install_packages() {  # install_packages GROUP...: packages/GROUP.txt, GROUP-aur
     done
 
     say "Packages (pacman): $*"
+    # Only packages that are missing. Asking pacman for installed ones too
+    # would upgrade them alone when the sync database is newer: a partial
+    # upgrade, which Arch does not support.
     mapfile -t list < <(pkgs "${lists[@]}")
-    [ ${#list[@]} -eq 0 ] || run sudo pacman -S --needed --noconfirm "${list[@]}"
+    [ ${#list[@]} -eq 0 ] || mapfile -t list < <(pacman -T "${list[@]}" || true)
+    if [ ${#list[@]} -eq 0 ]; then echo "  all installed"
+    elif ! run sudo pacman -S --needed --noconfirm "${list[@]}"; then
+        die "Installing ${list[*]} failed. Update the system first (sudo pacman -Syu), then run the installer again."
+    fi
 
     mapfile -t list < <(pkgs "${aur[@]}")
+    [ ${#list[@]} -eq 0 ] || mapfile -t list < <(pacman -T "${list[@]}" || true)
     if [ ${#list[@]} -gt 0 ]; then
         bootstrap_aur_helper
         say "Packages (AUR)"
