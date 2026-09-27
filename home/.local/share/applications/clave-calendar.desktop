@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Calendar
+Comment=Events in local calendar files
+Exec=__HOME__/.local/bin/clave-app calendar %f
+Icon=x-office-calendar
+Categories=Office;Calendar;
+MimeType=text/calendar;
+Keywords=event;agenda;schedule;ics;

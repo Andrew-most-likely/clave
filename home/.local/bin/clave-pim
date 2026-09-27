@@ -1,0 +1,432 @@
+#!/usr/bin/env python3
+"""Calendar and Contacts files for the Clave apps (PROJECT_PLAN.md APP-8).
+Open-source libraries read and write the formats (icalendar, python-dateutil
+for repeating events, vobject); the apps only draw. Plain files, no sync, no
+network: other apps and backups can read them, and importing a file means
+copying it into the folder.
+
+  ~/.local/share/clave/calendars/NAME.ics    one file per calendar
+  ~/.local/share/clave/contacts/*.vcf        one file per contact (files with
+                                             several contacts are read too)
+
+  clave-pim calendars                         calendars as JSON
+  clave-pim calendar-new NAME [COLOR]
+  clave-pim calendar-set CAL name|color VALUE
+  clave-pim calendar-delete CAL
+  clave-pim events START END                  events in [START, END) (ISO
+                                              dates), repeats expanded
+  clave-pim event-save < JSON                 add or change one event
+  clave-pim event-delete CAL UID [DATE]       DATE: only that repeat
+  clave-pim contacts                          contacts as JSON
+  clave-pim contact-save < JSON               add or change one contact
+  clave-pim contact-delete ID
+  clave-pim import FILE                       copy an .ics or .vcf file in
+"""
+import datetime as dt
+import json
+import os
+import re
+import shutil
+import sys
+import uuid
+
+DATA = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+CAL_DIR = os.path.join(DATA, "clave/calendars")
+CARD_DIR = os.path.join(DATA, "clave/contacts")
+COLORS = ["#0a84ff", "#30d158", "#ff453a", "#ff9f0a", "#bf5af2", "#ffd60a", "#64d2ff"]
+NAME_RE = re.compile(r"[^\w .,()'-]+")
+
+
+def fail(msg):
+    sys.exit(msg)
+
+
+def out(v):
+    print(json.dumps(v, ensure_ascii=False))
+
+
+def libs():
+    try:
+        import icalendar  # noqa: F401
+        import vobject  # noqa: F401
+        from dateutil import rrule  # noqa: F401
+    except ImportError as e:
+        fail(f"missing library: {e.name} (install python-icalendar, python-vobject, python-dateutil)")
+
+
+def write_atomic(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.replace(tmp, path)
+
+
+def safe_id(s):
+    """A file stem from a name: no path separators, no dot files."""
+    s = NAME_RE.sub("", s).strip().strip(".")
+    return s[:80] or "Calendar"
+
+
+# ---------------------------------------------------------------- Calendars
+
+def cal_path(cal):
+    p = os.path.join(CAL_DIR, os.path.basename(cal) + ".ics")
+    if os.path.dirname(os.path.realpath(p)) != os.path.realpath(CAL_DIR):
+        fail(f"bad calendar: {cal}")
+    return p
+
+
+def load_cal(cal):
+    from icalendar import Calendar
+    with open(cal_path(cal), "rb") as f:
+        return Calendar.from_ical(f.read())
+
+
+def save_cal(cal, c):
+    write_atomic(cal_path(cal), c.to_ical())
+
+
+def new_cal(name, color=None):
+    from icalendar import Calendar
+    c = Calendar()
+    c.add("prodid", "-//Clave//Calendar//EN")
+    c.add("version", "2.0")
+    c.add("x-wr-calname", name)
+    c.add("x-clave-color", color or COLORS[len(cal_ids()) % len(COLORS)])
+    return c
+
+
+def cal_ids():
+    if not os.path.isdir(CAL_DIR):
+        return []
+    return sorted(f[:-4] for f in os.listdir(CAL_DIR) if f.endswith(".ics") and not f.startswith("."))
+
+
+def calendars():
+    if not cal_ids():
+        # A first calendar, so the app has somewhere to put events.
+        save_cal("Calendar", new_cal("Calendar", COLORS[0]))
+    res = []
+    for i, cid in enumerate(cal_ids()):
+        try:
+            c = load_cal(cid)
+        except (OSError, ValueError) as e:
+            res.append({"id": cid, "name": cid, "color": "#8e8e93", "error": str(e)})
+            continue
+        res.append({"id": cid, "name": str(c.get("x-wr-calname", cid)),
+                    "color": str(c.get("x-clave-color", COLORS[i % len(COLORS)]))})
+    return res
+
+
+def as_dt(v, tz=None):
+    """A date or datetime from icalendar as a local, naive datetime."""
+    if isinstance(v, dt.datetime):
+        if v.tzinfo is not None:
+            v = v.astimezone().replace(tzinfo=None)
+        return v
+    return dt.datetime.combine(v, dt.time())
+
+
+def parse_iso(s):
+    s = s.strip()
+    if len(s) == 10:
+        return dt.datetime.fromisoformat(s)
+    return dt.datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone().replace(tzinfo=None) \
+        if ("+" in s[10:] or s.endswith("Z")) else dt.datetime.fromisoformat(s)
+
+
+def expand(ev, start, end):
+    """Occurrences of one VEVENT that overlap [start, end), as (start, end)."""
+    from dateutil import rrule
+    s0 = ev.get("dtstart").dt
+    all_day = not isinstance(s0, dt.datetime)
+    s = as_dt(s0)
+    if ev.get("dtend") is not None:
+        e = as_dt(ev.get("dtend").dt)
+    elif ev.get("duration") is not None:
+        e = s + ev.get("duration").dt
+    else:
+        e = s + (dt.timedelta(days=1) if all_day else dt.timedelta(0))
+    length = e - s
+    if ev.get("rrule") is None:
+        return [(s, e)] if s < end and e > start else [], all_day
+    rule = rrule.rrulestr(ev.get("rrule").to_ical().decode(), dtstart=s, ignoretz=True, forceset=True)
+    for ex in ev.get("exdate", []) if isinstance(ev.get("exdate"), list) else [ev.get("exdate")] if ev.get("exdate") else []:
+        for d in ex.dts:
+            rule.exdate(as_dt(d.dt))
+    occ = rule.between(start - length, end, inc=True)
+    return [(o, o + length) for o in occ if o < end and o + length > start], all_day
+
+
+def events(start_s, end_s):
+    start, end = parse_iso(start_s), parse_iso(end_s)
+    res = []
+    for cal in calendars():
+        if cal.get("error"):
+            continue
+        c = load_cal(cal["id"])
+        overridden = {}
+        for ev in c.walk("VEVENT"):
+            if ev.get("recurrence-id") is not None:
+                overridden.setdefault(str(ev.get("uid")), set()).add(as_dt(ev.get("recurrence-id").dt))
+        for ev in c.walk("VEVENT"):
+            if ev.get("dtstart") is None:
+                continue
+            uid = str(ev.get("uid", ""))
+            is_override = ev.get("recurrence-id") is not None
+            try:
+                occ, all_day = expand(ev, start, end)
+            except (ValueError, TypeError):
+                continue
+            for s, e in occ:
+                if not is_override and s in overridden.get(uid, set()):
+                    continue
+                res.append({
+                    "calendar": cal["id"], "color": cal["color"], "uid": uid,
+                    "repeats": ev.get("rrule") is not None,
+                    "repeat": str(ev.get("rrule").get("FREQ", [""])[0]).lower() if ev.get("rrule") else "",
+                    "occurrence": s.isoformat(),
+                    "title": str(ev.get("summary", "")), "location": str(ev.get("location", "")),
+                    "notes": str(ev.get("description", "")),
+                    "start": s.isoformat(), "end": e.isoformat(), "allDay": all_day,
+                })
+    res.sort(key=lambda r: (r["start"], r["title"]))
+    return res
+
+
+def event_save(data):
+    """{calendar, uid?, title, location, notes, start, end, allDay, repeat:
+    ""|daily|weekly|monthly|yearly, oldCalendar?}. A new uid when missing."""
+    from icalendar import Event, vRecur
+    cal = data.get("calendar") or "Calendar"
+    old = data.get("oldCalendar")
+    uid = data.get("uid") or f"{uuid.uuid4()}@clave"
+    if old and old != cal:
+        event_delete(old, uid)
+    c = load_cal(cal) if os.path.exists(cal_path(cal)) else new_cal(cal)
+    master = next((e for e in c.walk("VEVENT") if str(e.get("uid")) == uid and e.get("recurrence-id") is None), None)
+    if master is None:
+        master = Event()
+        master.add("uid", uid)
+        master.add("created", dt.datetime.now(dt.timezone.utc))
+        c.add_component(master)
+    s, e = parse_iso(data["start"]), parse_iso(data["end"])
+    all_day = bool(data.get("allDay"))
+    # A change made on a later repeat moves the whole series by the same
+    # amount from its own start, not to that repeat's date.
+    if data.get("occurrence") and master.get("rrule") is not None and master.get("dtstart") is not None:
+        delta = s - parse_iso(data["occurrence"])
+        length = e - s
+        s = as_dt(master.get("dtstart").dt) + delta
+        e = s + length
+    for k in ("summary", "location", "description", "dtstart", "dtend", "rrule", "dtstamp", "last-modified", "duration"):
+        master.pop(k, None)
+    master.add("summary", data.get("title") or "New Event")
+    if data.get("location"):
+        master.add("location", data["location"])
+    if data.get("notes"):
+        master.add("description", data["notes"])
+    if all_day:
+        master.add("dtstart", s.date())
+        master.add("dtend", max(e.date(), s.date() + dt.timedelta(days=1)))
+    else:
+        # Local wall-clock time with the system zone, so it stays put when
+        # the computer travels with a calendar that is shared as a file.
+        master.add("dtstart", s.astimezone())
+        master.add("dtend", max(e, s).astimezone())
+    freq = (data.get("repeat") or "").upper()
+    if freq in ("DAILY", "WEEKLY", "MONTHLY", "YEARLY"):
+        master.add("rrule", vRecur({"FREQ": freq}))
+    now = dt.datetime.now(dt.timezone.utc)
+    master.add("dtstamp", now)
+    master.add("last-modified", now)
+    save_cal(cal, c)
+    out({"calendar": cal, "uid": uid})
+
+
+def event_delete(cal, uid, date=None):
+    c = load_cal(cal)
+    if date:
+        # One repeat: an EXDATE on the repeating event.
+        d = parse_iso(date)
+        for e in c.walk("VEVENT"):
+            if str(e.get("uid")) == uid and e.get("recurrence-id") is None:
+                e.add("exdate", d if isinstance(e.get("dtstart").dt, dt.datetime) and d.tzinfo else
+                      (d.astimezone() if isinstance(e.get("dtstart").dt, dt.datetime) else d.date()))
+    else:
+        c.subcomponents = [e for e in c.subcomponents if not (e.name == "VEVENT" and str(e.get("uid")) == uid)]
+    save_cal(cal, c)
+
+
+# ---------------------------------------------------------------- Contacts
+
+def card_files():
+    if not os.path.isdir(CARD_DIR):
+        return []
+    return sorted(os.path.join(CARD_DIR, f) for f in os.listdir(CARD_DIR)
+                  if f.lower().endswith((".vcf", ".vcard")) and not f.startswith("."))
+
+
+def read_cards(path):
+    import vobject
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return list(vobject.readComponents(f.read(), ignoreUnreadable=True))
+
+
+def values(card, name):
+    return [str(x.value) for x in card.contents.get(name, []) if str(x.value).strip()]
+
+
+def typed(card, name):
+    res = []
+    for x in card.contents.get(name, []):
+        t = [p.lower() for p in x.params.get("TYPE", []) if p.lower() not in ("internet", "pref", "voice")]
+        res.append({"label": (t[0] if t else "other"), "value": str(x.value)})
+    return res
+
+
+def contacts():
+    res = []
+    for path in card_files():
+        stem = os.path.basename(path).rsplit(".", 1)[0]
+        try:
+            cards = read_cards(path)
+        except Exception as e:  # vobject raises many kinds; skip the file
+            res.append({"id": stem, "name": stem, "error": str(e)})
+            continue
+        for i, card in enumerate(cards):
+            n = card.contents.get("n", [None])[0]
+            given = family = ""
+            if n is not None:
+                given, family = str(n.value.given or ""), str(n.value.family or "")
+            fn = (values(card, "fn") or [f"{given} {family}".strip()])[0]
+            org = card.contents.get("org", [None])[0]
+            res.append({
+                "id": stem if len(cards) == 1 else f"{stem}#{i}",
+                "name": fn or "No Name", "given": given, "family": family,
+                "org": " ".join(org.value) if org is not None and isinstance(org.value, list) else str(org.value) if org else "",
+                "emails": typed(card, "email"), "phones": typed(card, "tel"),
+                "addresses": [{"label": a["label"], "value": str(a["value"]).replace("\n", ", ").strip(", ")}
+                              for a in typed(card, "adr")],
+                "birthday": (values(card, "bday") or [""])[0],
+                "notes": (values(card, "note") or [""])[0],
+                "readOnly": len(cards) > 1,
+            })
+    res.sort(key=lambda c: ((c.get("family") or c["name"]).lower(), c["name"].lower()))
+    return res
+
+
+def contact_save(data):
+    """{id?, given, family, org, emails:[{label,value}], phones:[...],
+    birthday, notes}. One .vcf per contact."""
+    import vobject
+    cid = data.get("id") or ""
+    if "#" in cid:
+        fail("this contact is part of a file with several contacts: import it on its own first")
+    card = vobject.vCard()
+    given, family = (data.get("given") or "").strip(), (data.get("family") or "").strip()
+    org = (data.get("org") or "").strip()
+    card.add("n").value = vobject.vcard.Name(family=family, given=given)
+    card.add("fn").value = f"{given} {family}".strip() or org or "No Name"
+    if org:
+        card.add("org").value = [org]
+    for key, name in (("emails", "email"), ("phones", "tel")):
+        for item in data.get(key) or []:
+            if (item.get("value") or "").strip():
+                p = card.add(name)
+                p.value = item["value"].strip()
+                p.type_param = (item.get("label") or "other").upper()
+    if data.get("birthday"):
+        card.add("bday").value = data["birthday"]
+    if data.get("notes"):
+        card.add("note").value = data["notes"]
+    card.add("uid").value = cid or str(uuid.uuid4())
+    if not cid:
+        base = safe_id(card.fn.value)
+        cid, n = base, 2
+        while os.path.exists(os.path.join(CARD_DIR, cid + ".vcf")):
+            cid, n = f"{base} {n}", n + 1
+    path = os.path.join(CARD_DIR, os.path.basename(cid) + ".vcf")
+    write_atomic(path, card.serialize().encode())
+    out({"id": cid})
+
+
+def contact_delete(cid):
+    if "#" in cid:
+        fail("this contact is part of a file with several contacts")
+    p = os.path.join(CARD_DIR, os.path.basename(cid) + ".vcf")
+    if os.path.exists(p):
+        os.unlink(p)
+
+
+def import_file(src):
+    src = os.path.realpath(os.path.expanduser(src))
+    if not os.path.isfile(src):
+        fail(f"no such file: {src}")
+    low = src.lower()
+    if low.endswith(".ics"):
+        dst_dir = CAL_DIR
+    elif low.endswith((".vcf", ".vcard")):
+        dst_dir = CARD_DIR
+    else:
+        fail("only .ics and .vcf files can be imported")
+    base, ext = os.path.splitext(os.path.basename(src))
+    base = safe_id(base)
+    dst, n = os.path.join(dst_dir, base + ext.lower()), 2
+    while os.path.exists(dst):
+        dst, n = os.path.join(dst_dir, f"{base} {n}{ext.lower()}"), n + 1
+    # Checked by reading it before it is copied in.
+    if dst_dir == CAL_DIR:
+        from icalendar import Calendar
+        with open(src, "rb") as f:
+            Calendar.from_ical(f.read())
+    else:
+        read_cards(src)
+    os.makedirs(dst_dir, exist_ok=True)
+    shutil.copyfile(src, dst)
+    out({"file": dst})
+
+
+def main():
+    a = sys.argv[1:]
+    cmd = a[0] if a else ""
+    if cmd in ("", "-h", "--help"):
+        fail(__doc__)
+    libs()
+    if cmd == "calendars":
+        out(calendars())
+    elif cmd == "calendar-new" and len(a) in (2, 3):
+        cid = safe_id(a[1])
+        if os.path.exists(cal_path(cid)):
+            fail(f"a calendar named {cid} exists")
+        save_cal(cid, new_cal(a[1], a[2] if len(a) == 3 else None))
+        out({"id": cid})
+    elif cmd == "calendar-set" and len(a) == 4 and a[2] in ("name", "color"):
+        c = load_cal(a[1])
+        key = "x-wr-calname" if a[2] == "name" else "x-clave-color"
+        c.pop(key, None)
+        c.add(key, a[3])
+        save_cal(a[1], c)
+    elif cmd == "calendar-delete" and len(a) == 2:
+        os.unlink(cal_path(a[1]))
+    elif cmd == "events" and len(a) == 3:
+        out(events(a[1], a[2]))
+    elif cmd == "event-save":
+        event_save(json.load(sys.stdin))
+    elif cmd == "event-delete" and len(a) in (3, 4):
+        event_delete(a[1], a[2], a[3] if len(a) == 4 else None)
+    elif cmd == "contacts":
+        out(contacts())
+    elif cmd == "contact-save":
+        contact_save(json.load(sys.stdin))
+    elif cmd == "contact-delete" and len(a) == 2:
+        contact_delete(a[1])
+    elif cmd == "import" and len(a) == 2:
+        import_file(a[1])
+    else:
+        fail(__doc__)
+
+
+if __name__ == "__main__":
+    main()

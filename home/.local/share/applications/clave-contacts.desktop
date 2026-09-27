@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Contacts
+Comment=People, kept as vCard files
+Exec=__HOME__/.local/bin/clave-app contacts %f
+Icon=x-office-address-book
+Categories=Office;ContactManagement;
+MimeType=text/vcard;text/x-vcard;
+Keywords=address;people;vcard;
