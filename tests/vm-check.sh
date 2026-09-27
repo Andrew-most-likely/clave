@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Checks for the clean-system round trip (PROJECT_PLAN.md section 12), run
 # inside a test VM as root by a one-shot service at boot. The hardened
-# firewall blocks SSH into the VM, so results go to the serial console,
-# one "VMCHECK:" line each. Three boots:
+# firewall blocks SSH into the VM, so results go to the serial console and
+# to /var/lib/clave-vmcheck/report.log, one "VMCHECK:" line each. Three boots:
 #   1. after install.sh: report the system, then run uninstall.sh --system
 #      as the test user and reboot
 #   2. after the uninstall: report again, then power off
@@ -30,8 +30,10 @@ EOF
     exit 0
 fi
 
-exec > /dev/ttyS0 2>&1
-say() { printf 'VMCHECK: %s\n' "$*"; }
+# The serial console loses writers when agetty starts there, so every line
+# also goes to a file on the VM disk (read it by mounting the image).
+mkdir -p "$state"
+say() { printf 'VMCHECK: %s\n' "$*" | tee -a "$state/report.log" > /dev/ttyS0 2>/dev/null || true; }
 user=$(cat "$state/user") repo=$(cat "$state/repo") stage=$(cat "$state/stage")
 sleep 30   # let the boot settle
 
