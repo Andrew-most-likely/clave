@@ -73,7 +73,7 @@ if [ "$update" -eq 0 ]; then
     run fc-cache -f
     run update-desktop-database -q "$HOME/.local/share/applications" || true
     run xdg-user-dirs-update || true
-    run systemctl --user daemon-reload
+    run systemctl --user daemon-reload || true
     run systemctl --user enable --now home-cleanup.timer gnome-keyring-daemon.socket || true
     [ "$harden" -eq 1 ] && { run systemctl --user enable usbguard-notifier.service || true; }
 fi
@@ -89,8 +89,8 @@ fi
 record_install
 say "Done."
 if [ "$update" -eq 1 ]; then
-    run hyprctl reload >/dev/null 2>&1 || true
-    run pkill -x qs && run sh -c 'setsid qs >/dev/null 2>&1 &' || true
+    # Quickshell reloads changed files by itself; Hyprland needs a nudge.
+    [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || run hyprctl reload >/dev/null 2>&1 || true
     echo "Desktop files updated."
 else
     echo "Log out and back in (or reboot) to start the macOS desktop."

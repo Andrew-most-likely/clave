@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # weekly: catch breakage from Hyprland/Quickshell updates in Arch
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm --needed git shellcheck lua jq python qt6-declarative hyprland
+
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: |
+          mapfile -t files < <(
+            { ls *.sh lib/*.sh scripts/*.sh tests/*.sh
+              grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash' home/.local/bin home/.local/share/macos-look home/.config/hypr/scripts home/.config/quickshell
+            } 2>/dev/null | sort -u)
+          shellcheck -S warning -x "${files[@]}"
+
+      - name: Lua syntax
+        run: find home/.config/hypr examples -name '*.lua' -print0 | xargs -0 -n1 luac -p
+
+      - name: Hyprland config
+        run: |
+          export XDG_RUNTIME_DIR=/tmp/xdg && mkdir -p "$XDG_RUNTIME_DIR"
+          out=$(Hyprland --verify-config -c "$PWD/home/.config/hypr/hyprland.lua" 2>&1)
+          echo "$out" | tail -n 20
+          echo "$out" | grep -q 'config ok'
+
+      - name: QML syntax
+        run: |
+          out=$(/usr/lib/qt6/bin/qmllint $(find home/.config/quickshell -name '*.qml') 2>&1 || true)
+          if echo "$out" | grep '\[syntax\]'; then exit 1; fi
+
+      - name: JSON
+        run: |
+          for f in home/.config/macos-look/*.json home/.config/swaync/config.json; do jq empty "$f"; done
+          # dock.json starts with a /* */ comment block, like the Dock reads it
+          sed '1,/\*\//d' home/.config/quickshell/DockApp/dock.json | jq empty
+
+      - name: Python
+        run: python -m py_compile home/.local/share/macos-look/wallpaper-portal.py home/.local/bin/macos-idle
+
+  install:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland
+
+      - uses: actions/checkout@v4
+
+      - name: Install and uninstall into a test user's home
+        run: |
+          useradd -m tester
+          cp -r "$PWD" /home/tester/repo && chown -R tester: /home/tester/repo
+          su tester -c 'bash /home/tester/repo/tests/install-test.sh'

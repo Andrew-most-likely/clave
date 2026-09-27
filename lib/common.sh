@@ -45,12 +45,10 @@ log_start() {
 preflight() {
     [ "$(id -u)" -ne 0 ] || die "Run as your normal user, not root."
     [ -f /etc/arch-release ] || die "This needs Arch Linux (or an Arch-based distribution)."
-    if command -v Hyprland >/dev/null; then
-        local v
-        v=$(Hyprland --version 2>/dev/null | sed -n 's/^Hyprland \([0-9.]*\).*/\1/p' | head -n1)
-        if [ -n "$v" ] && [ "$(printf '%s\n0.55.0\n' "$v" | sort -V | head -n1)" != "0.55.0" ]; then
-            die "Hyprland $v is too old: this config needs 0.55 or newer (Lua config). Update with: sudo pacman -Syu"
-        fi
+    local v
+    v=$(pacman -Q hyprland 2>/dev/null | awk '{print $2}' | sed 's/^[0-9]*://; s/[-+].*//' || true)
+    if [ -n "$v" ] && [ "$(printf '%s\n0.55.0\n' "$v" | sort -V | head -n1)" != "0.55.0" ]; then
+        die "Hyprland $v is too old: this config needs 0.55 or newer (Lua config). Update with: sudo pacman -Syu"
     fi
 }
 

@@ -35,7 +35,13 @@ fi
 if [ -d "$repo/.git" ]; then
     step "arch-macos-hyprland"
     before=$(git -C "$repo" rev-parse HEAD)
-    git -C "$repo" pull --ff-only
+    git -C "$repo" fetch -q --tags origin
+    if git -C "$repo" symbolic-ref -q HEAD >/dev/null; then
+        git -C "$repo" pull -q --ff-only                     # following a branch
+    else
+        latest=$(git -C "$repo" describe --tags --abbrev=0 origin/main 2>/dev/null || true)
+        [ -z "$latest" ] || git -C "$repo" checkout -q "$latest"   # following releases
+    fi
     if [ "$(git -C "$repo" rev-parse HEAD)" != "$before" ]; then
         git -C "$repo" --no-pager log --oneline "$before"..HEAD
         "$repo/install.sh" --update
