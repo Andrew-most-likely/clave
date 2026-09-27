@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.1 (unreleased)
+
+- **`clave-doctor`** says whether this Clave still works with the software installed now: the Hyprland config, the
+  plugins, the shell's log, the GTK4 theme, and each package Clave talks to (OK, Untested, or Update Clave).
+  `--fetch` also reads the known problems from the newest signed release. `clave-update` runs it at the end.
+- After an upgrade of a package Clave talks to, a pacman hook warns when this release was not tested with it, and
+  one notification at the next login says when a newer Clave is needed. The hook never stops an upgrade.
+- On GitHub, a daily check notices when an Arch update breaks Clave and opens an issue.
+
 ## v1.1.0 (unreleased)
 
 - **Disk Encryption.** Clave says when the disk is not encrypted: in the installer, in System Settings >

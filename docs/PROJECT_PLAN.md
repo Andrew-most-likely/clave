@@ -667,7 +667,7 @@ Each phase ends when its exit criteria are met.
 | 5 | Sections 9 and 10 | Findings added to this plan as requirements or rejected with a reason. (done) |
 | 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. (built; waiting on the dock check and the BR-11 review) |
 | 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. (done in the VM: `tests/vm-encrypt.py` passes for GRUB, systemd-boot, Limine and the interrupted run) |
-| 8 | Upstream compatibility (COMP-5 to COMP-9): see the steps below | A test change to a watched package opens an `upstream-break` issue. `clave-doctor` shows all three results on the live machine and the clean VM. Actions use stays under 300 minutes a month. |
+| 8 | Upstream compatibility (COMP-5 to COMP-9): see the steps below | A test change to a watched package opens an `upstream-break` issue. `clave-doctor` shows all three results on the live machine and the clean VM. Actions use stays under 300 minutes a month. (steps 1 to 5 built; the issue check waits for the merge to main) |
 
 Phase 4 must finish before the public release. Phase 6 comes after v1.0.0, so it does not block that release.
 Phase 7 is security work and does not depend on phase 6: start it first. The status check and the warnings
@@ -726,6 +726,22 @@ Phase 8 does not depend on phases 6 and 7. Steps 1 to 3 can ship in a v1.0.x upd
 6. **Trial, not a requirement yet.** A headless Hyprland and Quickshell start, and a screenshot compared
    with saved baselines, on GitHub's runners. They have no GPU, so try `LIBGL_ALWAYS_SOFTWARE=1`. If it
    is reliable, add it as COMP-10. If not, run it in the VM before each release.
+
+Progress on 2026-09-27 (branch `v1.1.1`), steps 1 to 5 built; details in `docs/UPSTREAM.md`:
+- Steps 1 and 2: `ci/watched.txt`, `ci/upstream.sh` and `upstream.yml`; `ci.yml` is reusable and has no weekly
+  schedule. Scheduled workflows run only on the default branch, so the first real run, and the check that a watched
+  change opens an issue, can only happen after the merge.
+- Step 3: `compat.json`, with the versions of the live machine and the desktop VM as tested for 1.1.1.
+- Step 4: `clave-doctor` runs as planned. It showed OK for every watched package on the live machine and in the
+  desktop VM. `tests/compat-test.sh` covers Untested, Update Clave and `--fetch` with SSH-signed tags.
+- Step 5: the hook runs `clave-compat --hook`, a root-owned copy in `/usr/local/lib/clave/`. The flag file belongs
+  to root, so the shell does not delete it: it keeps a copy in `~/.local/state/clave/` and shows each notice once.
+  Only Update Clave and known breaks lead to the login notice; Untested is a warning in pacman's output only,
+  or every Hyprland update would bring a notification. `install.sh --update` does not run the system part, so it
+  refreshes these copies with `sudo scripts/system.sh compat` when a release changed them. Checked in the desktop
+  VM: a reinstall of `grim` ran the hook, and a simulated known break printed the warning and showed the notice.
+- Step 6: tried in the desktop VM. A second Hyprland started with `AQ_BACKENDS=headless` from SSH exited without a
+  log. Not reliable yet, so the look is checked in the VM before each release (`tests/vm-desktop.py shot`).
 
 Cost: the repo is private, and GitHub Pro includes 3,000 Actions minutes a month. The daily version check
 takes about 2 minutes, about 60 minutes a month. The full suite runs only when a watched package changes:

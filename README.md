@@ -150,6 +150,13 @@ and Flatpaks, then pulls the newest release of this desktop and reinstalls only 
 plugins are rebuilt automatically after every Hyprland upgrade by a pacman hook. If a plugin still fails to load at
 login, it is rebuilt then.
 
+Arch updates the software Clave depends on at any time. `clave-doctor` checks that this Clave still works with what
+is installed: the Hyprland config, the plugins, the shell's log, the GTK4 theme, and each package Clave talks to
+against the versions this release was tested with (`compat.json`): OK, Untested, or Update Clave. It uses no network;
+`clave-doctor --fetch` also reads the list of known problems from the newest signed release. `clave-update` runs it at
+the end, and a pacman hook warns after an upgrade and shows one notification at the next login when a newer Clave
+is needed.
+
 ## Uninstall
 
 ```sh
@@ -210,7 +217,11 @@ scripts/fetch-themes.sh WhiteSur GTK/Firefox/wallpapers
 scripts/capture.sh      copy a live system's files back into home/ and system/
 tests/install-test.sh   install, check, uninstall in a scratch home (CI runs it)
 tests/migrate-test.sh   update an install made under the old names (CI runs it)
+ci/watched.txt          packages whose updates run the checks (upstream.yml, daily)
+compat.json             versions each release was tested with, and known breaks
 ```
+
+The upstream watch and `compat.json` are described in [docs/UPSTREAM.md](docs/UPSTREAM.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The goals, requirements and roadmap are in
 [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
