@@ -29,10 +29,5 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("clave-sound desktop-login")
 end)
 
--- Re-apply the saved display mode, scale and wallpaper when a screen is
--- plugged in or removed.
-for _, ev in ipairs({ "monitor.added", "monitor.removed" }) do
-    hl.on(ev, function()
-        hl.exec_cmd("~/.config/hypr/scripts/display-mode.sh --hotplug")
-    end)
-end
+-- A screen that is plugged in gets its settings from the desc: rules in
+-- ~/.config/clave/monitors.lua (SHELL-2): Hyprland applies them itself.

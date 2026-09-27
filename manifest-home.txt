@@ -10,7 +10,6 @@
 .config/hypr/hyprland.lua
 .config/hypr/clave
 .config/hypr/hyprlock.conf
-.config/hypr/scripts/display-mode.sh
 
 # Quickshell: menu bar, dock, Overview, System Settings, genie
 .config/quickshell/shell.qml
@@ -20,7 +19,6 @@
 
 # Launchers, notifications, terminal, fetch
 .config/rofi/config.rasi
-.config/rofi/clave-display.rasi
 .config/rofi/clave-apps.rasi
 .config/rofi/clave-search.rasi
 .config/swaync/config.json
@@ -56,7 +54,6 @@
 .local/bin/clave-nightlight
 .local/bin/clave-power
 .local/bin/clave-prefs
-.local/bin/clave-screenshot
 .local/bin/clave-sound
 .local/bin/clave-sounds-build
 .local/bin/clave-search

@@ -26,7 +26,6 @@ local settings = require("clave.settings")
 bind(mod .. (settings.super_editing and " + SHIFT + V" or " + V"), exec("clave-clipboard"), "Clipboard history")
 bind(mod .. " + CTRL + SPACE",   exec("clave-emoji"),                     "Emoji & Symbols")
 bind(mod .. " + SLASH",          exec("clave-keybinds"),                  "Keyboard shortcuts")
-bind(mod .. " + P",              exec("~/.config/hypr/scripts/display-mode.sh"), "Display mode")
 bind(mod .. " + ALT + ESCAPE",   exec("qs ipc call forcequit open"),      "Force Quit Applications")
 
 -- Session
@@ -34,12 +33,12 @@ bind(mod .. " + L",              exec("clave-power -l"),                  "Lock 
 bind(mod .. " + CTRL + Q",       exec("clave-power -l"),                  "Lock Screen")
 bind(mod .. " + SHIFT + ESCAPE", exec("qs ipc call menubar open system"),  "System menu")
 
--- Screenshots (Shift+Super+3/4/5)
-bind(mod .. " + SHIFT + 3",      exec("clave-screenshot screen"),         "Screenshot: whole screen")
-bind(mod .. " + SHIFT + 4",      exec("clave-screenshot area"),           "Screenshot: selected area")
-bind(mod .. " + SHIFT + 5",      exec("clave-screenshot window"),         "Screenshot: active window")
-bind("PRINT",                    exec("clave-screenshot area"),           "Screenshot: selected area")
-bind(mod .. " + SHIFT + 6",      exec("clave-screenshot text"),           "Copy text from screen area (OCR)")
+-- Screenshots and recording (Shift+Super+3/4/5): Clave/Screenshot.qml (SHELL-1)
+bind(mod .. " + SHIFT + 3",      exec("qs ipc call screenshot screen"),   "Screenshot: whole screen")
+bind(mod .. " + SHIFT + 4",      exec("qs ipc call screenshot area"),     "Screenshot: selected area")
+bind(mod .. " + SHIFT + 5",      exec("qs ipc call screenshot toolbar"),  "Screenshot and recording toolbar")
+bind("PRINT",                    exec("qs ipc call screenshot area"),     "Screenshot: selected area")
+bind(mod .. " + SHIFT + 6",      exec("qs ipc call screenshot text"),     "Copy text from screen area (OCR)")
 
 -- Appearance
 bind(mod .. " + SHIFT + W",      exec("clave-wallpaper --random"),        "Next wallpaper")
@@ -155,5 +154,5 @@ bind("XF86AudioPrev",         exec("playerctl previous"),   "Previous track", { 
 
 -- Lid: with a second screen, closing the lid turns the laptop screen off.
 -- Sleep / lock on lid close is logind's (System Settings > Battery).
-bind("switch:on:Lid Switch",  exec("~/.config/hypr/scripts/display-mode.sh --hotplug"), "Lid closed", { locked = true })
-bind("switch:off:Lid Switch", exec("~/.config/hypr/scripts/display-mode.sh --hotplug"), "Lid opened", { locked = true })
+bind("switch:on:Lid Switch",  exec("clave-displays lid closed"), "Lid closed", { locked = true })
+bind("switch:off:Lid Switch", exec("clave-displays lid open"),   "Lid opened", { locked = true })

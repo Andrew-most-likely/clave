@@ -122,7 +122,8 @@ Scope {
     // DISPLAYS (arrangement, orientation, resolution, scale)
     // ==========================================
     // Everything goes through ~/.local/bin/clave-displays, which saves it per
-    // screen (displays.json) so display-mode.sh re-applies it on hotplug.
+    // screen (displays.json) and writes desc: rules that Hyprland applies on
+    // hotplug by itself (SHELL-2).
     // The built-in panel (eDP, LVDS or DSI); empty on desktops.
     readonly property string laptop: (root.displays.find(m => /^(eDP|LVDS|DSI)-/.test(m.name)) || { "name": "" }).name
     property var displays: []
@@ -141,16 +142,6 @@ Scope {
     }
     function displayName(m: var): string {
         return m.name === root.laptop ? "Built-in Display" : (m.model || m.name)
-    }
-
-    readonly property string displayMode: {
-        const lap = root.displays.find(m => m.name === root.laptop)
-        const ext = root.displays.filter(m => m.name !== root.laptop)
-        if (ext.length === 0) return "laptop"
-        if (lap && lap.disabled) return "external"
-        if (ext.every(m => m.disabled)) return "laptop"
-        if (ext.some(m => m.mirrorOf !== "none")) return "duplicate"
-        return "extend"
     }
 
     Process {
@@ -187,6 +178,21 @@ Scope {
         currentFolder: "file://" + root.home + "/Pictures"
         nameFilters: ["Pictures (*.jpg *.jpeg *.png *.webp)"]
         onAccepted: root.run([root.prefs, "loginwindow", root.pictureFor,
+                              decodeURIComponent(`${selectedFile}`.replace(/^file:\/\//, ""))])
+    }
+    // Icon chooser for any app (APP-4): a local PNG or SVG. clave-prefs checks
+    // the file and writes the desktop file override.
+    property string iconFor: ""
+    function chooseIcon(appId: string): void {
+        root.iconFor = appId
+        iconDialog.open()
+    }
+    FileDialog {
+        id: iconDialog
+        title: "Choose an icon"
+        currentFolder: "file://" + root.home + "/Pictures"
+        nameFilters: ["Icons (*.png *.svg)"]
+        onAccepted: root.run([root.prefs, "icon", "set", root.iconFor,
                               decodeURIComponent(`${selectedFile}`.replace(/^file:\/\//, ""))])
     }
     readonly property var paneData: ({ "security": "usb", "battery": "battery", "datetime": "time",
@@ -629,15 +635,21 @@ Scope {
                       "set": v => root.setDisplay(m, "scale", v, cur().scale) }
                 ]})
             }
-            if (root.displays.length > 1) secs.push({ "title": "Multiple displays", "rows": [
-                { "type": "choice", "label": "Show desktop on",
-                  "options": [{ "id": "extend", "label": "Extend these displays" },
-                              { "id": "duplicate", "label": "Duplicate these displays" },
-                              { "id": "laptop", "label": "Built-in display only" },
-                              { "id": "external", "label": "External displays only" }],
-                  "get": () => root.displayMode,
-                  "set": v => { root.run([root.home + "/.config/hypr/scripts/display-mode.sh", v]); dispRefresh.restart() } }
-            ]})
+            // "Use as" per screen (SHELL-2): its own place on the desktop, a
+            // mirror of another screen, or off. Saved by screen description.
+            if (root.displays.length > 1) secs.push({ "title": "Multiple displays", "rows": root.displays.map(d => ({
+                "type": "choice", "label": "Use " + root.displayName(d) + " as",
+                "options": [{ "id": "extend", "label": "Extended display" }]
+                    .concat(root.displays.filter(o => o.description !== d.description && !o.disabled && o.mirrorOf === "none")
+                        .map(o => ({ "id": "mirror:" + o.description, "label": "Mirror for " + root.displayName(o) })))
+                    .concat(root.displays.some(o => o.description !== d.description && !o.disabled)
+                        ? [{ "id": "off", "label": "Off" }] : []),
+                "get": () => {
+                    const c = root.displays.find(x => x.description === d.description) || d
+                    return c.use === "mirror" ? "mirror:" + c.mirrorFor : (c.use || "extend")
+                },
+                "set": v => { root.run([root.home + "/.local/bin/clave-displays", "use", d.description, `${v}`]); dispRefresh.restart() } }))
+            })
             secs.push({ "title": "", "rows": [
                 { "type": "slider", "label": "Brightness", "from": 1, "to": 100,
                   "get": () => Number(root.st.brightness || 50),
@@ -747,7 +759,14 @@ Scope {
             ]},
             { "title": "", "rows": [
                 { "type": "info", "label": "Qt apps", "value": "Pick up a change when reopened" }
-            ]}
+            ]},
+            { "title": "App Icons", "rows": root.apps.filter(e => !e.noDisplay).map(e => {
+                const custom = !!(ClaveSettings.data.icons || {})[e.id]
+                return { "type": "button", "label": e.name,
+                         "sub": custom ? "Custom icon" : "",
+                         "text": custom ? "Reset" : "Change…",
+                         "action": () => custom ? root.run([root.prefs, "icon", "reset", e.id]) : root.chooseIcon(e.id) }
+            })}
         ]
         if (id === "notifications") {
             const n = root.pd.notify || { "dnd": false, "muted": [], "timeout": 4 }

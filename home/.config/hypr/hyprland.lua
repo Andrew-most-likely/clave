@@ -18,6 +18,8 @@ end
 require("clave.env")
 require("clave.security")
 user_file("monitors")
+-- Rules by screen description from System Settings > Displays (SHELL-2).
+pcall(dofile, HOME .. "/.config/clave/monitors.lua")
 require("clave.input")
 require("clave.gestures")
 require("clave.look")

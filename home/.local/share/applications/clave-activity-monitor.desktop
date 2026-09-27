@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Activity Monitor
+Comment=See what apps and processes are doing, and quit them
+Exec=qs ipc call activity open
+Icon=utilities-system-monitor
+Categories=System;Monitor;
+Keywords=task;process;cpu;memory;kill;htop;

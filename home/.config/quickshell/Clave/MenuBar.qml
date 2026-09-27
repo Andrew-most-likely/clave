@@ -720,6 +720,13 @@ PanelWindow {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
 
+        // Stop button while a screen recording runs (SHELL-1).
+        BarItem {
+            visible: Recorder.recording
+            icon: Qt.resolvedUrl("icons/record-stop.svg")
+            onClicked: Recorder.stop()
+        }
+
         // System tray. Items in hiddenTrayIds duplicate a built-in status
         // menu: nm-applet keeps running as the Wi-Fi password agent, but the
         // Wi-Fi menu below replaces its icon.

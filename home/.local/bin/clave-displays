@@ -1,30 +1,41 @@
 #!/usr/bin/env python3
-"""Display arrangement for System Settings > Displays (Quickshell SettingsWindow)
-and display-mode.sh, like Windows' Settings > Display.
+"""Displays for System Settings > Displays and Control Center (SHELL-2).
 
-  clave-displays get                     monitors as JSON (hyprctl monitors all
-                                         -j plus logical size "lw"/"lh")
-  clave-displays set DESC KEY VALUE      KEY: transform | mode | scale; saves it
-                                         for that display and applies it
-  clave-displays arrange JSON            {"DESC": [x, y], ...} logical positions
-                                         of the shown displays; saved and applied
-  clave-displays spec NAME MODE          Lua monitor fields for NAME when
-                                         display-mode.sh applies MODE (extend,
-                                         external, laptop, duplicate)
+  clave-displays get                    monitors as JSON (hyprctl monitors all -j
+                                        plus logical size "lw"/"lh" and the saved
+                                        "use" and "mirrorFor")
+  clave-displays set DESC KEY VALUE     KEY: transform | mode | scale
+  clave-displays arrange JSON           {"DESC": [x, y], ...} logical positions
+  clave-displays use DESC WHAT          WHAT: extend | off | mirror:DESC
+  clave-displays mirror on|off|toggle   every other screen mirrors the built-in
+                                        one (or the first screen), or none does
+  clave-displays apply                  write the rules and apply them now
+  clave-displays lid closed|open        the built-in panel off while the lid is
+                                        closed and another screen is on
+  clave-displays migrate                displays.json from before v1.1.0
 
-Settings are saved in ~/.config/clave/displays.json, keyed by the
-monitor description (make, model, serial), so they follow a screen to any port:
-  displays: {DESC: {transform, mode, scale}}
-  layouts:  {"DESC|DESC|...": {DESC: [x, y]}}  one per set of screens in use
+Settings are saved in ~/.config/clave/displays.json, keyed by the monitor
+description (make, model, serial), so they follow a screen to any port:
+  {"version": 2, "displays": {DESC: {transform, mode, scale, position: [x, y],
+                                     use: "extend" | "off" | "mirror", mirrorFor}}}
+Each change writes ~/.config/clave/monitors.lua with one Hyprland `desc:`
+monitor rule per screen. hyprland.lua loads it after hypr/monitors.lua, and
+Hyprland applies the rules by itself when a screen is plugged in: no script
+and no daemon runs for that. Changes also apply at once with `hyprctl eval`.
 """
 import json
-import re
 import os
+import re
 import subprocess
 import sys
 
 LAPTOP_NAME = re.compile(r"(eDP|LVDS|DSI)-")  # built-in panels
-FILE = os.path.expanduser("~/.config/clave/displays.json")
+CONFIG = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+FILE = os.path.join(CONFIG, "clave/displays.json")
+LUA = os.path.join(CONFIG, "clave/monitors.lua")
+
+MODE = re.compile(r"(preferred|highres|highrr|\d{2,5}x\d{2,5}(@\d{1,3}(\.\d{1,3})?)?)")
+POSITION = re.compile(r"(auto|auto-right|auto-left|-?\d{1,6}x-?\d{1,6})")
 
 
 def load():
@@ -34,7 +45,22 @@ def load():
     except (OSError, ValueError):
         d = {}
     d.setdefault("displays", {})
-    d.setdefault("layouts", {})
+    if d.get("version") != 2:
+        d = migrated(d)
+    return d
+
+
+def migrated(d):
+    """Before v1.1.0 a position was saved per set of screens ("layouts"). Rules
+    by description hold one position per screen: take it from the largest set
+    the screen was part of."""
+    layouts = d.pop("layouts", {}) or {}
+    for key in sorted(layouts, key=lambda k: -len(k.split("|"))):
+        for desc, p in (layouts[key] or {}).items():
+            s = d["displays"].setdefault(desc, {})
+            if "position" not in s and isinstance(p, list) and len(p) == 2:
+                s["position"] = [int(p[0]), int(p[1])]
+    d["version"] = 2
     return d
 
 
@@ -48,7 +74,10 @@ def save(d):
 
 
 def monitors():
-    out = subprocess.run(["hyprctl", "monitors", "all", "-j"], capture_output=True, text=True).stdout
+    try:
+        out = subprocess.run(["hyprctl", "monitors", "all", "-j"], capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        out = ""
     mons = json.loads(out or "[]")
     for m in mons:
         w, h = (m["height"], m["width"]) if m["transform"] % 2 else (m["width"], m["height"])
@@ -60,10 +89,6 @@ def monitors():
 def shown(mons):
     """Screens that have their own place on the desktop (on, not mirroring)."""
     return [m for m in mons if not m["disabled"] and m["mirrorOf"] == "none"]
-
-
-def layout_key(descs):
-    return "|".join(sorted(descs))
 
 
 def is_laptop(name):
@@ -78,40 +103,63 @@ def default_scale(m):
     return 2 if widest >= 3840 else 1.25 if widest >= 2560 else 1
 
 
-MODE = re.compile(r"(preferred|highres|highrr|\d{2,5}x\d{2,5}(@\d{1,3}(\.\d{1,3})?)?)")
-POSITION = re.compile(r"(auto|auto-right|auto-left|-?\d{1,6}x-?\d{1,6})")
+def lua_str(s):
+    """A Lua string literal: descriptions come from the screen's EDID."""
+    s = re.sub(r"[\x00-\x1f\x7f]", "", str(s))
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def safe_mode(v):
-    """Values end up in Hyprland Lua: only well-formed modes get through."""
-    v = str(v)
-    return v if MODE.fullmatch(v) else "preferred"
-
-
-def fields(m, d, pos):
-    s = d["displays"].get(m["description"], {})
+def rule(desc, s, mons, known=None):
+    """The hl.monitor fields for one screen. known: its hyprctl entry, for
+    the default scale; mons: to find the connector of a mirrored screen."""
     try:
-        scale = float(s.get("scale", default_scale(m)))
+        scale = float(s.get("scale", default_scale(known) if known else 1))
         transform = int(s.get("transform", 0)) % 4
     except (TypeError, ValueError):
-        scale, transform = default_scale(m), 0
-    if not POSITION.fullmatch(str(pos)):
+        scale, transform = 1, 0
+    mode = str(s.get("mode", "preferred"))
+    if not MODE.fullmatch(mode):
+        mode = "preferred"
+    p = s.get("position")
+    pos = f"{int(p[0])}x{int(p[1])}" if isinstance(p, list) and len(p) == 2 else "auto"
+    if not POSITION.fullmatch(pos):
         pos = "auto"
-    return (f'mode = "{safe_mode(s.get("mode", "preferred"))}", position = "{pos}", '
-            f'scale = {scale}, transform = {transform}')
+    use = s.get("use", "extend")
+    mirror = ""
+    if use == "mirror":
+        target = next((m for m in mons if m["description"] == s.get("mirrorFor")), None)
+        mirror = target["name"] if target else ""
+    return (f"output = {lua_str('desc:' + desc)}, mode = {lua_str(mode)}, position = {lua_str(pos)}, "
+            f"scale = {scale}, transform = {transform}, disabled = {'true' if use == 'off' else 'false'}, "
+            f"mirror = {lua_str(mirror)}")
 
 
-def hypr_monitor(m, d, pos):
-    spec = f'output = "{m["name"]}", {fields(m, d, pos)}, disabled = false, mirror = ""'
-    subprocess.run(["hyprctl", "eval", f"hl.monitor({{ {spec} }})"], capture_output=True)
+def write_rules(d, mons):
+    lines = ["-- Written by System Settings > Displays (clave-displays) from",
+             "-- ~/.config/clave/displays.json. Changes here are replaced: put your own",
+             "-- rules in ~/.config/hypr/monitors.lua. One rule per screen, by its",
+             "-- description, so Hyprland applies it when the screen is plugged in."]
+    by_desc = {m["description"]: m for m in mons}
+    for desc in sorted(d["displays"]):
+        lines.append(f"hl.monitor({{ {rule(desc, d['displays'][desc], mons, by_desc.get(desc))} }})")
+    tmp = LUA + ".tmp"
+    os.makedirs(os.path.dirname(LUA), exist_ok=True)
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.replace(tmp, LUA)
 
 
-def apply_positions(d, positions):
-    """positions: {DESC: [x, y]} for the shown screens."""
-    for m in shown(monitors()):
-        p = positions.get(m["description"])
-        if p:
-            hypr_monitor(m, d, f"{p[0]}x{p[1]}")
+def apply(d, mons=None):
+    """Write monitors.lua and apply the rules of the connected screens now."""
+    mons = mons if mons is not None else monitors()
+    write_rules(d, mons)
+    # Screens that are off go last, so a screen is never left alone off.
+    for m in sorted(mons, key=lambda m: d["displays"].get(m["description"], {}).get("use") == "off"):
+        s = d["displays"].get(m["description"])
+        if s is None:
+            continue
+        subprocess.run(["hyprctl", "eval", f"hl.monitor({{ {rule(m['description'], s, mons, m)} }})"],
+                       capture_output=True)
 
 
 def normalize(pos):
@@ -138,15 +186,17 @@ def cmd_set(desc, key, value):
     if target is None:
         sys.exit(f"no display: {desc}")
     d["displays"].setdefault(desc, {})[key] = value
-    save(d)
     if target["disabled"] or target["mirrorOf"] != "none":
+        save(d)
+        write_rules(d, mons)
         return  # applies the next time the screen is shown on its own
 
     # Keep the other screens touching this one: screens to the right move by
     # the change in width, screens below by the change in height.
     old_w, old_h, ox, oy = target["lw"], target["lh"], target["x"], target["y"]
-    hypr_monitor(target, d, f'{ox}x{oy}')
-    new = next(m for m in monitors() if m["description"] == desc)
+    d["displays"][desc]["position"] = [ox, oy]
+    apply(d, mons)
+    new = next((m for m in monitors() if m["description"] == desc), target)
     dx, dy = new["lw"] - old_w, new["lh"] - old_h
     pos = {}
     for m in shown(mons):
@@ -157,51 +207,124 @@ def cmd_set(desc, key, value):
             if y >= oy + old_h:
                 y += dy
         pos[m["description"]] = [x, y]
-    pos = normalize(pos)
-    d["layouts"][layout_key(pos)] = pos
+    for k, p in normalize(pos).items():
+        d["displays"].setdefault(k, {})["position"] = p
     save(d)
-    apply_positions(d, pos)
+    apply(d)
 
 
 def cmd_arrange(text):
     d = load()
-    pos = normalize({k: v for k, v in json.loads(text).items()})
-    d["layouts"][layout_key(pos)] = pos
+    for k, p in normalize(json.loads(text)).items():
+        d["displays"].setdefault(k, {})["position"] = p
     save(d)
-    apply_positions(d, pos)
+    apply(d)
 
 
-def cmd_spec(name, mode):
+def cmd_use(desc, what):
     d = load()
     mons = monitors()
-    m = next((m for m in mons if m["name"] == name), None)
-    if m is None:
-        sys.exit(f"no display: {name}")
-    if mode == "extend":
-        used = mons
-    elif mode == "external":
-        used = [x for x in mons if not is_laptop(x["name"])]
-    else:  # laptop, duplicate: one screen has a place
-        used = [m]
-    lay = d["layouts"].get(layout_key(x["description"] for x in used), {})
-    p = lay.get(m["description"])
-    if p:
-        pos = f"{p[0]}x{p[1]}"
+    if not any(m["description"] == desc for m in mons):
+        sys.exit(f"no display: {desc}")
+    s = d["displays"].setdefault(desc, {})
+    if what == "extend":
+        s["use"] = "extend"
+        s.pop("mirrorFor", None)
+    elif what == "off":
+        others = [m for m in mons if m["description"] != desc and not m["disabled"]]
+        if not others:
+            sys.exit("the only screen that is on cannot be turned off")
+        s["use"] = "off"
+    elif what.startswith("mirror:"):
+        target = what[len("mirror:"):]
+        if target == desc or not any(m["description"] == target for m in mons):
+            sys.exit(f"cannot mirror: {target}")
+        s["use"] = "mirror"
+        s["mirrorFor"] = target
     else:
-        pos = "0x0" if is_laptop(name) or len(used) == 1 else "auto-right"
-    print(fields(m, d, pos))
+        sys.exit(__doc__)
+    save(d)
+    apply(d, mons)
+
+
+def main_screen(mons):
+    lap = next((m for m in mons if is_laptop(m["name"])), None)
+    return lap or (shown(mons) or mons or [None])[0]
+
+
+def cmd_mirror(how):
+    d = load()
+    mons = monitors()
+    main = main_screen(mons)
+    if main is None or len(mons) < 2:
+        return
+    mirroring = any(m["mirrorOf"] != "none" for m in mons)
+    on = {"on": True, "off": False, "toggle": not mirroring}[how]
+    for m in mons:
+        if m["description"] == main["description"]:
+            d["displays"].setdefault(m["description"], {})["use"] = "extend"
+            continue
+        s = d["displays"].setdefault(m["description"], {})
+        if on:
+            s["use"], s["mirrorFor"] = "mirror", main["description"]
+        elif s.get("use") == "mirror":
+            s["use"] = "extend"
+            s.pop("mirrorFor", None)
+    save(d)
+    apply(d, mons)
+
+
+def cmd_lid(state):
+    mons = monitors()
+    lap = next((m for m in mons if is_laptop(m["name"])), None)
+    if lap is None:
+        return
+    if state == "closed":
+        others = [m for m in mons if m is not lap and not m["disabled"]]
+        if others:
+            subprocess.run(["hyprctl", "eval", f"hl.monitor({{ output = {lua_str(lap['name'])}, disabled = true }})"],
+                           capture_output=True)
+    else:
+        d = load()
+        if lap["description"] not in d["displays"]:
+            subprocess.run(["hyprctl", "eval", f"hl.monitor({{ output = {lua_str(lap['name'])}, disabled = false }})"],
+                           capture_output=True)
+        apply(d, mons)
+
+
+def cmd_get():
+    d = load()
+    mons = monitors()
+    for m in mons:
+        s = d["displays"].get(m["description"], {})
+        m["use"] = s.get("use", "extend")
+        m["mirrorFor"] = s.get("mirrorFor", "")
+    print(json.dumps(mons))
 
 
 def main():
     a = sys.argv[1:]
     if a[:1] == ["get"]:
-        print(json.dumps(monitors()))
+        cmd_get()
     elif a[:1] == ["set"] and len(a) == 4:
         cmd_set(a[1], a[2], a[3])
     elif a[:1] == ["arrange"] and len(a) == 2:
         cmd_arrange(a[1])
-    elif a[:1] == ["spec"] and len(a) == 3:
-        cmd_spec(a[1], a[2])
+    elif a[:1] == ["use"] and len(a) == 3:
+        cmd_use(a[1], a[2])
+    elif a[:1] == ["mirror"] and len(a) == 2 and a[1] in ("on", "off", "toggle"):
+        cmd_mirror(a[1])
+    elif a[:1] == ["apply"]:
+        apply(load())
+    elif a[:1] == ["lid"] and len(a) == 2 and a[1] in ("closed", "open"):
+        cmd_lid(a[1])
+    elif a[:1] == ["migrate"]:
+        # Converts an old displays.json and writes monitors.lua once; runs
+        # without Hyprland (from install.sh), so nothing is applied.
+        if os.path.exists(FILE):
+            d = load()
+            save(d)
+            write_rules(d, monitors())
     else:
         sys.exit(__doc__)
 

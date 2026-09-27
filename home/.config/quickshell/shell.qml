@@ -22,7 +22,8 @@ ShellRoot {
     ControlCenter {}
     AboutWindow {}
     SettingsWindow {}
-    ForceQuit {}
+    ActivityMonitor {}
+    Screenshot {}
     AppInfo {}
     // Creates the dock window only while the dock is enabled in dock.json.
     DockLoader {}

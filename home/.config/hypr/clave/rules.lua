@@ -11,6 +11,7 @@ end
 float("clave-about",           { title = "^About This Computer$" },            "300 460")
 float("clave-system-settings", { title = "^System Settings$" },           "860 680")
 float("clave-force-quit",      { title = "^Force Quit Applications$" },   "420 440")
+float("clave-activity",        { title = "^Activity Monitor$" },          "900 600")
 float("clave-app-about",       { class = "^org\\.quickshell$", title = "^About .*" })
 -- Quick Look (sushi): Space in Nautilus
 float("clave-quick-look",      { class = "^org\\.gnome\\.NautilusPreviewer$" })

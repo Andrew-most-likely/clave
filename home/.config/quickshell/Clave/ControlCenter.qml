@@ -21,8 +21,8 @@ import QtQuick.Effects
 //
 // Wi-Fi uses nmcli, the VPN row Mullvad's CLI or else the first NetworkManager
 // VPN/WireGuard connection, Focus is swaync's Do Not
-// Disturb, Night Light runs hyprsunset and Screen Mirroring opens the display
-// mode menu (hypr/scripts/display-mode.sh).
+// Disturb, Night Light runs hyprsunset and Screen Mirroring turns mirroring of
+// the built-in screen on or off (clave-displays mirror toggle).
 //   qs ipc call controlcenter toggle | open | close
 PanelWindow {
     id: root
@@ -468,10 +468,9 @@ PanelWindow {
                                 Circle {
                                     Layout.alignment: Qt.AlignHCenter
                                     icon: "icons/mirroring.svg"
-                                    onClicked: {
-                                        root.close()
-                                        Quickshell.execDetached([root.home + "/.config/hypr/scripts/display-mode.sh"])
-                                    }
+                                    // Every other screen mirrors the built-in one, or
+                                    // none does (SHELL-2).
+                                    onClicked: Quickshell.execDetached([root.home + "/.local/bin/clave-displays", "mirror", "toggle"])
                                 }
                                 Detail {
                                     Layout.alignment: Qt.AlignHCenter

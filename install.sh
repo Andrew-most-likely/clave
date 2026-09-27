@@ -23,7 +23,7 @@ repo="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$repo/lib/common.sh"
 
-harden=1 extras=0 personal=0 user_only=0 packages=1 update=0 encrypt=0
+harden=1 extras=0 personal=0 user_only=0 packages=1 update=0 encrypt=0 no_packages=0
 for a in "$@"; do
     case "$a" in
         --harden) harden=1 ;;   # the default; kept for old scripts
@@ -32,7 +32,7 @@ for a in "$@"; do
         --personal) personal=1 ;;
         --update) update=1; packages=0; user_only=1 ;;
         --user-only) user_only=1 ;;
-        --no-packages) packages=0 ;;
+        --no-packages) packages=0; no_packages=1 ;;
         --dry-run) DRY=1 ;;
         --yes|-y) YES=1 ;;
         -h|--help) sed -n '2,20p' "$0" | cut -c3-; exit 0 ;;
@@ -51,11 +51,22 @@ if [ "$personal" -eq 1 ] && [ "$DRY" -eq 0 ]; then touch "$STATE/personal"; fi
 # --- packages --------------------------------------------------------------
 # First, so a failure here leaves the desktop as it was.
 if [ "$packages" -eq 1 ]; then
-    lists=(core look desktop)
+    lists=(core look desktop apps)
     [ "$harden" -eq 1 ] && lists+=(harden)
     [ "$extras" -eq 1 ] && lists+=(extras)
     { [ "$personal" -eq 1 ] || personal_on "$HOME"; } && lists+=(personal)
     install_packages "${lists[@]}"
+elif [ "$update" -eq 1 ] && [ "$no_packages" -eq 0 ]; then
+    # A release can add standard apps (SW-4); an update brings them too. It
+    # asks first, so only from a terminal (clave-update opens one).
+    # shellcheck disable=SC2046  # one package per word
+    missing=$(pacman -T $(pkgs "$repo/packages/apps.txt") 2>/dev/null || true)
+    if [ -n "$missing" ]; then
+        say "New standard apps: $(echo "$missing" | tr '\n' ' ')"
+        if [ -t 0 ]; then ask "Install them?" y && install_packages apps
+        else echo "  Install them with: sudo pacman -S --needed $(echo "$missing" | tr '\n' ' ')"; fi
+    fi
+    report_replaced_packages
 fi
 
 migrate_home
@@ -68,6 +79,20 @@ remove_orphans
 # installed settings.ini; otherwise the old font and cursor stay until login.
 [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || [ "$DRY" -eq 1 ] || "$HOME/.local/bin/clave-gtk-apply" || true
 [ "$update" -eq 1 ] || fetch_themes
+
+# Displays (SHELL-2): an older displays.json gets one position per screen,
+# and ~/.config/clave/monitors.lua is written from it.
+run "$HOME/.local/bin/clave-displays" migrate || warn "Display settings not converted; run: clave-displays migrate"
+
+# Standard apps (APP-4, APP-5, APP-6): the names shown in the Dock, Apps and
+# Search, custom icons, and default apps. Written again on every update, so
+# the copies follow the packages' own desktop files.
+say "Standard apps"
+run "$HOME/.local/bin/clave-prefs" apps names || warn "App names not set; run: clave-prefs apps names"
+if [ "$update" -eq 1 ]; then run "$HOME/.local/bin/clave-prefs" apps defaults --missing-only || true
+else run "$HOME/.local/bin/clave-prefs" apps defaults || true; fi
+# Mail (extras) checks for new mail only while open.
+run gsettings set org.gnome.Geary run-in-background false 2>/dev/null || true
 
 say "Genie shaders and Hyprland plugins"
 if [ "$update" -eq 0 ] || changed_since_last_install 'DockApp/shaders|hypr-minimize|hyprbars'; then
