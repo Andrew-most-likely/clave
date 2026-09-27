@@ -64,6 +64,9 @@ encrypt() {
     if cryptsetup isLuks "$dev"; then
         if in_progress "$dev"; then
             say "$name: resuming the interrupted encryption"
+            # After a crash or power loss LUKS2 first checks the area that was
+            # being written (repair), then carries on.
+            cryptsetup repair ${key:+--key-file "$key"} "$dev"
             cryptsetup reencrypt --resume-only ${key:+--key-file "$key"} "$dev"
         else
             say "$name: already encrypted"
@@ -89,11 +92,15 @@ recovery() {
     read -rp "Press Enter when the recovery key is written down. " _
 }
 
+home_line="on /"
+[ -z "${HOME_PARTUUID:-}" ] || home_line="$(part "$HOME_PARTUUID") ($HOME_FSTYPE)"
+swap_line="none (zram or a swap file)"
+[ -z "${SWAP_PARTUUID:-}" ] || swap_line="$(part "$SWAP_PARTUUID"): new random key at each boot"
 cat <<EOF
 Clave Disk Encryption, offline stage
   /      $(part "$ROOT_PARTUUID") ($ROOT_FSTYPE)
-  /home  ${HOME_PARTUUID:+$(part "$HOME_PARTUUID") ($HOME_FSTYPE)}${HOME_PARTUUID:-on /}
-  swap   ${SWAP_PARTUUID:+$(part "$SWAP_PARTUUID"): new random key at each boot}${SWAP_PARTUUID:-none (zram or a swap file)}
+  /home  $home_line
+  swap   $swap_line
 Keep the power supply connected.
 EOF
 read -rp "Type ENCRYPT to start: " go
@@ -135,7 +142,9 @@ fi
 if [ -n "${SWAP_PARTUUID:-}" ]; then
     say "swap: random key at each boot"
     grep -q '^cswap ' "$MNT/root/etc/crypttab" 2>/dev/null \
-        || echo "cswap PARTUUID=$SWAP_PARTUUID /dev/urandom swap,cipher=aes-xts-plain64,size=512,sector-size=4096" >> "$MNT/root/etc/crypttab"
+        || echo "cswap PARTUUID=$SWAP_PARTUUID /dev/urandom swap,cipher=aes-xts-plain64,size=512" >> "$MNT/root/etc/crypttab"
+    # No sector-size=4096: it fails on a partition whose size is not a
+    # multiple of 4 KiB ("Device size is not aligned to requested sector size").
     swapuuid=$(blkid -s UUID -o value "$(part "$SWAP_PARTUUID")" || true)
     awk -v u="UUID=$swapuuid" -v p="PARTUUID=$SWAP_PARTUUID" -v d="$(readlink -f "$(part "$SWAP_PARTUUID")")" '
         $3 == "swap" && ($1 == u || $1 == p || $1 == d) { $1 = "/dev/mapper/cswap" } { print }' \

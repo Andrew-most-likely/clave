@@ -162,5 +162,11 @@ lib "$r" reapply >/dev/null
 has "$r/etc/mkinitcpio.conf" 'block sd-encrypt' "reapply: hook back"
 has "$r/etc/default/grub" '^GRUB_CMDLINE_LINUX="rd.luks.name=LUKS-R=croot"$' "reapply: GRUB unlock param back"
 
+# A folder that is not a mount point (no separate /home) gives an empty
+# device, not an exit under set -e and pipefail.
+if out=$(lib "$r" dev_of "$r/etc"); then
+    if [ -z "$out" ]; then ok "dev_of: not a mount point is empty"; else fail "dev_of: not a mount point gave $out"; fi
+else fail "dev_of: not a mount point exits"; fi
+
 echo
 if [ "$fails" -eq 0 ]; then echo "All encryption unit tests passed."; else echo "$fails failed."; exit 1; fi

@@ -269,7 +269,8 @@ def run(variant):
            "find /tmp/in -name clave-encrypt-offline.sh -exec install -m755 {} ~/.local/share/clave/ \\;")
     check(vm.ssh("~/.local/bin/clave-encrypt status").stdout.strip() == "Off", f"{variant}: status Off before")
     r = vm.ssh("~/.local/bin/clave-encrypt checks", stdin="I have a full backup\nqemu snapshot\n")
-    check(r.returncode == 0, f"{variant}: checks pass")
+    if not check(r.returncode == 0, f"{variant}: checks pass"):
+        sys.stdout.write(r.stdout[-3000:] + r.stderr[-3000:])
     r = vm.ssh("sudo ~/.local/bin/clave-encrypt prepare", timeout=900)
     check(r.returncode == 0 and "SHA-256" in r.stdout, f"{variant}: prepare")
     if r.returncode:
@@ -312,8 +313,12 @@ def run(variant):
             check(vm.ssh("findmnt -nvo SOURCE /home").stdout.strip() == "/dev/mapper/chome",
                   f"{variant}: /home unlocked by its key file")
         if base == "limine":
-            check("/dev/mapper/cswap" in vm.ssh("swapon --show=NAME --noheadings").stdout,
-                  f"{variant}: swap on a random key")
+            # swapon shows /dev/dm-N; lsblk gives the mapper name.
+            if not check("cswap" in vm.ssh("swapon --show=NAME --noheadings | xargs -r lsblk -dno NAME").stdout.split(),
+                         f"{variant}: swap on a random key"):
+                r = vm.ssh("swapon --show; lsblk -o NAME,TYPE,FSTYPE,MOUNTPOINTS; sudo cat /etc/crypttab /etc/fstab; "
+                           "systemctl --failed --no-legend; journalctl -b --no-pager | grep -i -E 'cswap|swap|systemd-cryptsetup' | tail -30")
+                sys.stdout.write(r.stdout + r.stderr)
         vm.poweroff()
     else:
         vm.kill()

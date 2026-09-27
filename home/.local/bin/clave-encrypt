@@ -234,7 +234,7 @@ entries_finish() {
 # --------------------------------------------------------------------------
 # Stage 1: checks (as the user)
 
-dev_of() { findmnt -nvo SOURCE "$1" 2>/dev/null | head -n1; }
+dev_of() { findmnt -nvo SOURCE "$1" 2>/dev/null | head -n1 || true; }
 
 checks() {
     local ok=1 p cap online=0 bat=0

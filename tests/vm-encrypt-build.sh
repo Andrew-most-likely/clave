@@ -53,7 +53,8 @@ case "$v" in
     limine) pkgs+=(limine) ;;
 esac
 pacstrap -K "$m" "${pkgs[@]}" >/dev/null
-genfstab -U "$m" >> "$m/etc/fstab"
+# Not the build VM's own swap file, which genfstab lists too.
+genfstab -U "$m" | awk '!($3 == "swap" && $1 ~ /^\//)' >> "$m/etc/fstab"
 [ "$v" != limine ] || swapoff "$(p 3)"
 
 install -Dm755 "$files/clave-encrypt" "$m/home/tester/.local/bin/clave-encrypt"
