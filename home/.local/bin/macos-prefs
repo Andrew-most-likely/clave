@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""Backend for the newer System Settings panes (Quickshell MacOS/SettingsWindow.qml).
+Every "get" prints JSON; everything else changes one setting.
+
+  macos-prefs usb                          USBGuard devices (root hubs left out)
+  macos-prefs battery                      health, cycles, charge limit, power mode
+  macos-prefs time                         time zone and automatic time
+  macos-prefs zones                        all time zones
+  macos-prefs notify get                   do not disturb, muted apps, banner time
+  macos-prefs notify dnd on|off
+  macos-prefs notify app NAME on|off       allow or mute one app's notifications
+  macos-prefs notify timeout SECONDS
+  macos-prefs printers get                 printers and the default one
+  macos-prefs printers default NAME
+  macos-prefs login get                    apps started at login (XDG autostart)
+  macos-prefs login set FILE on|off
+  macos-prefs login add DESKTOP_FILE
+  macos-prefs login remove FILE
+  macos-prefs appearance get
+  macos-prefs appearance mode light|dark   GTK 3/4, Qt (Kvantum), icons, flatpak
+  macos-prefs appearance text-scale FACTOR
+
+Root-only changes go through pkexec /usr/local/bin/macos-admin and macos-usb.
+"""
+import configparser
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+
+HOME = os.path.expanduser("~")
+CONFIG = os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config"))
+
+
+def sh(*cmd, check=False):
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if check and r.returncode != 0:
+        sys.exit(r.stderr.strip() or f"{cmd[0]} failed")
+    return r.stdout
+
+
+def out(v):
+    print(json.dumps(v))
+
+
+def read(path, default=""):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
+# ---------------------------------------------------------------- USB
+
+USB_RE = re.compile(r'^(\d+): (allow|block|reject) id (\S+) serial "([^"]*)" name "([^"]*)"'
+                    r'.*?via-port "([^"]*)" with-interface (\{[^}]*\}|\S+)')
+
+
+def usb_name(vid):
+    """Product name from the hwdata USB list, for devices that report none."""
+    v, p = vid.split(":")
+    vendor = None
+    try:
+        with open("/usr/share/hwdata/usb.ids", encoding="latin-1") as f:
+            for line in f:
+                if not line.startswith("\t") and line.startswith(v + " "):
+                    vendor = line[5:].strip()
+                elif vendor and line.startswith("\t" + p + " "):
+                    return f"{vendor.split()[0]} {line[6:].strip()}"
+                elif vendor and not line.startswith("\t") and line.strip():
+                    break
+    except OSError:
+        pass
+    return vid
+
+
+def usb():
+    devs = []
+    for line in sh("pkexec", "/usr/local/bin/macos-admin", "usb-list").splitlines():
+        m = USB_RE.match(line)
+        if not m or m.group(3).startswith("1d6b:"):  # Linux root hubs
+            continue
+        ifaces = m.group(7).strip("{} ").split()
+        kinds = {i[:2] for i in ifaces}
+        kind = ("Audio" if "01" in kinds else "Input device" if "03" in kinds
+                else "Hub" if kinds == {"09"} else "Storage" if "08" in kinds
+                else "Network" if "02" in kinds or m.group(3) in ("0bda:8153",)
+                else "Camera" if "0e" in kinds else "Wireless" if "e0" in kinds
+                else "Device")
+        devs.append({"id": int(m.group(1)), "state": m.group(2), "vid": m.group(3),
+                     "name": m.group(5) or usb_name(m.group(3)), "port": m.group(6), "kind": kind})
+    out(devs)
+
+
+# ---------------------------------------------------------------- Battery / time
+
+def battery():
+    b = "/sys/class/power_supply/BAT0/"
+    full, design = read(b + "charge_full", "0"), read(b + "charge_full_design", "0")
+    health = round(100 * int(full) / int(design)) if int(design) else 0
+    out({"health": health, "cycles": int(read(b + "cycle_count", "0") or 0),
+         "limit": int(read(b + "charge_control_end_threshold", "100") or 100),
+         "profile": sh("powerprofilesctl", "get").strip(),
+         "profiles": re.findall(r"^[ *] (\S+):", sh("powerprofilesctl", "list"), re.M)})
+
+
+def time_():
+    zone = sh("timedatectl", "show", "-p", "Timezone", "--value").strip()
+    ntp = sh("timedatectl", "show", "-p", "NTP", "--value").strip() == "yes"
+    out({"zone": zone, "ntp": ntp})
+
+
+# ---------------------------------------------------------------- Notifications (swaync)
+
+SWAYNC = os.path.join(CONFIG, "swaync/config.json")
+MUTE_PREFIX = "macos-mute: "
+
+
+def swaync_load():
+    with open(SWAYNC) as f:
+        return json.load(f)
+
+
+def swaync_save(cfg):
+    write(SWAYNC, json.dumps(cfg, indent=2) + "\n")
+    sh("swaync-client", "--reload-config")
+
+
+def notify(args):
+    if args[:1] == ["get"]:
+        cfg = swaync_load()
+        muted = [k[len(MUTE_PREFIX):] for k in cfg.get("notification-visibility", {})
+                 if k.startswith(MUTE_PREFIX)]
+        dnd = sh("swaync-client", "--get-dnd").strip() == "true"
+        out({"dnd": dnd, "muted": muted, "timeout": cfg.get("timeout", 4)})
+    elif args[:1] == ["dnd"] and len(args) == 2:
+        sh("swaync-client", "--dnd-on" if args[1] == "on" else "--dnd-off")
+    elif args[:1] == ["app"] and len(args) == 3:
+        cfg = swaync_load()
+        vis = cfg.setdefault("notification-visibility", {})
+        key = MUTE_PREFIX + args[1]
+        if args[2] == "off":
+            vis[key] = {"state": "ignored", "app-name": "^" + re.escape(args[1]) + "$"}
+        else:
+            vis.pop(key, None)
+        swaync_save(cfg)
+    elif args[:1] == ["timeout"] and len(args) == 2:
+        cfg = swaync_load()
+        cfg["timeout"] = int(args[1])
+        swaync_save(cfg)
+    else:
+        sys.exit(__doc__)
+
+
+# ---------------------------------------------------------------- Printers (CUPS)
+
+def printers(args):
+    if args[:1] == ["get"]:
+        default = ""
+        m = re.search(r"destination: (\S+)", sh("lpstat", "-d"))
+        if m:
+            default = m.group(1)
+        user_default = re.search(r"^Default (\S+)", read(os.path.join(HOME, ".cups/lpoptions")), re.M)
+        if user_default:
+            default = user_default.group(1)
+        ps = []
+        for line in sh("lpstat", "-p").splitlines():
+            m = re.match(r"printer (\S+) (?:is )?(idle|now printing|disabled)", line)
+            if m:
+                ps.append({"name": m.group(1), "state": m.group(2), "default": m.group(1) == default})
+        jobs = len([l for l in sh("lpstat", "-o").splitlines() if l.strip()])
+        out({"printers": ps, "jobs": jobs})
+    elif args[:1] == ["default"] and len(args) == 2:
+        sh("lpoptions", "-d", args[1], check=True)
+    else:
+        sys.exit(__doc__)
+
+
+# ---------------------------------------------------------------- Login items (XDG autostart)
+
+USER_AUTOSTART = os.path.join(CONFIG, "autostart")
+SYS_AUTOSTART = "/etc/xdg/autostart"
+
+
+def desktop(path):
+    cp = configparser.ConfigParser(interpolation=None, strict=False)
+    cp.optionxform = str
+    try:
+        cp.read(path)
+        return dict(cp["Desktop Entry"])
+    except (configparser.Error, KeyError, UnicodeDecodeError):
+        return {}
+
+
+def login(args):
+    if args[:1] == ["get"]:
+        items = {}
+        for d, system in ((SYS_AUTOSTART, True), (USER_AUTOSTART, False)):
+            for p in sorted(glob.glob(os.path.join(d, "*.desktop"))):
+                e = desktop(p)
+                f = os.path.basename(p)
+                if not e:
+                    continue
+                if not system and f in items:  # user file overrides the system one
+                    items[f]["enabled"] = e.get("Hidden", "false") != "true"
+                    continue
+                if "Hyprland" in e.get("NotShowIn", "").split(";"):
+                    continue
+                only = [x for x in e.get("OnlyShowIn", "").split(";") if x]
+                if only and "Hyprland" not in only:
+                    continue
+                items[f] = {"file": f, "name": e.get("Name", f), "system": system,
+                            "enabled": e.get("Hidden", "false") != "true"
+                            and e.get("X-GNOME-Autostart-enabled", "true") != "false"}
+        out(sorted(items.values(), key=lambda i: i["name"].lower()))
+    elif args[:1] == ["set"] and len(args) == 3:
+        f, on = os.path.basename(args[1]), args[2] == "on"
+        user = os.path.join(USER_AUTOSTART, f)
+        sysf = os.path.join(SYS_AUTOSTART, f)
+        if os.path.islink(user) or not os.path.exists(user):
+            # Symlink or no user file: start from the real file's text.
+            src = os.path.realpath(user) if os.path.exists(user) else sysf
+            text = open(src).read()
+            if os.path.islink(user):
+                os.unlink(user)
+        else:
+            text = open(user).read()
+        text = re.sub(r"^Hidden=.*\n?", "", text, flags=re.M)
+        if not on:
+            text = re.sub(r"^\[Desktop Entry\]\n", "[Desktop Entry]\nHidden=true\n", text, count=1, flags=re.M)
+        write(user, text)
+    elif args[:1] == ["add"] and len(args) == 2:
+        # A path, or a desktop id (firefox.desktop) looked up like app launchers do.
+        src = args[1]
+        if not os.path.isfile(src):
+            dirs = [os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local/share"))]
+            dirs += os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")
+            name = src if src.endswith(".desktop") else src + ".desktop"
+            src = next((os.path.join(d, "applications", name) for d in dirs
+                        if os.path.isfile(os.path.join(d, "applications", name))), "")
+            if not src:
+                sys.exit(f"no such app: {args[1]}")
+        dst = os.path.join(USER_AUTOSTART, os.path.basename(src))
+        os.makedirs(USER_AUTOSTART, exist_ok=True)
+        if os.path.lexists(dst):
+            os.unlink(dst)
+        os.symlink(src, dst)
+    elif args[:1] == ["remove"] and len(args) == 2:
+        p = os.path.join(USER_AUTOSTART, os.path.basename(args[1]))
+        if os.path.lexists(p):
+            os.unlink(p)
+    else:
+        sys.exit(__doc__)
+
+
+# ---------------------------------------------------------------- Appearance
+
+THEMES = {
+    "dark":  {"gtk": "WhiteSur-Dark", "icons": "WhiteSur-dark", "kvantum": "WhiteSurDark",
+              "gtk4css": "WhiteSur-Dark/gtk-4.0/gtk-dark.css", "scheme": "prefer-dark"},
+    "light": {"gtk": "WhiteSur-Light", "icons": "WhiteSur", "kvantum": "WhiteSur",
+              "gtk4css": "WhiteSur-Light/gtk-4.0/gtk.css", "scheme": "prefer-light"},
+}
+
+
+def set_ini(path, key, value):
+    text = read(path)
+    if not text:
+        return
+    if re.search(rf"^{re.escape(key)}\s*=", text, re.M):
+        text = re.sub(rf"^{re.escape(key)}\s*=.*$", f"{key}={value}", text, flags=re.M)
+    else:
+        text = text.rstrip("\n") + f"\n{key}={value}"
+    write(path, text + "\n")
+
+
+def appearance(args):
+    iface = "org.gnome.desktop.interface"
+    if args[:1] == ["get"]:
+        scheme = sh("gsettings", "get", iface, "color-scheme").strip().strip("'")
+        scale = float(sh("gsettings", "get", iface, "text-scaling-factor").strip() or 1)
+        out({"mode": "light" if scheme == "prefer-light" else "dark", "textScale": scale})
+    elif args[:1] == ["mode"] and len(args) == 2 and args[1] in THEMES:
+        t, dark = THEMES[args[1]], args[1] == "dark"
+        for v in ("gtk-3.0", "gtk-4.0"):
+            ini = os.path.join(CONFIG, v, "settings.ini")
+            set_ini(ini, "gtk-theme-name", t["gtk"])
+            set_ini(ini, "gtk-icon-theme-name", t["icons"])
+            set_ini(ini, "gtk-application-prefer-dark-theme",
+                    ("1" if dark else "0") if v == "gtk-3.0" else ("true" if dark else "false"))
+        write(os.path.join(CONFIG, "gtk-4.0/gtk.css"),
+              f"/* macOS look: WhiteSur {args[1]} for libadwaita apps */\n"
+              f'@import url("file://{HOME}/.local/share/themes/{t["gtk4css"]}");\n')
+        for v in ("qt5ct", "qt6ct"):
+            set_ini(os.path.join(CONFIG, v, v + ".conf"), "icon_theme", t["icons"])
+        set_ini(os.path.join(CONFIG, "Kvantum/kvantum.kvconfig"), "theme", t["kvantum"])
+        xs = os.path.join(CONFIG, "xsettingsd/xsettingsd.conf")
+        text = read(xs)
+        if text:
+            text = re.sub(r'^Net/ThemeName .*$', f'Net/ThemeName "{t["gtk"]}"', text, flags=re.M)
+            text = re.sub(r'^Net/IconThemeName .*$', f'Net/IconThemeName "{t["icons"]}"', text, flags=re.M)
+            write(xs, text + "\n")
+            sh("pkill", "-HUP", "-x", "xsettingsd")
+        sh("flatpak", "override", "--user", f"--env=GTK_THEME={t['gtk']}")
+        sh("gsettings", "set", iface, "gtk-theme", t["gtk"])
+        sh("gsettings", "set", iface, "icon-theme", t["icons"])
+        sh("gsettings", "set", iface, "color-scheme", t["scheme"])
+    elif args[:1] == ["text-scale"] and len(args) == 2:
+        f = float(args[1])
+        if not 0.5 <= f <= 3:
+            sys.exit("text scale must be 0.5-3")
+        sh("gsettings", "set", iface, "text-scaling-factor", str(f))
+    else:
+        sys.exit(__doc__)
+
+
+def main():
+    a = sys.argv[1:]
+    cmd, rest = (a[0], a[1:]) if a else ("", [])
+    if cmd == "usb":
+        usb()
+    elif cmd == "battery":
+        battery()
+    elif cmd == "time":
+        time_()
+    elif cmd == "zones":
+        out(sh("timedatectl", "list-timezones").split())
+    elif cmd == "notify":
+        notify(rest)
+    elif cmd == "printers":
+        printers(rest)
+    elif cmd == "login":
+        login(rest)
+    elif cmd == "appearance":
+        appearance(rest)
+    else:
+        sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    main()

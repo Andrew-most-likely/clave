@@ -1,118 +1,177 @@
 # arch-macos-hyprland
 
-A macOS Sonoma look for [ML4W](https://github.com/mylinuxforwork/dotfiles) Hyprland on Arch Linux, with
-tiling kept. The pack also adds everyday desktop services and an optional security hardening layer.
+A macOS Sonoma desktop for [Hyprland](https://hypr.land) on Arch Linux, with tiling kept. It has a menu bar,
+a Dock with the genie effect, Mission Control, Control Center, System Settings and traffic-light title bars.
+Everything is built with [Quickshell](https://quickshell.org) and Hyprland's Lua config. It is standalone: it
+needs no other dotfiles pack.
 
-It is an overlay: install ML4W dotfiles first (Lua config, tested with ML4W 2.12.3), then run `./install.sh`.
+<!-- Screenshots: assets/screenshots/ -->
 
-## What you get
-
-**macOS look**
-- Quickshell menu bar with Apple menu, Control Center and Notification Center
-- Dock with running indicators and a genie minimize animation. The animation uses GLSL shaders
-  and a small Hyprland plugin, `hypr-minimize`.
-- Traffic-light window buttons from `hyprbars`, built from source for your Hyprland version
-- Mission Control and hot corners. Top left opens Mission Control, top right opens Notification Center, and
-  bottom left opens Launchpad.
-- A System Settings app (`qs ipc call settings open [pane]`) for the clock, battery, hot corners, dock, trackpad,
-  sounds and lock screen
-- Force Quit (Super+Alt+Esc), About/Help windows for apps, and Quick Look through `sushi`
-- Spotlight and Launchpad built with rofi, a macOS theme for swaync, and a macOS layout for hyprlock
-- macOS trackpad gestures:
-  - 3 fingers left/right: switch Spaces
-  - 3 fingers up/down: Mission Control
-  - 4-finger pinch in: Launchpad
-  - 4-finger pinch out: fullscreen
-- WhiteSur GTK, icons, Kvantum and Firefox theme, the macOS cursor, and SF Pro and SF Mono fonts. Qt5, Qt6,
-  GTK4 and Flatpak apps all follow the theme.
-- A custom Plymouth boot splash (Apple logo and progress bar), an SDDM login screen, and a synthesized startup chime
-- A fastfetch config that shows the Apple logo
-
-**Desktop essentials**: GNOME Keyring, printing (CUPS and mDNS discovery), exFAT and NTFS support, common GNOME
-utilities, CJK and emoji fonts, a journald size cap, weekly cache cleanup for `$HOME`, and `paccache`.
-
-**Hardening** (optional, `--harden`)
-- The `linux-hardened` kernel, with extra flags for lockdown, IOMMU and init_on_free
-- sysctl lockdown and blacklisted kernel modules
-- AppArmor (profiles from `apparmor.d`) and auditd watch rules
-- An nftables firewall that drops all inbound traffic by default, plus OpenSnitch for outbound traffic
-- USBGuard
-- A faillock policy and a stricter sudo configuration
-- Login `umask 027`, `su` limited to group `wheel`, and core dumps turned off
-- A `noexec` `/tmp` and Wi-Fi MAC randomization while scanning
-- An AIDE baseline that refreshes after each pacman transaction
-- Daily `arch-audit` CVE checks and a pacman hook that removes SUID bits the system does not need
+[![CI](https://github.com/Andrew-most-likely/arch-macos-hyprland/actions/workflows/ci.yml/badge.svg)](https://github.com/Andrew-most-likely/arch-macos-hyprland/actions/workflows/ci.yml)
+![Hyprland 0.55+](https://img.shields.io/badge/Hyprland-0.55%2B-58e1ff)
+![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)
 
 ## Install
 
+On Arch Linux (or an Arch-based distribution), as your normal user:
+
 ```sh
-git clone https://github.com/<you>/arch-macos-hyprland
-cd arch-macos-hyprland
-./install.sh --dry-run      # preview
-./install.sh                # macOS look + desktop essentials
-./install.sh --harden       # also the hardening layer (asks for confirmation)
+bash <(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/arch-macos-hyprland/main/setup.sh)
 ```
 
-Options: `--extras` (the other apps from the original machine), `--user-only` (no sudo), `--no-packages`.
+The script clones the latest release to `~/.local/share/arch-macos-hyprland` and runs `install.sh`. The installer
+shows a summary and asks before it changes anything. [Read `setup.sh`](setup.sh) first if you like. It is 40 lines.
 
-Each file that the installer replaces is kept as `<file>.bak-<date>`. To undo the changes in `$HOME`, run
-`./uninstall.sh`. Add `--system` to also undo the root-level changes.
+You can also install by hand:
 
-### Not included, on purpose
+```sh
+git clone https://github.com/Andrew-most-likely/arch-macos-hyprland ~/.local/share/arch-macos-hyprland
+cd ~/.local/share/arch-macos-hyprland
+./install.sh --dry-run   # preview
+./install.sh
+```
+
+Then log out, and pick Hyprland on the login screen.
+
+| Option | What it does |
+|---|---|
+| `--yes` | No questions. The hardening layer stays off. |
+| `--harden` | Also install the security hardening layer (asks again first) |
+| `--extras` | Also install the optional apps in `packages/extras*.txt` |
+| `--user-only` | Only install files in `$HOME`. No sudo, no login screen or boot splash. |
+| `--no-packages` | Skip pacman, AUR and Flatpak |
+| `--dry-run` | Show what would happen and change nothing |
+
+**Coming from ML4W or another setup?** The installer moves `~/.config/hypr` and `~/.config/quickshell` to
+`<dir>.bak-<date>`. It turns config directories that were links into `~/.mydotfiles` into real copies, so it never
+writes into another project's files. It keeps your `monitors.lua`, wallpapers, current wallpaper and pinned Dock
+apps. `./uninstall.sh` puts everything back.
+
+## What you get
+
+**Desktop**
+- Menu bar with the Apple menu, the app menu, battery, Wi-Fi, sound and the clock. There is one menu bar per screen.
+- Control Center (Wi-Fi, Bluetooth, Focus, brightness, volume, Night Shift, media) and Notification Center
+- Dock with magnification, running indicators, pinning, and the genie minimize animation. The animation uses
+  GLSL shaders and a small Hyprland plugin, `hypr-minimize`.
+- Traffic-light title bars from `hyprbars`, built from source for your Hyprland version
+- Mission Control, hot corners, Spotlight, Launchpad and Force Quit
+- System Settings (`Super+,`) with panes for Wi-Fi & Bluetooth, Displays, Sound, Battery, Appearance (light or
+  dark, text size), Desktop & Dock, Wallpaper, Control Center, Notifications, Lock Screen, Login Items,
+  Printers & Scanners, Date & Time, Trackpad, Mouse, Keyboard, and Privacy & Security
+- macOS screenshots: `Shift+Super+3/4/5` save the image to `~/Pictures/Screenshots` and copy it to the clipboard.
+  Click the notification to mark up the image.
+- Clipboard history (`Super+V`), emoji picker (`Ctrl+Super+Space`), Night Shift, and a keyboard shortcut list
+  (`Super+/`)
+- A lock screen and idle timeouts, an SDDM login screen, a Plymouth boot splash, and a startup chime
+
+**Trackpad:** swipe left or right with 3 fingers to switch Spaces. Swipe up for Mission Control. Pinch with 4
+fingers for Launchpad, and spread 4 fingers for full screen.
+
+**Theme:** WhiteSur GTK, icons, Kvantum and Firefox themes, the macOS cursor, and SF Pro and SF Mono. Qt5, Qt6,
+GTK4/libadwaita and Flatpak apps all follow the theme.
+
+**Desktop essentials:** GNOME Keyring, printing (CUPS and mDNS discovery), Bluetooth, exFAT and NTFS support,
+common GNOME apps, CJK and emoji fonts, zram, a journald size cap, and weekly cache cleanup.
+
+**Hardening** (optional, `--harden`)
+- The `linux-hardened` kernel with lockdown, IOMMU and init_on_free flags
+- sysctl lockdown, AppArmor (`apparmor.d`) and auditd
+- An nftables firewall that drops all inbound traffic by default, with OpenSnitch for outbound traffic
+- USBGuard, faillock, a stricter sudo configuration, `umask 027` at login, and a `noexec` `/tmp`
+- An AIDE baseline and daily `arch-audit` CVE checks
+
+## Keyboard shortcuts
+
+`Super` is the Command key. Press `Super+/` to see all of them.
+
+| Keys | Action | Keys | Action |
+|---|---|---|---|
+| `Super+Space` or tap `Super` | Spotlight | `Super+Q` | Close window |
+| `Super+A` | Launchpad | `Super+H` | Minimize to the Dock |
+| `Super+Tab` | Mission Control | `Super+F` / `Super+M` | Full screen / Zoom |
+| `Alt+Tab` | Switch windows | `Super+T` | Float or tile the window |
+| `Super+Return` | Terminal (kitty) | `Super+1…0` | Go to a Space |
+| `Super+E` | Files | `Super+Shift+1…0` | Move the window to a Space |
+| `Super+B` | Web browser | `Super+Arrows` | Move focus |
+| `Super+,` | System Settings | `Super+Alt+Arrows` | Swap windows |
+| `Super+N` | Notification Center | `Super+Shift+Arrows` | Resize the window |
+| `Super+Ctrl+N` | Control Center | `Super+S` | Scratchpad |
+| `Super+V` | Clipboard history | `Shift+Super+3/4/5` | Screenshot: screen / area / window |
+| `Ctrl+Super+Space` | Emoji & Symbols | `Shift+Super+6` | Copy text from the screen (OCR) |
+| `Super+L` | Lock screen | `Super+Alt+Esc` | Force Quit |
+| `Super+P` | Display mode | `Super+Alt+G` | Game mode (turns effects off) |
+
+## Customize
+
+The installer never replaces files you own:
+
+| File | For |
+|---|---|
+| `~/.config/hypr/custom.lua` | Any Hyprland setting, shortcut or autostart. It loads last, so it wins. |
+| `~/.config/hypr/monitors.lua` | Screens. `nwg-displays` and System Settings can write this file. |
+| `~/.config/hypr/hypridle.conf` | Idle timeouts. System Settings > Lock Screen edits this file. |
+| `~/.config/kitty/custom.conf` | Terminal settings |
+| `~/.config/macos-look/` | Everything System Settings saves, including Dock pins and the current wallpaper |
+
+See [`examples/`](examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
+
+## Update
+
+Open System Settings > General > Software Update, or run `macos-update`. The command updates the system packages
+and Flatpaks, then pulls the newest release of this desktop and reinstalls only the files that changed. Hyprland
+plugins are rebuilt automatically after every Hyprland upgrade by a pacman hook. If a plugin still fails to load at
+login, it is rebuilt then.
+
+## Uninstall
+
+```sh
+~/.local/share/arch-macos-hyprland/uninstall.sh            # files in $HOME
+~/.local/share/arch-macos-hyprland/uninstall.sh --system   # also the login screen, boot splash, hardening
+```
+
+Every file that the installer replaced comes back from `<file>.bak-<date>`. The config directories that were moved
+aside come back too. Packages stay installed.
+
+## Not included, on purpose
 
 - **Apple fonts, cursor and icons** come from the AUR (`apple-fonts`, `apple_cursor`, `whitesur-icon-theme`).
-  **Wallpapers and the GTK/Firefox theme** are downloaded from the WhiteSur repos at install time.
-- **macOS system sounds** belong to Apple and are not downloaded. Copy the `.aiff` files from
+  **Wallpapers and the GTK/Firefox theme** are downloaded from the WhiteSur repositories at install time.
+- **macOS system sounds** belong to Apple, so this project does not download them. Copy the `.aiff` files from
   `/System/Library/Sounds` on a Mac into `~/.local/share/sounds/macOS/source/`, then run `macos-sounds-build`.
-- **Hardened `/etc/fstab` options** (`hidepid`, `noexec` on `/dev/shm` and `/var/tmp`) must be merged by hand.
-  See `extra/fstab-hardening.txt`.
-- Host-specific settings are left out: the monitor layout, VPN and VM definitions, USBGuard device rules (the
-  installer generates these from the devices plugged in during install), and the root partition UUID.
+- **Hardened `/etc/fstab` options** must be merged by hand. See `extra/fstab-hardening.txt`.
 
 ## Things to know
 
-- **Hyprland updates:** plugins only load into the exact Hyprland version they were built against. A pacman
-  hook (`macos-look-plugins.hook`) runs `~/.local/share/macos-look/rebuild-plugins.sh` after each Hyprland
-  upgrade. If a plugin still fails to load at login, `custom.lua` starts a rebuild.
-- **Your overrides** belong in `~/.config/hypr/custom.lua`, which loads last. Gestures are in `gestures.lua`
-  because Hyprland keeps the first gesture defined for each finger count.
-- The pack overwrites a few ML4W files: `hypr/conf/autostart.lua`, `ml4w.lua`, several `hypr/scripts`,
-  `quickshell/shell.qml`, `DockApp`, `StatusbarApp/UpdatesModule.qml`, and the waybar modules. If you update
-  ML4W, re-run `./install.sh --no-packages`.
-- **SDDM reads every file in `/etc/sddm.conf.d`, including backups.** The installer moves `*.bak*` files to
+- **Hardening risks:** USBGuard blocks USB devices that were not plugged in during the install. Three wrong passwords
+  lock the account for 15 minutes. Keep a recovery USB.
+- **SDDM reads every file in `/etc/sddm.conf.d`, backups included.** The installer moves `*.bak*` files to
   `/etc/sddm.conf.d.backup`.
-- **Hardening risks:** USBGuard blocks USB devices that were not plugged in during install. Three wrong
-  passwords lock the account for 15 minutes. Keep a recovery USB.
+- **Logs:** the installer writes `~/.cache/macos-look/install.log`, and the plugin build writes
+  `~/.cache/macos-look/rebuild-plugins.log`. Attach them to bug reports.
 
-## Keeping the repo current
-
-After you change something on the machine this pack came from, run:
-
-```sh
-./scripts/capture.sh   # copy live files listed in manifest-*.txt back into home/ and system/
-git diff
-```
-
-`capture.sh` replaces your home path and user name with placeholders. `install.sh` fills them back in.
-
-## Layout
+## Development
 
 ```
-install.sh / uninstall.sh
-manifest-home.txt       files under $HOME in the pack
-manifest-system.txt     root files in the pack, tagged look | desktop | harden
-home/                   captured $HOME files
-system/<group>/         captured root files
-packages/*.txt          pacman / AUR / flatpak lists per group
-extra/                  Firefox prefs, kernel flags, fstab example
+install.sh / uninstall.sh / setup.sh
+lib/common.sh           installer functions
+home/                   files installed into $HOME (__HOME__ is filled in)
+system/<group>/         root files, grouped look | desktop | harden
+packages/<group>*.txt   pacman, -aur and -flatpak lists per group
 scripts/system.sh       root half of the installer
 scripts/fetch-themes.sh WhiteSur GTK/Firefox/wallpapers
-scripts/capture.sh      refresh the repo from a live system
+scripts/capture.sh      copy a live system's files back into home/ and system/
+tests/install-test.sh   install, check, uninstall in a scratch home (CI runs it)
 ```
 
-## Credits
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-WhiteSur themes by [vinceliuice](https://github.com/vinceliuice). `hyprbars` comes from
+## Credits and license
+
+Parts of this project started from [ML4W dotfiles](https://github.com/mylinuxforwork/dotfiles) by mylinuxforwork,
+so this project is under the same license, [GPL-3.0](LICENSE). The WhiteSur themes are by
+[vinceliuice](https://github.com/vinceliuice). `hyprbars` comes from
 [hyprwm/hyprland-plugins](https://github.com/hyprwm/hyprland-plugins) (BSD-3-Clause) and is downloaded at build
-time. ML4W dotfiles are by [mylinuxforwork](https://github.com/mylinuxforwork/dotfiles). Apple, macOS and
-San Francisco are trademarks of Apple Inc. This project is not affiliated with Apple.
+time.
+
+Apple, macOS and San Francisco are trademarks of Apple Inc. This project is not affiliated with Apple.

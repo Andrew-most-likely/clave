@@ -1,0 +1,36 @@
+name: Bug report
+description: Something does not work or looks wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: hyprland
+    attributes:
+      label: hyprctl version (first line)
+    validations:
+      required: true
+  - type: input
+    id: quickshell
+    attributes:
+      label: qs --version
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install?
+      options: [setup.sh one-liner, install.sh from a clone, migrated from ML4W, other]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: ~/.cache/macos-look/install.log, ~/.cache/macos-look/rebuild-plugins.log, or the output of `qs log`
+      render: text

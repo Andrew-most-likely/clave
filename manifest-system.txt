@@ -36,3 +36,9 @@ harden   /usr/local/sbin/strip-suid
 harden   /etc/systemd/system/aide-refresh.service
 harden   /etc/systemd/system/arch-audit.service
 harden   /etc/systemd/system/arch-audit.timer
+desktop  /usr/local/bin/macos-admin
+desktop  /usr/local/bin/macos-lid
+desktop  /usr/share/polkit-1/actions/org.macos-look.admin.policy
+desktop  /usr/share/polkit-1/actions/org.macos-look.lid.policy
+harden   /usr/local/bin/macos-usb
+harden   /usr/share/polkit-1/actions/org.macos-look.usb.policy

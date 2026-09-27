@@ -47,6 +47,7 @@
 # macOS helpers
 .local/bin/macos-app-info
 .local/bin/macos-clipboard
+.local/bin/macos-displays
 .local/bin/macos-emoji
 .local/bin/macos-gtk-apply
 .local/bin/macos-idle
@@ -54,6 +55,7 @@
 .local/bin/macos-launchpad
 .local/bin/macos-nightshift
 .local/bin/macos-power
+.local/bin/macos-prefs
 .local/bin/macos-screenshot
 .local/bin/macos-sound
 .local/bin/macos-sounds-build

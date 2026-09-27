@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Display arrangement for System Settings > Displays (Quickshell SettingsWindow)
+and display-mode.sh, like Windows' Settings > Display.
+
+  macos-displays get                     monitors as JSON (hyprctl monitors all
+                                         -j plus logical size "lw"/"lh")
+  macos-displays set DESC KEY VALUE      KEY: transform | mode | scale; saves it
+                                         for that display and applies it
+  macos-displays arrange JSON            {"DESC": [x, y], ...} logical positions
+                                         of the shown displays; saved and applied
+  macos-displays spec NAME MODE          Lua monitor fields for NAME when
+                                         display-mode.sh applies MODE (extend,
+                                         external, laptop, duplicate)
+
+Settings are saved in ~/.config/macos-look/displays.json, keyed by the
+monitor description (make, model, serial), so they follow a screen to any port:
+  displays: {DESC: {transform, mode, scale}}
+  layouts:  {"DESC|DESC|...": {DESC: [x, y]}}  one per set of screens in use
+"""
+import json
+import os
+import subprocess
+import sys
+
+LAPTOP = "eDP-1"
+LAPTOP_SCALE = 1.5  # keep in sync with custom.lua and display-mode.sh
+FILE = os.path.expanduser("~/.config/macos-look/displays.json")
+
+
+def load():
+    try:
+        with open(FILE) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        d = {}
+    d.setdefault("displays", {})
+    d.setdefault("layouts", {})
+    return d
+
+
+def save(d):
+    os.makedirs(os.path.dirname(FILE), exist_ok=True)
+    tmp = FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(d, f, indent=4)
+        f.write("\n")
+    os.replace(tmp, FILE)
+
+
+def monitors():
+    out = subprocess.run(["hyprctl", "monitors", "all", "-j"], capture_output=True, text=True).stdout
+    mons = json.loads(out or "[]")
+    for m in mons:
+        w, h = (m["height"], m["width"]) if m["transform"] % 2 else (m["width"], m["height"])
+        m["lw"] = round(w / m["scale"])
+        m["lh"] = round(h / m["scale"])
+    return mons
+
+
+def shown(mons):
+    """Screens that have their own place on the desktop (on, not mirroring)."""
+    return [m for m in mons if not m["disabled"] and m["mirrorOf"] == "none"]
+
+
+def layout_key(descs):
+    return "|".join(sorted(descs))
+
+
+def default_scale(m):
+    if m["name"] == LAPTOP:
+        return LAPTOP_SCALE
+    widest = max([int(x.split("x")[0]) for x in m.get("availableModes", [])] or [0])
+    return 2 if widest >= 3840 else 1.25 if widest >= 2560 else 1
+
+
+def fields(m, d, pos):
+    s = d["displays"].get(m["description"], {})
+    return (f'mode = "{s.get("mode", "preferred")}", position = "{pos}", '
+            f'scale = {s.get("scale", default_scale(m))}, transform = {s.get("transform", 0)}')
+
+
+def hypr_monitor(m, d, pos):
+    spec = f'output = "{m["name"]}", {fields(m, d, pos)}, disabled = false, mirror = ""'
+    subprocess.run(["hyprctl", "eval", f"hl.monitor({{ {spec} }})"], capture_output=True)
+
+
+def apply_positions(d, positions):
+    """positions: {DESC: [x, y]} for the shown screens."""
+    for m in shown(monitors()):
+        p = positions.get(m["description"])
+        if p:
+            hypr_monitor(m, d, f"{p[0]}x{p[1]}")
+
+
+def normalize(pos):
+    if not pos:
+        return pos
+    mx = min(p[0] for p in pos.values())
+    my = min(p[1] for p in pos.values())
+    return {k: [int(round(p[0] - mx)), int(round(p[1] - my))] for k, p in pos.items()}
+
+
+def cmd_set(desc, key, value):
+    d = load()
+    if key == "transform":
+        value = int(value) % 4
+    elif key == "scale":
+        value = float(value)
+    elif key != "mode":
+        sys.exit(f"unknown key: {key}")
+    mons = monitors()
+    target = next((m for m in mons if m["description"] == desc), None)
+    if target is None:
+        sys.exit(f"no display: {desc}")
+    d["displays"].setdefault(desc, {})[key] = value
+    save(d)
+    if target["disabled"] or target["mirrorOf"] != "none":
+        return  # applies the next time the screen is shown on its own
+
+    # Keep the other screens touching this one: screens to the right move by
+    # the change in width, screens below by the change in height.
+    old_w, old_h, ox, oy = target["lw"], target["lh"], target["x"], target["y"]
+    hypr_monitor(target, d, f'{ox}x{oy}')
+    new = next(m for m in monitors() if m["description"] == desc)
+    dx, dy = new["lw"] - old_w, new["lh"] - old_h
+    pos = {}
+    for m in shown(mons):
+        x, y = m["x"], m["y"]
+        if m["description"] != desc:
+            if x >= ox + old_w:
+                x += dx
+            if y >= oy + old_h:
+                y += dy
+        pos[m["description"]] = [x, y]
+    pos = normalize(pos)
+    d["layouts"][layout_key(pos)] = pos
+    save(d)
+    apply_positions(d, pos)
+
+
+def cmd_arrange(text):
+    d = load()
+    pos = normalize({k: v for k, v in json.loads(text).items()})
+    d["layouts"][layout_key(pos)] = pos
+    save(d)
+    apply_positions(d, pos)
+
+
+def cmd_spec(name, mode):
+    d = load()
+    mons = monitors()
+    m = next((m for m in mons if m["name"] == name), None)
+    if m is None:
+        sys.exit(f"no display: {name}")
+    if mode == "extend":
+        used = mons
+    elif mode == "external":
+        used = [x for x in mons if x["name"] != LAPTOP]
+    else:  # laptop, duplicate: one screen has a place
+        used = [m]
+    lay = d["layouts"].get(layout_key(x["description"] for x in used), {})
+    p = lay.get(m["description"])
+    if p:
+        pos = f"{p[0]}x{p[1]}"
+    else:
+        pos = "0x0" if name == LAPTOP or len(used) == 1 else "auto-right"
+    print(fields(m, d, pos))
+
+
+def main():
+    a = sys.argv[1:]
+    if a[:1] == ["get"]:
+        print(json.dumps(monitors()))
+    elif a[:1] == ["set"] and len(a) == 4:
+        cmd_set(a[1], a[2], a[3])
+    elif a[:1] == ["arrange"] and len(a) == 2:
+        cmd_arrange(a[1])
+    elif a[:1] == ["spec"] and len(a) == 3:
+        cmd_spec(a[1], a[2])
+    else:
+        sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    main()

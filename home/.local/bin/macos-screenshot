@@ -8,7 +8,8 @@
 #   macos-screenshot window   focused window          (Shift+Super+5)
 #   macos-screenshot text     copy text in an area (OCR, tesseract)
 #
-# Folder: System Settings > Screenshots, default ~/Pictures/Screenshots.
+# Folder: ~/Pictures/Screenshots, or "screenshots": { "folder": "..." } in
+# ~/.config/macos-look/settings.json.
 set -euo pipefail
 
 dir=$(jq -r '.screenshots.folder // empty' ~/.config/macos-look/settings.json 2>/dev/null || true)
