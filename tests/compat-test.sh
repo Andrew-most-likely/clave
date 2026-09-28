@@ -134,8 +134,10 @@ else
     check 'grep -q "Clave 1.1.2 is available" <<< "$out"' "doctor --fetch: newer signed release found"
     check 'grep -q "Update.*sddm 0.22.0-1: Clave 1.1.2" <<< "$out"' "doctor --fetch: its known break means Update"
     check '[ "$(git -C "$tmp/checkout" describe --tags)" = v1.1.1 ]' "doctor --fetch does not move the checkout"
-    # An unsigned newer release is not trusted.
-    git -C "$up" tag -m v1.1.3 v1.1.3
+    # An unsigned newer release is not trusted. It gets its own commit: two
+    # tags on one commit made in the same second leave git describe free to
+    # pick either, which made this check fail at random.
+    git -C "$up" commit -q --allow-empty -m three --no-gpg-sign && git -C "$up" tag -m v1.1.3 v1.1.3
     out=$(doc --fetch)
     check 'grep -q "No signed compatibility list" <<< "$out" && ! grep -q "1.1.3 is available" <<< "$out"' \
         "doctor --fetch: unsigned release ignored"
