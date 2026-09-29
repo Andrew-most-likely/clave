@@ -3,7 +3,7 @@
 # use unless the app's purpose needs it (APP-6).
 errands sticky gnome-weather gnome-clocks gnome-maps
 shotwell foliate gnome-podcasts amberol showtime
-gnome-sound-recorder snapshot gnome-font-viewer gnome-chess rnote
+gnome-sound-recorder snapshot gnome-font-viewer gnome-chess gnuchess rnote
 simple-scan gnome-connections gnome-logs hardinfo2
 gnome-disk-utility seahorse timeshift
 # Engines of the Clave apps (section 5.8): screen recording, and the .ics and

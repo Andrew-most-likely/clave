@@ -8,7 +8,9 @@
 #
 # Local checks: Hyprland accepts the config; the Hyprland plugins were built
 # for the Hyprland installed now; Quickshell's log has no QML errors; the GTK4
-# theme assets are linked; no Clave user unit failed; and each package Clave
+# theme assets are linked; no Clave user unit failed; the screen locks when
+# idle (hypridle runs and its lock command exists); Apps shows no helper
+# launchers that no list covers; and each package Clave
 # talks to against compat.json: OK, Untested (newer than tested, no known
 # break) or Update Clave (a known break that a newer Clave fixes).
 # Exit status 1 when something needs doing. A command, not a service.
@@ -23,7 +25,7 @@ fetch=0
 case "${1:-}" in
     --fetch) fetch=1 ;;
     "") ;;
-    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
     *) echo "Usage: clave-doctor [--fetch]" >&2; exit 2 ;;
 esac
 
@@ -78,6 +80,37 @@ fi
 assets="$HOME/.config/gtk-4.0/assets"
 if [ -e "$assets" ]; then ok "GTK4 theme assets are linked"
 else bad Problem "GTK4 theme assets are missing ($assets): run $repo/install.sh --update"; fi
+
+# The idle lock (ISSUE-6): hypridle.conf is the user's file, so an old
+# lock command survives updates and the screen never locks.
+idle="$HOME/.config/hypr/hypridle.conf"
+lock_cmd=$(sed -n 's/^[[:space:]]*lock_cmd[[:space:]]*=[[:space:]]*//p' "$idle" 2>/dev/null | head -n1)
+lock_bin=${lock_cmd%% *}
+lock_bin=${lock_bin/#\~/$HOME}
+if [ -z "$lock_cmd" ]; then
+    bad Problem "The screen will not lock when idle: no lock_cmd in $idle (run: clave-idle repair)"
+elif ! command -v "$lock_bin" >/dev/null 2>&1; then
+    bad Problem "The screen will not lock when idle: $lock_bin is missing (run: clave-idle repair)"
+elif ! pgrep -x hypridle >/dev/null; then
+    bad Problem "The screen will not lock when idle: hypridle is not running (start it: hypridle &)"
+else
+    ok "The screen locks when idle"
+fi
+
+# Apps shows only apps a user opens on purpose (APP-10): a package in the
+# default lists may bring a launcher that no list in clave-prefs covers.
+pkgs=$(grep -vhE '^\s*(#|$)' "$repo"/packages/{core,desktop,look,apps,harden}.txt 2>/dev/null | tr -s ' \n' '\n' | grep -v '^$')
+if [ -z "$pkgs" ]; then
+    note Unknown "Launchers in Apps were not checked: no package lists in $repo"
+else
+    # shellcheck disable=SC2086
+    extra=$("$here/clave-prefs" apps unexpected $pkgs 2>/dev/null)
+    if [ -z "$extra" ]; then ok "Apps shows no helper launchers"
+    else
+        note Check "Launchers in Apps that Clave does not list (APP-10):"
+        cut -f2 <<< "$extra" | sed 's/^/              /'
+    fi
+fi
 
 units=()
 for u in "$HOME"/.config/systemd/user/*.{service,timer}; do [ -e "$u" ] && units+=("${u##*/}"); done

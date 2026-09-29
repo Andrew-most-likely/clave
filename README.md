@@ -62,7 +62,7 @@ install to the new names and keeps your settings, Dock, wallpaper and your own f
 - Traffic-light title bars from `hyprbars`, built from source for your Hyprland version
 - Overview, hot corners, Search (apps, and a calculator one `Ctrl+Tab` away that works offline), Apps,
   Activity Monitor (CPU, memory, disk and network, with Quit and Force Quit) and Force Quit
-- System Settings (`Super+,`) with panes for Wi-Fi & Bluetooth, Displays, Sound, Battery, Appearance (light or
+- System Settings (`Super+,`) with panes for Network & Bluetooth, Displays, Sound, Battery, Appearance (light or
   dark, text size), Desktop & Dock, Wallpaper, Control Center, Notifications, Lock Screen, Login Items,
   Printers & Scanners, Date & Time, Trackpad, Mouse, Keyboard, and Privacy & Security
 - Screenshots and screen recording: `Shift+Super+3/4` capture the screen or an area at once, and
@@ -130,7 +130,7 @@ The installer never replaces files you own:
 | File | For |
 |---|---|
 | `~/.config/hypr/custom.lua` | Any Hyprland setting, shortcut or autostart. It loads last, so it wins. |
-| `~/.config/hypr/monitors.lua` | Screens. `nwg-displays` and System Settings can write this file. |
+| `~/.config/hypr/monitors.lua` | Screens. System Settings > Displays can write this file. |
 | `~/.config/hypr/hypridle.conf` | Idle timeouts. System Settings > Lock Screen edits this file. |
 | `~/.config/kitty/custom.conf` | Terminal settings |
 | `~/.config/clave/` | Everything System Settings saves, including Dock pins and the current wallpaper |

@@ -3,6 +3,10 @@ firefox steam vlc wireshark-qt libvirt qemu-full virt-manager edk2-ovmf dnsmasq
 neovim btop bat eza fzf ripgrep zoxide starship
 # GNOME utilities that no Clave feature needs (SW-3)
 baobab
+# Office document fonts (metric-compatible Calibri and Cambria)
+ttf-carlito ttf-caladea
+# Security audit, run by hand
+lynis
 # Passwords
 bitwarden
 # Mail and dictionary: not in the standard set (PROJECT_PLAN.md section 14).

@@ -1,6 +1,34 @@
 # Changelog
 
-## v1.1.1 (unreleased)
+## v1.1.2 (2026-09-29)
+
+- **The screen locks when idle again.** Installs from before the rename to Clave kept an old lock command in
+  `~/.config/hypr/hypridle.conf`. The screen then never locked when idle, and the computer went to sleep
+  unlocked, whatever System Settings > Lock Screen said. The update fixes the file (a copy is kept in the
+  backups folder), and `clave-doctor` checks it.
+- The display no longer turns off before the screen locks. A shorter display time is raised to the lock time.
+- **System Settings search** finds the settings inside panes, not only pane names: try "24-hour", "tap to
+  click" or "night light". The matching rows show under each pane, and a click goes to the row.
+- **Lock screen picture.** System Settings > Lock Screen > Background chooses between the blurred wallpaper and
+  a picture of your own. Before, the lock screen always showed the blurred wallpaper, and the only picture
+  setting (Login Window) changed the login screen.
+- **Choose Picture… opens again.** The picture and icon choosers in System Settings (lock screen, login
+  background, profile picture, app icons) never opened: Qt's file dialog has no backend in the shell. They now
+  use the desktop's file chooser through the portal (`clave-choose-file`).
+- Changing one Lock Screen timeout could set the other two to Never when System Settings had not read them yet.
+  Each row now changes only its own timeout (`clave-idle set-one`).
+- **Ethernet** shows up: the menu bar shows a wired icon in place of Wi-Fi while a cable is connected. Its menu
+  always has an Ethernet line (Connected, Not Connected or No Adapter) and names the connection. Control Center
+  has an Ethernet row on computers with a port (click to connect or disconnect). The Wi-Fi & Bluetooth pane in
+  System Settings is now Network & Bluetooth, and always shows the wired status.
+- With two keyboard layouts (for example U.S. + Spanish), Alt+Shift switches between them.
+- `qs ipc call settings set` applies keyboard, mouse, window and accessibility settings at once, and light or
+  dark mode and the accent color reach GTK and Qt apps too.
+- `clave-doctor` lists launchers in Apps that belong to no app Clave knows.
+- Removed: the unused `xsettingsd` config, and the packages the audit found unused (`cmake`, `meson`, `ninja`,
+  `alsa-utils`, `cups-pdf`). `lynis` and the Office fonts moved to `--extras`.
+
+## v1.1.1 (not tagged; released in v1.1.2)
 
 - **`clave-doctor`** says whether this Clave still works with the software installed now: the Hyprland config, the
   plugins, the shell's log, the GTK4 theme, and each package Clave talks to (OK, Untested, or Update Clave).
@@ -9,7 +37,7 @@
   one notification at the next login says when a newer Clave is needed. The hook never stops an upgrade.
 - On GitHub, a daily check notices when an Arch update breaks Clave and opens an issue.
 
-## v1.1.0 (unreleased)
+## v1.1.0 (not tagged; released in v1.1.2)
 
 - **Disk Encryption.** Clave says when the disk is not encrypted: in the installer, in System Settings >
   Privacy & Security, and once at the first login. `clave-encrypt setup` explains a reinstall with LUKS2, or

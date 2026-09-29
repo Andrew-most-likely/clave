@@ -1,11 +1,18 @@
 -- Keyboard, mouse and trackpad. Values come from System Settings.
 local settings = require("clave.settings")
 local caps = settings.caps_lock or ""
+local layout = settings.kb_layout or "us"
+
+-- Two layouts (for example "us,es"): Alt+Shift switches between them (ISSUE-8).
+local options = caps
+if layout:find(",", 1, true) then
+    options = (caps ~= "" and caps .. "," or "") .. "grp:alt_shift_toggle"
+end
 
 hl.config({
     input = {
-        kb_layout      = settings.kb_layout or "us",
-        kb_options     = caps,  -- e.g. "ctrl:nocaps"; System Settings > Keyboard
+        kb_layout      = layout,
+        kb_options     = options, -- e.g. "ctrl:nocaps"; System Settings > Keyboard
         repeat_rate    = settings.repeat_rate or 25,
         repeat_delay   = settings.repeat_delay or 600,
         follow_mouse   = 1,

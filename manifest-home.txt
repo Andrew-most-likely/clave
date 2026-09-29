@@ -16,6 +16,10 @@
 .config/quickshell/Clave
 .config/quickshell/DockApp
 .config/quickshell/CustomTheme
+.config/quickshell/ClaveApps
+.config/quickshell/clave-calendar.qml
+.config/quickshell/clave-contacts.qml
+.config/quickshell/clave-notes.qml
 
 # Launchers, notifications, terminal, fetch
 .config/rofi/config.rasi
@@ -32,11 +36,11 @@
 .config/gtk-3.0/gtk.css
 .config/gtk-3.0/settings.ini
 .config/gtk-4.0/gtk.css
+.config/gtk-4.0/clave.css
 .config/gtk-4.0/settings.ini
 .config/qt5ct/qt5ct.conf
 .config/qt6ct/qt6ct.conf
 .config/Kvantum/kvantum.kvconfig
-.config/xsettingsd/xsettingsd.conf
 .config/nwg-look/config
 .config/xdg-desktop-portal/hyprland-portals.conf
 .config/autostart/opensnitch_ui.desktop
@@ -44,28 +48,42 @@
 
 # Clave helpers
 .local/bin/clave-app-info
+.local/bin/clave-app
+.local/bin/clave-choose-file
 .local/bin/clave-clipboard
+.local/bin/clave-compat
 .local/bin/clave-displays
+.local/bin/clave-doctor
 .local/bin/clave-emoji
+.local/bin/clave-encrypt
 .local/bin/clave-gtk-apply
 .local/bin/clave-idle
 .local/bin/clave-keybinds
 .local/bin/clave-apps
+.local/bin/clave-lock-clock
 .local/bin/clave-nightlight
+.local/bin/clave-pim
 .local/bin/clave-power
 .local/bin/clave-prefs
+.local/bin/clave-qalc
 .local/bin/clave-sound
 .local/bin/clave-sounds-build
 .local/bin/clave-search
 .local/bin/clave-update
 .local/bin/clave-wallpaper
 .local/share/applications/clave-apps.desktop
+.local/share/applications/clave-activity-monitor.desktop
+.local/share/applications/clave-calendar.desktop
+.local/share/applications/clave-contacts.desktop
+.local/share/applications/clave-notes.desktop
 .local/share/icons/hicolor/scalable/apps/clave-apps.svg
 .local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.clave.service
 .local/share/xdg-desktop-portal/portals/clave.portal
 .local/share/clave/wallpaper-portal.py
 .local/share/clave/rebuild-plugins.sh
 .local/share/clave/fix-sddm-theme.sh
+.local/share/clave/clave-encrypt-offline.sh
+.local/share/clave/verify.sh
 .local/share/clave/hypr-minimize/build.sh
 .local/share/clave/hypr-minimize/main.cpp
 .local/share/clave/hyprbars/build.sh

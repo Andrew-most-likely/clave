@@ -86,6 +86,11 @@ PanelWindow {
     // ==========================================
     property bool wifiOn: false
     property string ssid: ""
+    // Wired network: shown only on computers with an Ethernet port.
+    property bool hasEthernet: false
+    property bool ethOn: false
+    property string ethDevice: ""
+    property string ethName: ""
     property bool vpnOn: false
     property bool hasVpn: false
     property string vpnKind: ""      // "mullvad" or "nm"
@@ -148,6 +153,11 @@ PanelWindow {
             + "else c=$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | sed -n 's/:\\(vpn\\|wireguard\\)$//p' | head -n1);"
             + " if [ -n \"$c\" ]; then echo vpnkind=nm; echo \"vpnname=$c\";"
             + "  nmcli -t -f NAME connection show --active | grep -qxF \"$c\" && echo vpn=Connected || echo vpn=Disconnected; fi; fi;"
+            // eth=STATE:DEVICE:CONNECTION of the first wired device, a connected one first.
+            + "nmcli -t -f TYPE,STATE,DEVICE,CONNECTION dev 2>/dev/null | awk -F: '$1 == \"ethernet\" {"
+            + " l = $2 \":\" $3 \":\"; if (NF > 3) { sub(/^[^:]*:[^:]*:[^:]*:/, \"\"); l = l $0 }"
+            + " if ($2 == \"connected\" && c == \"\") c = l; else if (d == \"\") d = l }"
+            + " END { if (c != \"\") print \"eth=\" c; else if (d != \"\") print \"eth=\" d }';"
             + "echo \"dnd=$(swaync-client -D 2>/dev/null)\";"
             + "pgrep -x hyprsunset >/dev/null && echo night=1 || echo night=0"]
         stdout: StdioCollector {
@@ -164,6 +174,11 @@ PanelWindow {
                 root.vpnKind = v.vpnkind || ""
                 root.vpnName = v.vpnname || ""
                 root.vpnOn = v.vpn === "Connected"
+                const eth = (v.eth || "").split(":")
+                root.hasEthernet = v.eth !== undefined
+                root.ethOn = eth[0] === "connected"
+                root.ethDevice = eth[1] || ""
+                root.ethName = eth.slice(2).join(":").replace(/\\$/, "")
                 root.dnd = v.dnd === "true"
                 root.nightLight = v.night === "1"
             }
@@ -340,7 +355,8 @@ PanelWindow {
 
                 Module {
                     Layout.preferredWidth: 153
-                    Layout.preferredHeight: 158
+                    // One more row for Ethernet when there is a port as well as a VPN.
+                    Layout.preferredHeight: root.hasEthernet && root.hasVpn ? 204 : 158
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 11
@@ -372,6 +388,23 @@ PanelWindow {
                             onOpened: {
                                 root.close()
                                 Quickshell.execDetached(["blueman-manager"])
+                            }
+                        }
+                        ToggleRow {
+                            Layout.fillWidth: true
+                            visible: root.hasEthernet
+                            icon: "icons/ethernet.svg"
+                            label: "Ethernet"
+                            detail: root.ethOn ? (root.ethName || "Connected") : "Not Connected"
+                            on: root.ethOn
+                            onToggled: {
+                                root.ethOn = !root.ethOn
+                                root.run(["nmcli", "device", root.ethOn ? "connect" : "disconnect", root.ethDevice])
+                                restatus.restart()
+                            }
+                            onOpened: {
+                                root.close()
+                                Quickshell.execDetached(["nm-connection-editor"])
                             }
                         }
                         ToggleRow {

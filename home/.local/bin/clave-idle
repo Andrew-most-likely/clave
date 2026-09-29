@@ -4,18 +4,31 @@
   clave-idle get                        prints lock=SEC display=SEC sleep=SEC (0 = never)
   clave-idle set LOCK DISPLAY SLEEP     seconds, 0 = never; rewrites
                                         ~/.config/hypr/hypridle.conf and restarts hypridle
+  clave-idle set-one lock|display|sleep SEC   one timeout; the others stay
+  clave-idle repair                     only the lock command (see below)
 
 Listeners are recognised by their on-timeout command: lock-session (lock),
 dpms disable (display), suspend (sleep), brightnessctl -s (dim, kept one
 minute before the lock).
+
+The display never turns off before the lock: a dark screen must not hide an
+unlocked session, so DISPLAY is raised to LOCK when it is shorter.
+
+The file belongs to the user and updates do not replace it, so `set` and
+`repair` also put back the lock command when it names a program that is gone
+(an install from before the rename kept the old name of clave-power, ISSUE-6).
+
+CLAVE_IDLE_CONF points at another file (tests); CLAVE_IDLE_NO_RESTART=1
+leaves hypridle alone.
 """
 import os
 import re
 import subprocess
 import sys
 
-CONF = os.path.expanduser("~/.config/hypr/hypridle.conf")
+CONF = os.environ.get("CLAVE_IDLE_CONF") or os.path.expanduser("~/.config/hypr/hypridle.conf")
 NEVER = 31536000  # one year stands in for "never"
+LOCK_CMD = "~/.local/bin/clave-power -l"
 
 
 def kind(block):
@@ -38,7 +51,7 @@ def blocks(text):
     return list(re.finditer(r"^listener\s*\{.*?^\}", text, re.S | re.M))
 
 
-def get():
+def current():
     text = open(CONF).read()
     out = {}
     for b in blocks(text):
@@ -47,13 +60,48 @@ def get():
         if k and t:
             v = int(t.group(1))
             out[k] = 0 if v >= NEVER else v
-    print(" ".join(f"{k}={out.get(k, 0)}" for k in ("lock", "display", "sleep")))
+    return {k: out.get(k, 0) for k in ("lock", "display", "sleep")}
+
+
+def get():
+    print(" ".join(f"{k}={v}" for k, v in current().items()))
+
+
+def fix_lock_cmd(text):
+    """The general block's lock_cmd, put back when it does not run clave-power."""
+    m = re.search(r"(?m)^(\s*lock_cmd\s*=\s*)(.*)$", text)
+    if m and "clave-power" in m.group(2):
+        return text
+    if m:
+        return text[:m.start()] + m.group(1) + LOCK_CMD + text[m.end():]
+    g = re.search(r"(?m)^general\s*\{[^\n]*\n", text)
+    if g:
+        return text[:g.end()] + f"    lock_cmd         = {LOCK_CMD}\n" + text[g.end():]
+    return f"general {{\n    lock_cmd         = {LOCK_CMD}\n    before_sleep_cmd = loginctl lock-session\n}}\n\n" + text
+
+
+def restart():
+    if os.environ.get("CLAVE_IDLE_NO_RESTART") == "1":
+        return
+    subprocess.run(["pkill", "-x", "hypridle"])
+    subprocess.Popen(["hypridle"], start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def repair():
+    text = open(CONF).read()
+    fixed = fix_lock_cmd(text)
+    if fixed != text:
+        open(CONF, "w").write(fixed)
+        restart()
 
 
 def set_(lock, display, sleep):
+    if lock and display and display < lock:
+        display = lock
     want = {"lock": lock or NEVER, "display": display or NEVER, "sleep": sleep or NEVER}
     want["dim"] = NEVER if not lock else max(30, lock - 60)
-    text = open(CONF).read()
+    text = fix_lock_cmd(open(CONF).read())
     out, last = [], 0
     for b in blocks(text):
         k = kind(b.group(0))
@@ -69,14 +117,20 @@ def set_(lock, display, sleep):
         last = b.end()
     out.append(text[last:])
     open(CONF, "w").write("".join(out))
-    subprocess.run(["pkill", "-x", "hypridle"])
-    subprocess.Popen(["hypridle"], start_new_session=True,
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    restart()
 
 
 if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "get":
         get()
+    elif len(sys.argv) == 4 and sys.argv[1] == "set-one" and sys.argv[2] in ("lock", "display", "sleep"):
+        # System Settings changes one row at a time; the others are read from
+        # the file, not from what the window last saw.
+        v = current()
+        v[sys.argv[2]] = int(sys.argv[3])
+        set_(v["lock"], v["display"], v["sleep"])
+    elif len(sys.argv) == 2 and sys.argv[1] == "repair":
+        repair()
     elif len(sys.argv) == 5 and sys.argv[1] == "set":
         set_(*(int(a) for a in sys.argv[2:5]))
     else:

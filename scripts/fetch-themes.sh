@@ -20,6 +20,9 @@ fetch() {  # fetch NAME URL: shallow clone or update
 echo "==> WhiteSur GTK theme"
 fetch WhiteSur-gtk-theme https://github.com/vinceliuice/WhiteSur-gtk-theme
 (cd "$cache/WhiteSur-gtk-theme" && ./install.sh -d "$HOME/.local/share/themes" -c dark -c light </dev/null 2>&1 | tail -n 3)
+# Its installer always adds a theme switcher app; Clave Settings does that job (APP-10).
+rm -f "$HOME/.local/bin/gnome-theme-switcher" \
+      "${XDG_DATA_HOME:-$HOME/.local/share}/applications/org.gnome.GTK4ThemeSwitcher.desktop"
 
 echo "==> WhiteSur Firefox theme"
 if [ -d "$HOME/.config/mozilla/firefox" ] || [ -d "$HOME/.mozilla/firefox" ]; then

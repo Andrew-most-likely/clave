@@ -343,6 +343,19 @@ from the checkout; everything on the user's side is local.
 - **SW-4 Standard app set.** The apps in APP-1 ship by default in a new `packages/apps.txt`. They come from
   the Arch repositories (signed packages), not the AUR or Flathub, unless APP-1 says otherwise. There is no
   opt-out flag.
+- **SW-5 Package audit (2026-09-28).** Every package in the default lists was checked against the files
+  that use it. Removed: `cmake`, `meson` and `ninja` (the plugin builds use only `g++` and
+  `pkg-config`), `alsa-utils` (sounds play through `pw-play`) and `cups-pdf` (GTK's Print to File
+  covers it). Moved to extras: `lynis` (a hand-run audit that nothing calls) and `ttf-carlito`,
+  `ttf-caladea` (Office fonts, useful only with an office suite). Kept with a comment: `sassc` and
+  `gnome-themes-extra`, which the WhiteSur GTK theme's installer needs.
+  - `xsettingsd`: its config shipped and `clave-prefs` signaled it, but no list installed it and
+    nothing started it. Removed the config, the signal and nwg-look's export, instead of adding a
+    process (PERF-1). GTK apps read the theme from `settings.ini` and gsettings.
+  - `manifest-home.txt` missed 26 shipped files (for example `clave-doctor` and the ClaveApps QML),
+    so `scripts/capture.sh` did not copy live changes to them back. They are listed now. The user's
+    own files (`clave/*`, `hypr/custom.lua`, `hypr/monitors.lua`, `hypr/hypridle.conf`,
+    `kitty/custom.conf`) stay out on purpose.
 
 ### 5.7 Standard apps
 
@@ -373,7 +386,7 @@ Quickshell on top of open-source libraries (section 5.8).
   | Voice recording | Voice Memos | `gnome-sound-recorder` | GTK4 | |
   | Camera | Camera | `snapshot` | GTK4 | Back from extras (SW-4) |
   | Fonts | Fonts | `gnome-font-viewer` | GTK4 | |
-  | Chess | Chess | `gnome-chess` | GTK4 | |
+  | Chess | Chess | `gnome-chess`, `gnuchess` | GTK4 | GNU Chess is the computer opponent; without an engine, Chess only allows two human players. Stockfish is stronger but only in the AUR |
   | Whiteboard | Freeform board | `rnote` | GTK4 | |
   | Scanner | Scanner | `simple-scan` | GTK3 | SANE starts no service |
   | Remote screen (client only) | Screen Sharing | `gnome-connections` | GTK4 | No listener |
@@ -465,6 +478,44 @@ Quickshell on top of open-source libraries (section 5.8).
 - **APP-9 Notes.** A Clave app like APP-8 (`clave-app notes`). Notes are Markdown files in
   `~/Documents/Notes`, one folder per folder in the sidebar. Formatting shows in a QML `TextEdit` (Qt's
   Markdown reader and writer, `TextDocument`), with no web engine. Search looks only inside that folder.
+
+- **APP-10 Helper launchers stay out of Apps (added 2026-09-28).** Apps, Search and the Dock show only
+  apps a user opens on purpose: the APP-1 set, the Clave apps and the apps of SW-3. A package in the
+  package lists often installs a launcher that only backs a feature, configures a theme, or comes with
+  a dependency. `clave-prefs apps names` hides each of those launchers with a copy in
+  `~/.local/share/applications` that adds `NoDisplay=true` (the APP-4 pattern; packages are never
+  patched). The copy keeps `Exec` and `MimeType`, so `xdg-open` and MIME defaults still work. Clave Settings,
+  Control Center and the menu bar stay the way to reach the tools that have a use.
+
+  | Hidden launcher | Package | Why |
+  |---|---|---|
+  | Volume Control | `pavucontrol` | Opened from Sound in Clave Settings and the menu bar |
+  | Bluetooth Manager, Bluetooth Adapters | `blueman` | Opened from Bluetooth in Clave Settings and Control Center |
+  | Print Settings | `system-config-printer` | Opened from Printers in Clave Settings |
+  | Manage Printing | `cups` | The CUPS web page; Print Settings covers it |
+  | OpenSnitch | `opensnitch` | Opened from Clave Settings; the prompts need no launcher |
+  | Qt5 Settings, Qt6 Settings, Kvantum Manager | `qt5ct`, `qt6ct`, `kvantum` | Theme backends; Clave Settings writes their files |
+  | GTK Settings | `nwg-look` | Theme backend; Clave ships its config |
+  | Rofi, Rofi Theme Selector | `rofi` | Engine of Apps, Search and the emoji picker |
+  | Avahi Zeroconf Browser, Avahi SSH Server Browser, Avahi VNC Server Browser | `avahi` | Dependency of CUPS and `nss-mdns` |
+  | Hardware Locality lstopo | `hwloc` | Dependency |
+  | Qt V4L2 test Utility, Qt V4L2 video capture utility | `v4l-utils` | Dependency of `ffmpeg` |
+  | File Roller | `file-roller` | Opens archives from Files; a helper, not an app a user starts |
+
+  The WhiteSur GTK theme's installer always adds its own theme switcher app. `scripts/fetch-themes.sh`
+  removes it right after, because Clave Settings sets the theme.
+
+  Stays visible: Files, Text Editor, Calculator, Image Viewer, Document Viewer (Evince, the PDF app of
+  APP-1), the terminal and the APP-1 set.
+
+  - Hide only with an override. Removing a `.desktop` file breaks `xdg-open` and MIME defaults
+    (File Roller must still open archives). `tests/apps-test.sh` checks this.
+  - `clave-doctor` lists each launcher that a package in the default lists shows in Apps and that is
+    in neither list above (`clave-prefs apps unexpected`). CI does not install the packages, so the
+    check runs on the machine.
+  - Same pass: `org.libreoffice.LibreOffice` leaves `packages/extras-flatpak.txt` (removed from the
+    live machine on 2026-09-28). The comments in `monitors.lua`, `hyprland.lua` and README that say
+    `nwg-displays` writes `monitors.lua` are removed, and so is its window rule; section 5.8 rejected it.
 
 ### 5.8 Clave apps: open-source engines, Clave interface
 
@@ -589,6 +640,33 @@ simple. The user supplies all files that the project cannot ship.
   while the screen is locked, in place of the `date` call that ran there before.
 - **ISSUE-4 Login screen button spacing.** The Sleep, Restart and Shut Down buttons were not evenly
   spaced, because each button column was as wide as its label. Each column now has the same width.
+- **ISSUE-6 The screen never locked when idle (v1.1.2).** `hypridle.conf` belongs to the user, so updates do
+  not replace it, and the rename did not change the old command names in it. Installs from before the rename
+  kept `lock_cmd = macos-power -l`, a program that no longer exists. The Lock Screen timeouts had no effect,
+  and the computer went to sleep without locking. Fixed: the update changes the old names in `hypridle.conf`
+  and `monitors.lua` too and starts hypridle again. `clave-idle set` and `clave-idle repair` put the lock
+  command back when it is wrong. The shipped file calls `~/.local/bin/clave-power`, so `PATH` does not matter.
+  `clave-doctor` checks that the screen locks when idle.
+- **ISSUE-7 The display could turn off before the lock (v1.1.2).** A dark screen hid an unlocked session.
+  Fixed: `clave-idle` raises the display timeout to the lock timeout when it is shorter, and the pane shows
+  the saved value.
+- **ISSUE-10 Search found pane titles only (v1.1.2).** Searching for a setting such as "24-hour" or "tap to
+  click" found nothing. Fixed: the search looks at section titles, row labels and descriptions, short choice
+  lists and keywords for each pane. Up to three matching rows show under each pane. Clicking one opens the
+  pane, scrolls to the row and highlights it. Enter opens the first result, and Esc clears the search.
+  `qs ipc call settings search TEXT` opens the window with a search, and `… find TEXT` prints the results.
+
+- **ISSUE-8 Alt+Shift did not switch keyboard layouts (v1.1.2).** `input.lua` set no `grp:` option, so
+  with two layouts (for example U.S. + Spanish) there was no way to switch. Fixed: with two layouts,
+  `input.lua` adds `grp:alt_shift_toggle` to the Caps Lock option.
+- **ISSUE-9 Settings changed through IPC did not apply (v1.1.2).** `qs ipc call settings set` reloaded
+  Hyprland only for the trackpad, and appearance changes did not reach GTK and Qt apps. Fixed: every group
+  that the Hyprland config reads reloads Hyprland, and `appearance mode` and `appearance accent` go through
+  `clave-prefs` as the window does.
+
+APP-10 (helper launchers hidden from Apps) and the SW-5 package audit are built for v1.1.2. v1.1.2 is
+tagged without the check of every pane on the live machine and in the desktop VM; that check moves to the
+next release.
 
 ## 9. Competitive research
 
@@ -796,6 +874,8 @@ Still open:
 
 - **Per-set display layouts.** Does losing them (SHELL-2) matter? Check on the dock with the two Dell
   screens before tagging v1.1.0.
+- **Terminal name.** kitty shows as "kitty" in Apps. Should it show as "Terminal" through an APP-4
+  override, like the other APP-1 names?
 
 ## Appendix: source notes
 

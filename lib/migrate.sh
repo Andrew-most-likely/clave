@@ -76,7 +76,8 @@ migrate_settings() {
 # the backups folder first.
 migrate_user_text() {
     local rel f pair
-    for rel in .config/hypr/custom.lua .config/kitty/custom.conf; do
+    for rel in .config/hypr/custom.lua .config/hypr/monitors.lua .config/hypr/hypridle.conf \
+               .config/kitty/custom.conf; do
         f="$HOME/$rel"
         [ -f "$f" ] && grep -q 'macos-\|hypr/macos/' "$f" || continue
         [ "$DRY" -eq 1 ] && { echo "  [dry-run] update old names in ~/$rel"; continue; }
@@ -87,6 +88,11 @@ migrate_user_text() {
         done
         sed -i -e "s|$OLD|clave|g" -e 's|hypr/macos/|hypr/clave/|g' -e 's|macos/\*\.lua|clave/*.lua|g' "$f"
         echo "  updated old names in ~/$rel (copy in ${BACKUPS#"$HOME/"}/$rel.pre-clave)"
+        # A running hypridle keeps the old lock command until it starts again.
+        if [ "$rel" = .config/hypr/hypridle.conf ] && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] \
+                && pkill -x hypridle 2>/dev/null; then
+            setsid -f hypridle >/dev/null 2>&1 || true
+        fi
     done
 }
 
