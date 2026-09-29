@@ -451,10 +451,14 @@ PanelWindow {
         }
 
         if (id === "wifi") {
-            let m = [
-                { "type": "toggle", "label": "Wi-Fi", "get": () => root.wifiEnabled,
-                  "set": on => { root.wifiEnabled = on; Quickshell.execDetached(["nmcli", "radio", "wifi", on ? "on" : "off"]) } }
-            ]
+            let m = []
+            m.push({ "type": "title", "label": "Ethernet",
+                     "detail": root.ethConnected ? "Connected" : root.ethPresent ? "Not Connected" : "No Adapter" })
+            if (root.ethConnected && root.ethName !== "")
+                m.push({ "label": root.ethName, "checked": true })
+            m.push({ "type": "sep" })
+            m.push({ "type": "toggle", "label": "Wi-Fi", "get": () => root.wifiEnabled,
+                  "set": on => { root.wifiEnabled = on; Quickshell.execDetached(["nmcli", "radio", "wifi", on ? "on" : "off"]) } })
             const nets = root.wifiNetworks
             const current = nets.filter(n => n.active)
             const others = nets.filter(n => !n.active)
@@ -532,6 +536,12 @@ PanelWindow {
     }
 
     property bool wifiEnabled: true
+    // Wired network: shown in the menu bar in place of Wi-Fi while connected
+    // (NetworkManager routes through it first).
+    property bool ethConnected: false
+    // A wired adapter exists (built-in port, dock or USB), cable or not.
+    property bool ethPresent: false
+    property string ethName: ""
     // Full name from the account (GECOS), for "Log Out <name>…".
     property string fullName: Quickshell.env("USER")
     Process {
@@ -811,17 +821,32 @@ PanelWindow {
             }
         }
 
-        // Wi-Fi
+        // Network: Ethernet while a cable is connected, otherwise Wi-Fi.
         BarItem {
             id: wifi
             property bool connected: false
-            icon: connected ? "icons/wifi.svg" : "icons/wifi-off.svg"
+            icon: root.ethConnected ? "icons/ethernet.svg" : connected ? "icons/wifi.svg" : "icons/wifi-off.svg"
             menuId: "wifi"
             Process {
                 id: wifiProc
-                command: ["bash", "-c", "nmcli -t -f TYPE,STATE dev 2>/dev/null | grep -qE '^wifi:connected$' && echo 1 || echo 0"]
+                // Prints "WIFI ETH NAME": WIFI is 1 or 0; ETH is 2 connected, 1 adapter
+                // without a connection, 0 no adapter; then the wired connection's name.
+                command: ["bash", "-c", "nmcli -t -f TYPE,STATE,CONNECTION dev 2>/dev/null | awk -F: '"
+                    + "$1 == \"wifi\" && $2 == \"connected\" { w = 1 } "
+                    + "$1 == \"ethernet\" && $2 != \"unmanaged\" && !e { e = 1 } "
+                    + "$1 == \"ethernet\" && $2 == \"connected\" && e < 2 { e = 2; sub(/^[^:]*:[^:]*:/, \"\"); n = $0 } "
+                    + "END { print w + 0, e + 0, n }'"]
                 running: true
-                stdout: StdioCollector { onStreamFinished: wifi.connected = this.text.trim() === "1" }
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        const t = this.text.trim()
+                        const parts = t.split(" ")
+                        wifi.connected = parts[0] === "1"
+                        root.ethConnected = parts[1] === "2"
+                        root.ethPresent = parts[1] !== "0"
+                        root.ethName = root.ethConnected ? t.split(" ").slice(2).join(" ").replace(/\\:/g, ":") : ""
+                    }
+                }
             }
             // NetworkManager reports each change; check again then, not on a timer.
             Process {

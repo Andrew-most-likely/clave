@@ -64,6 +64,25 @@ if command -v magick >/dev/null; then
     has "$dst" '^Name=Mine$' "the user's own file wins"
 fi
 
+# Helper launchers are hidden, and their copy still opens files (APP-10).
+cat > "$tmp/sys/applications/org.gnome.FileRoller.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=File Roller
+Exec=file-roller %U
+MimeType=application/zip;
+NoDisplay=false
+EOF
+roller="$XDG_DATA_HOME/applications/org.gnome.FileRoller.desktop"
+"$prefs" apps names
+has "$roller" '^NoDisplay=true$' "helper launcher hidden"
+[ "$(grep -c '^NoDisplay=' "$roller")" = 1 ] && ok "one NoDisplay= line" || fail "NoDisplay= lines: $(grep -c '^NoDisplay=' "$roller")"
+has "$roller" '^MimeType=application/zip;$' "hidden helper keeps its file types"
+has "$roller" '^X-Clave-Override=true$' "hidden helper override is marked"
+rm "$tmp/sys/applications/org.gnome.FileRoller.desktop"
+"$prefs" apps names
+[ ! -e "$roller" ] && ok "override removed when the helper is gone" || fail "override left after the helper is gone"
+
 # gtk.css keeps loading clave.css after a light/dark switch.
 python3 - "$prefs" "$tmp" <<'EOF'
 import importlib.machinery, importlib.util, sys

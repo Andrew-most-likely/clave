@@ -1,5 +1,5 @@
 -- Screens. Yours to edit; updates never replace this file.
--- nwg-displays and System Settings > Displays may rewrite it.
+-- System Settings > Displays may rewrite it.
 -- Docs: https://wiki.hypr.land/Configuring/Monitors/
 hl.monitor({
     output   = "",

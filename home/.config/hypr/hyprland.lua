@@ -3,7 +3,7 @@
 --
 -- Load order: Clave defaults (clave/*.lua), then your files.
 -- Do not edit files in clave/: updates replace them. Put your changes in
---   monitors.lua   screens (also written by nwg-displays)
+--   monitors.lua   screens (also written by System Settings > Displays)
 --   custom.lua     everything else; loads last, so it wins
 
 local HOME = os.getenv("HOME")

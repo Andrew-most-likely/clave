@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Asks the desktop portal's file chooser for one file and prints its path.
+
+  clave-choose-file [--title T] [--filter NAME] [--folder DIR] PATTERN...
+                    e.g. --filter Pictures '*.jpg' '*.png'
+
+Exit status 1 when the choice is cancelled. System Settings uses this for
+its picture and icon choosers: Qt's own file dialog has no backend in the
+shell, so it never opened. The portal (xdg-desktop-portal-gtk) draws the
+dialog; nothing stays running afterwards.
+"""
+import os
+import sys
+import urllib.parse
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+PORTAL = "org.freedesktop.portal.Desktop"
+PATH = "/org/freedesktop/portal/desktop"
+
+
+def main():
+    title, name, folder, patterns = "Choose a file", "Files", "", []
+    args = sys.argv[1:]
+    while args:
+        a = args.pop(0)
+        if a in ("--title", "--filter", "--folder") and args:
+            v = args.pop(0)
+            if a == "--title":
+                title = v
+            elif a == "--filter":
+                name = v
+            else:
+                folder = v
+        elif a in ("-h", "--help"):
+            print(__doc__)
+            return 0
+        else:
+            patterns.append(a)
+
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    # The portal answers on a request object whose path is known in advance:
+    # listen there first, so the answer cannot be missed.
+    token = f"clave{os.getpid()}"
+    sender = bus.get_unique_name()[1:].replace(".", "_")
+    handle = f"{PATH}/request/{sender}/{token}"
+    loop = GLib.MainLoop()
+    chosen = []
+
+    def on_response(_conn, _sender, _path, _iface, _signal, params):
+        code, results = params.unpack()
+        if code == 0:
+            chosen.extend(results.get("uris", []))
+        loop.quit()
+
+    bus.signal_subscribe(PORTAL, "org.freedesktop.portal.Request", "Response", handle,
+                         None, Gio.DBusSignalFlags.NONE, on_response)
+    opts = {"handle_token": GLib.Variant("s", token), "modal": GLib.Variant("b", True)}
+    if patterns:
+        opts["filters"] = GLib.Variant("a(sa(us))", [(name, [(0, p) for p in patterns])])
+    if folder and os.path.isdir(folder):
+        opts["current_folder"] = GLib.Variant("ay", os.fsencode(folder) + b"\0")
+    try:
+        bus.call_sync(PORTAL, PATH, "org.freedesktop.portal.FileChooser", "OpenFile",
+                      GLib.Variant("(ssa{sv})", ("", title, opts)), GLib.VariantType("(o)"),
+                      Gio.DBusCallFlags.NONE, -1, None)
+    except GLib.Error as e:
+        print(f"clave-choose-file: the file chooser did not open: {e.message}", file=sys.stderr)
+        return 2
+    loop.run()
+
+    for uri in chosen:
+        u = urllib.parse.urlparse(uri)
+        if u.scheme == "file":
+            print(urllib.parse.unquote(u.path))
+            return 0
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

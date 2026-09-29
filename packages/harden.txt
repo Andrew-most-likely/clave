@@ -1,4 +1,4 @@
 # Hardening
 linux-hardened
-apparmor audit arch-audit lynis
+apparmor audit arch-audit
 nftables opensnitch usbguard

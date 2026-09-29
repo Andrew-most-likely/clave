@@ -62,11 +62,11 @@ install to the new names and keeps your settings, Dock, wallpaper and your own f
 - Traffic-light title bars from `hyprbars`, built from source for your Hyprland version
 - Overview, hot corners, Search (apps, and a calculator one `Ctrl+Tab` away that works offline), Apps,
   Activity Monitor (CPU, memory, disk and network, with Quit and Force Quit) and Force Quit
-- System Settings (`Super+,`) with panes for Wi-Fi & Bluetooth, Displays, Sound, Battery, Appearance (light or
+- System Settings (`Super+,`) with panes for Network & Bluetooth, Displays, Sound, Battery, Appearance (light or
   dark, text size), Desktop & Dock, Wallpaper, Control Center, Notifications, Lock Screen, Login Items,
   Printers & Scanners, Date & Time, Trackpad, Mouse, Keyboard, and Privacy & Security
-- Screenshots and screen recording: `Shift+Super+3/4` capture the screen or an area at once, and
-  `Shift+Super+5` opens a toolbar (screen, a window you click, an area, recording, a timer and where to save).
+- Screenshots and screen recording: `Print` opens a toolbar (screen, a window you click, an area, recording, a
+  timer and where to save), and `Shift+Print` copies the text in an area.
   Images go to `~/Pictures/Screenshots` and the clipboard; click the thumbnail in the corner to mark one up.
 - Displays: resolution, scale, rotation and arrangement per screen, remembered by the screen itself, and
   mirroring from Control Center
@@ -118,9 +118,9 @@ Press `Super+/` to see all of them.
 | `Super+,` | System Settings | `Super+Alt+Arrows` | Swap windows |
 | `Super+N` | Notification Center | `Super+Shift+Arrows` | Resize the window |
 | `Super+Ctrl+N` | Control Center | `Super+S` | Scratchpad |
-| `Super+V` | Clipboard history | `Shift+Super+3/4` | Screenshot: screen / area |
-| `Ctrl+Super+Space` | Emoji & Symbols | `Shift+Super+5` | Screenshot and recording toolbar |
-| `Super+L` | Lock screen | `Shift+Super+6` | Copy text from the screen (OCR) |
+| `Super+V` | Clipboard history | `Super+/` | All keyboard shortcuts |
+| `Ctrl+Super+Space` | Emoji & Symbols | `Print` | Screenshot and recording toolbar |
+| `Super+L` | Lock screen | `Shift+Print` | Copy text from the screen (OCR) |
 | `Super+Alt+Esc` | Force Quit | `Super+Alt+G` | Game mode (turns effects off) |
 
 ## Customize
@@ -130,7 +130,7 @@ The installer never replaces files you own:
 | File | For |
 |---|---|
 | `~/.config/hypr/custom.lua` | Any Hyprland setting, shortcut or autostart. It loads last, so it wins. |
-| `~/.config/hypr/monitors.lua` | Screens. `nwg-displays` and System Settings can write this file. |
+| `~/.config/hypr/monitors.lua` | Screens. System Settings > Displays can write this file. |
 | `~/.config/hypr/hypridle.conf` | Idle timeouts. System Settings > Lock Screen edits this file. |
 | `~/.config/kitty/custom.conf` | Terminal settings |
 | `~/.config/clave/` | Everything System Settings saves, including Dock pins and the current wallpaper |

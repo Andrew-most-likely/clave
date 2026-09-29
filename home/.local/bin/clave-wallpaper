@@ -6,14 +6,32 @@
 #   clave-wallpaper --random     a random picture from the wallpaper folders
 #   clave-wallpaper --restore    the last picture (used at login)
 #   clave-wallpaper --current    print the current picture
+#   clave-wallpaper --lock       only make the lock screen picture again
 #
 # Wallpaper folders: ~/.local/share/clave/wallpapers, ~/Pictures/Wallpapers
+#
+# The lock screen shows a blurred copy of the wallpaper, or the picture chosen
+# in System Settings > Lock Screen (settings.json lockScreen.background =
+# "picture", kept as ~/.local/share/clave/lock-background.png by clave-prefs).
 set -euo pipefail
 
 state=~/.config/clave/wallpaper
 cache=~/.cache/clave
 dirs=(~/.local/share/clave/wallpapers ~/Pictures/Wallpapers)
 saved=~/.local/share/clave/wallpapers/saved
+lockpic=~/.local/share/clave/lock-background.png
+
+# The lock screen picture, in ~/.cache/clave/lock.png for hyprlock.
+make_lock() {  # make_lock CODER IMAGE
+    mkdir -p "$cache"
+    if [ "$(jq -r '.lockScreen.background // "wallpaper"' ~/.config/clave/settings.json 2>/dev/null)" = picture ] \
+            && [ -f "$lockpic" ]; then
+        cp -f -- "$lockpic" "$cache/lock.png.tmp"
+    else
+        # A blurred, darker copy of the wallpaper.
+        magick "$1:$2" -resize 50% -blur 0x30 -fill black -colorize 15% "png:$cache/lock.png.tmp"
+    fi && mv -f "$cache/lock.png.tmp" "$cache/lock.png"
+}
 
 list() { find "${dirs[@]}" -maxdepth 2 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) 2>/dev/null; }
 
@@ -23,7 +41,10 @@ case "${1:-}" in
                [ -f "$img" ] || img=$(list | grep -i 'whitesur-dark' | head -n1 || true)
                [ -f "$img" ] || img=$(list | head -n1 || true) ;;
     --current) cat "$state" 2>/dev/null; exit ;;
-    ""|-h|--help) sed -n '2,10p' "$0" | cut -c3-; exit 1 ;;
+    --lock)    lock_only=1; img=$(cat "$state" 2>/dev/null || true)
+               # A chosen picture needs no wallpaper.
+               if [ ! -f "$img" ]; then make_lock "" ""; exit; fi ;;
+    ""|-h|--help) sed -n '2,11p' "$0" | cut -c3-; exit 1 ;;
     file://*)  img=$(python3 -c 'import sys, urllib.parse as u; print(u.unquote(u.urlparse(sys.argv[1]).path))' "$1") ;;
     *)         img=$1 ;;
 esac
@@ -38,6 +59,8 @@ case "$(file --brief --mime-type -- "$img")" in
     image/webp) coder=webp ;;
     *) echo "clave-wallpaper: not a JPEG, PNG or WebP picture" >&2; exit 1 ;;
 esac
+
+if [ -n "${lock_only:-}" ]; then make_lock "$coder" "$img"; exit; fi
 
 # Apps hand over temporary files; keep a copy so the picture survives a reboot.
 case "$img" in
@@ -55,9 +78,6 @@ awww img "$img" --resize crop --transition-type fade --transition-duration 0.6
 mkdir -p "$(dirname "$state")" "$cache"
 printf '%s\n' "$img" > "$state"
 
-# Lock screen: a blurred, darker copy for the background. Done in the
-# background because it takes a second on large pictures.
-(
-    magick "$coder:$img" -resize 50% -blur 0x30 -fill black -colorize 15% "png:$cache/lock.png.tmp" \
-        && mv -f "$cache/lock.png.tmp" "$cache/lock.png"
-) >/dev/null 2>&1 &
+# Lock screen: in the background, because blurring takes a second on large
+# pictures.
+make_lock "$coder" "$img" >/dev/null 2>&1 &

@@ -37,6 +37,8 @@ Singleton {
         "sound":      { "uiSounds": true },
         "appearance": { "mode": "dark", "accent": "blue" },
         "display":    { "nightLightTemp": 4500 },
+        // "wallpaper" (blurred) or "picture" (clave-prefs lockscreen).
+        "lockScreen": { "background": "wallpaper" },
         "screenshots": { "folder": "", "saveTo": "pictures", "timer": 0, "thumbnail": true, "pointer": false },
         // Clipboard history lives in memory ($XDG_RUNTIME_DIR) unless kept.
         "privacy":    { "clipboardHistory": true, "clipboardKeep": false, "clipboardImages": false,

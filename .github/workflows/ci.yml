@@ -79,6 +79,9 @@ jobs:
       - name: Update from v1.0.0 (APP-2, SHELL-2)
         run: su tester -c 'bash /home/tester/repo/tests/update-test.sh'
 
+      - name: System Settings (Lock Screen, settings readers, search)
+        run: su tester -c 'bash /home/tester/repo/tests/settings-test.sh'
+
       - name: Disk Encryption config writers (SEC-5)
         run: su tester -c 'bash /home/tester/repo/tests/encrypt-unit.sh'
 

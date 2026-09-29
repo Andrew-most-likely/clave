@@ -25,7 +25,6 @@ float("pavucontrol",           { class = ".*pavucontrol.*" },             "700 6
 float("blueman-manager",       { class = "^blueman-manager$" },           "800 600")
 float("nm-connection-editor",  { class = "^nm-connection-editor$" },      "800 700")
 float("nwg-look",              { class = "^nwg-look$" },                  "700 600")
-float("nwg-displays",          { class = "^nwg-displays$" },              "900 600")
 float("gnome-calculator",      { class = "^org\\.gnome\\.Calculator$" },   "400 600")
 float("share-picker",          { class = "^hyprland-share-picker$" },     "600 400", { pin = true })
 float("clave-floating",        { class = "^clave-floating$" },            "1000 700")

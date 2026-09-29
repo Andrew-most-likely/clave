@@ -22,8 +22,10 @@ Every "get" prints JSON; everything else changes one setting.
   clave-prefs appearance text-scale FACTOR
   clave-prefs loginwindow background FILE|wallpaper   login screen background
   clave-prefs loginwindow picture FILE                profile picture (also ~/.face)
-  clave-prefs apps names                   standard app names and custom icons (APP-4)
+  clave-prefs lockscreen background wallpaper|FILE    lock screen: blurred wallpaper or a picture
+  clave-prefs apps names                   standard app names, custom icons, hidden helpers (APP-4, APP-10)
   clave-prefs apps defaults [--missing-only]   default apps for file types (APP-5)
+  clave-prefs apps unexpected PKG...       visible launchers of these packages that no list covers (APP-10)
   clave-prefs icon set APP_ID FILE         a local PNG or SVG as an app's icon
   clave-prefs icon reset APP_ID
 
@@ -343,13 +345,6 @@ def appearance(args):
         for v in ("qt5ct", "qt6ct"):
             set_ini(os.path.join(CONFIG, v, v + ".conf"), "icon_theme", t["icons"])
         set_ini(os.path.join(CONFIG, "Kvantum/kvantum.kvconfig"), "theme", t["kvantum"])
-        xs = os.path.join(CONFIG, "xsettingsd/xsettingsd.conf")
-        text = read(xs)
-        if text:
-            text = re.sub(r'^Net/ThemeName .*$', f'Net/ThemeName "{t["gtk"]}"', text, flags=re.M)
-            text = re.sub(r'^Net/IconThemeName .*$', f'Net/IconThemeName "{t["icons"]}"', text, flags=re.M)
-            write(xs, text + "\n")
-            sh("pkill", "-HUP", "-x", "xsettingsd")
         sh("flatpak", "override", "--user", f"--env=GTK_THEME={t['gtk']}")
         sh("gsettings", "set", iface, "gtk-theme", t["gtk"])
         sh("gsettings", "set", iface, "icon-theme", t["icons"])
@@ -392,6 +387,20 @@ APP_NAMES = {
     "hardinfo2": "System Information", "gnome-disk-utility": "Disk Utility",
     "seahorse": "Keychain", "timeshift": "Backups",
 }
+
+# Launchers that only back a feature, configure a theme or come with a
+# dependency (APP-10). Their copy gets NoDisplay=true: Apps, Search and the
+# Dock leave them out, and xdg-open and MIME defaults still find them.
+HIDDEN = [
+    "org.pulseaudio.pavucontrol", "blueman-manager", "blueman-adapters",
+    "system-config-printer", "cups", "opensnitch_ui",
+    "qt5ct", "qt6ct", "kvantummanager", "nwg-look", "rofi", "rofi-theme-selector",
+    "avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap",
+    "org.gnome.FileRoller",
+]
+
+# Packages whose launchers stay visible without a new name (APP-10).
+VISIBLE = ["nautilus", "gnome-text-editor", "gnome-calculator", "loupe", "evince", "papers", "kitty"]
 
 # MIME type -> package or desktop id of the default app (APP-5).
 VIDEO = ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo",
@@ -468,9 +477,9 @@ def icon_png(app_id, src):
     return dst
 
 
-def write_override(src, name=None, icon=None):
+def write_override(src, name=None, icon=None, hide=False):
     """A copy of the desktop file in ~/.local/share/applications with Name=
-    and/or Icon= changed. Exec and the rest stay the package's own, so the
+    and/or Icon= changed, or hidden with NoDisplay=true. Exec and the rest stay the package's own, so the
     copy is written again at each install and update (APP-4)."""
     dst = os.path.join(USER_APPS, os.path.basename(src))
     if os.path.exists(dst) and OVERRIDE_MARK not in read(dst):
@@ -484,6 +493,9 @@ def write_override(src, name=None, icon=None):
         head = re.sub(r"^Icon=.*$", f"Icon={icon}", head, flags=re.M)
         if not re.search(r"^Icon=", head, re.M):
             head = head.rstrip("\n") + f"\nIcon={icon}\n"
+    if hide:
+        head = re.sub(r"^NoDisplay=.*\n?", "", head, flags=re.M)
+        head = head.rstrip("\n") + "\nNoDisplay=true\n"
     head = head.rstrip("\n") + f"\n{OVERRIDE_MARK}=true\n"
     write(dst, head + (sep + rest if sep else ""))
     return True
@@ -491,10 +503,16 @@ def write_override(src, name=None, icon=None):
 
 def apps(args):
     if args[:1] == ["names"]:
-        # Names and icons for the standard apps, icons for any other app, and
-        # overrides whose app is gone are removed.
+        # Names and icons for the standard apps, hidden helpers, icons for any
+        # other app, and overrides whose app is gone are removed.
         icons = settings_icons()
         done = set()
+        for app_id in HIDDEN:
+            src = find_desktop(app_id)
+            if src:
+                icon = icons.get(app_id) or icons.get(app_id + ".desktop")
+                write_override(src, icon=icon_png(app_id, icon) if icon else None, hide=True)
+                done.add(os.path.basename(src))
         for pkg, name in APP_NAMES.items():
             src = package_desktop(pkg)
             if not src:
@@ -514,6 +532,23 @@ def apps(args):
             if OVERRIDE_MARK in read(p) and os.path.basename(p) not in done:
                 os.unlink(p)
         sh("update-desktop-database", "-q", USER_APPS)
+    elif args[:1] == ["unexpected"]:
+        # A package in the default lists that shows a launcher in Apps, but is
+        # neither hidden nor a known app (APP-10). One "package<TAB>file" line each.
+        hidden = {h if h.endswith(".desktop") else h + ".desktop" for h in HIDDEN}
+        for pkg in args[1:]:
+            if pkg in APP_NAMES or pkg in VISIBLE:
+                continue
+            files = [l.split(" ", 1)[1] for l in sh("pacman", "-Ql", pkg).splitlines() if " " in l]
+            for f in files:
+                if not (f.startswith("/usr/share/applications/") and f.endswith(".desktop")):
+                    continue
+                name = os.path.basename(f)
+                user = os.path.join(USER_APPS, name)
+                e = desktop(user if os.path.exists(user) else f)
+                if name in hidden or e.get("Type") != "Application" or e.get("NoDisplay", "false") == "true":
+                    continue
+                print(f"{pkg}\t{f}")
     elif args[:1] == ["defaults"]:
         # --missing-only: only types that have no default yet (updates).
         missing_only = "--missing-only" in args
@@ -589,6 +624,44 @@ def loginwindow(args):
         sys.exit(1)
 
 
+# ---------------------------------------------------------------- Lock screen
+
+LOCK_PICTURE = os.path.join(HOME, ".local/share/clave/lock-background.png")
+
+
+def lockscreen(args):
+    """The lock screen background: the blurred wallpaper, or a picture of the
+    user's, converted here to a PNG that clave-wallpaper hands to hyprlock."""
+    if len(args) != 2 or args[0] != "background":
+        sys.exit(__doc__)
+    src = args[1]
+    if src != "wallpaper":
+        p = os.path.realpath(os.path.expanduser(src))
+        if not os.path.isfile(p):
+            sys.exit(f"no such picture: {src}")
+        # Decode only JPEG, PNG and WebP, told explicitly (as clave-wallpaper does).
+        coder = {"image/jpeg": "jpeg", "image/png": "png", "image/webp": "webp"}.get(
+            sh("file", "--brief", "--mime-type", p).strip())
+        if not coder:
+            sys.exit(f"not a JPEG, PNG or WebP picture: {src}")
+        os.makedirs(os.path.dirname(LOCK_PICTURE), exist_ok=True)
+        r = subprocess.run(["magick", f"{coder}:{p}[0]", "-auto-orient", "-resize", "3840x2160^",
+                            "-strip", "png:" + LOCK_PICTURE + ".tmp"], capture_output=True)
+        if r.returncode != 0:
+            sys.exit(f"cannot read the picture: {r.stderr.decode(errors='replace').strip()}")
+        os.replace(LOCK_PICTURE + ".tmp", LOCK_PICTURE)
+    try:
+        with open(SETTINGS) as f:
+            s = json.load(f)
+    except (OSError, ValueError):
+        s = {}
+    s.setdefault("lockScreen", {})["background"] = "wallpaper" if src == "wallpaper" else "picture"
+    write(SETTINGS, json.dumps(s, indent=4) + "\n")
+    ok = subprocess.run([os.path.join(HOME, ".local/bin/clave-wallpaper"), "--lock"]).returncode == 0
+    if not ok:
+        sys.exit("the lock screen picture was not made")
+
+
 def main():
     a = sys.argv[1:]
     cmd, rest = (a[0], a[1:]) if a else ("", [])
@@ -610,6 +683,8 @@ def main():
         appearance(rest)
     elif cmd == "loginwindow":
         loginwindow(rest)
+    elif cmd == "lockscreen":
+        lockscreen(rest)
     elif cmd == "apps":
         apps(rest)
     elif cmd == "icon":

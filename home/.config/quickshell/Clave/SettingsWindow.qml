@@ -4,7 +4,6 @@ import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import qs.CustomTheme
 import QtQuick
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import qs.DockApp
 
@@ -12,6 +11,8 @@ import qs.DockApp
 //   qs ipc call settings open [PANE]     PANE: general, controlcenter, dock,
 //                                         displays, wallpaper, sound, lock,
 //                                         battery, trackpad, network
+//   qs ipc call settings search TEXT     open with TEXT in the search field
+//   qs ipc call settings find TEXT       print the panes and rows TEXT finds
 // Panes are lists of rows (see paneRows). Each row reads its live value through
 // get() and writes through set(), so a row redraws by itself when the setting
 // changes. Quickshell-side settings live in ClaveSettings (settings.json); the
@@ -33,6 +34,39 @@ Scope {
             root.probe()
         }
         function close(): void { root.open = false }
+        // Open the window with this search typed in (ISSUE-10).
+        function search(text: string): void {
+            root.search = text
+            root.open = true
+            root.probe()
+        }
+        // Use a row as a click would: a switch or choice gets VALUE (JSON or
+        // text), a button is pressed. For scripts and tests.
+        //   qs ipc call settings press lock "Start lock screen when inactive" 300
+        function press(pane: string, label: string, value: string): string {
+            let row = null
+            root.paneRows(pane).forEach(sec => (sec.rows || []).forEach(r => {
+                if (!row && r.label === label) row = r
+            }))
+            if (!row)
+                return "no row \"" + label + "\" in " + pane
+            let v = value
+            try { v = JSON.parse(value) } catch (e) {}
+            if (row.type === "button")
+                row.action()
+            else if (row.set)
+                row.set(v)
+            else
+                return "row \"" + label + "\" cannot be changed"
+            return "ok"
+        }
+        // What the search finds, as JSON: [{ pane, hits }]. For tests.
+        function find(text: string): string {
+            const q = text.trim().toLowerCase()
+            if (root.searchIndex.length === 0)
+                root.buildSearchIndex()
+            return JSON.stringify(root.matchPanes(q, root.searchIndex).map(p => ({ "pane": p.id, "hits": p.hits || [] })))
+        }
         // Scriptable access to the same settings the window edits:
         //   qs ipc call settings set menubar clock24h true
         //   qs ipc call settings get menubar clock24h
@@ -44,13 +78,18 @@ Scope {
                     DockSettings.setAutohide(!!v)
                 else
                     DockSettings.setDockValue(key, v)
-            } else if (group === "trackpad") {
-                ClaveSettings.set(group, key, v)
-                hyprReload.restart()
             } else if (group === "windows" && key === "trafficLights") {
                 root.setTrafficLights(!!v)
+            } else if (group === "appearance" && key === "mode") {
+                ClaveSettings.setAppearance(`${v}`)
+            } else if (group === "appearance" && key === "accent") {
+                ClaveSettings.setAccent(`${v}`)
             } else {
                 ClaveSettings.set(group, key, v)
+                // Settings the Hyprland config reads apply with a reload (ISSUE-9).
+                if (["trackpad", "mouse", "keyboard", "windows", "accessibility"].includes(group)
+                        || (group === "privacy" && key === "capturePrompt"))
+                    hyprReload.restart()
             }
         }
         function get(group: string, key: string): string {
@@ -85,6 +124,11 @@ Scope {
             "echo \"nightlight=$(pgrep -x hyprsunset >/dev/null && echo 1 || echo 0)\";" +
             "echo \"brightness=$(brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d %)\";" +
             "echo \"wifi=$(nmcli radio wifi 2>/dev/null)\";" +
+            // eth=STATE:CONNECTION of the first wired device, a connected one first.
+            "nmcli -t -f TYPE,STATE,CONNECTION dev 2>/dev/null | awk -F: '$1 == \"ethernet\" { l = $2 \":\";" +
+            " if (NF > 2) { sub(/^[^:]*:[^:]*:/, \"\"); l = l $0 }" +
+            " if ($2 == \"connected\" && c == \"\") c = l; else if (d == \"\") d = l }" +
+            " END { if (c != \"\") print \"eth=\" c; else if (d != \"\") print \"eth=\" d }';" +
             // bluetoothctl waits for bluetoothd forever, and bluetoothd does not
             // run without an adapter: without the timeout nothing here loads.
             "echo \"bt=$(timeout 2 bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
@@ -170,34 +214,44 @@ Scope {
     property var pd: ({})
     readonly property string prefs: root.home + "/.local/bin/clave-prefs"
 
-    // Picture chooser for the login screen (FEAT-4). "background" or "picture".
-    property string pictureFor: ""
-    function choosePicture(what: string): void {
-        root.pictureFor = what
-        pictureDialog.open()
+    // File choosers go through the desktop portal (clave-choose-file): Qt's
+    // own FileDialog has no backend in the shell and never opened.
+    property var pickDone: null
+    Process {
+        id: pickProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const file = this.text.trim()
+                const done = root.pickDone
+                root.pickDone = null
+                if (file !== "" && done)
+                    done(file)
+            }
+        }
     }
-    FileDialog {
-        id: pictureDialog
-        title: root.pictureFor === "background" ? "Choose a login background" : "Choose a profile picture"
-        currentFolder: "file://" + root.home + "/Pictures"
-        nameFilters: ["Pictures (*.jpg *.jpeg *.png *.webp)"]
-        onAccepted: root.run([root.prefs, "loginwindow", root.pictureFor,
-                              decodeURIComponent(`${selectedFile}`.replace(/^file:\/\//, ""))])
+    function pickFile(title: string, filter: string, patterns: var, done: var): void {
+        if (pickProc.running)
+            return
+        root.pickDone = done
+        pickProc.command = [root.home + "/.local/bin/clave-choose-file", "--title", title, "--filter", filter,
+                            "--folder", root.home + "/Pictures"].concat(patterns)
+        pickProc.running = true
+    }
+
+    // Picture chooser for the login screen (FEAT-4) and the lock screen:
+    // "background", "picture" or "lock".
+    function choosePicture(what: string): void {
+        const title = what === "lock" ? "Choose a lock screen picture"
+                    : what === "background" ? "Choose a login background" : "Choose a profile picture"
+        root.pickFile(title, "Pictures", ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.JPG", "*.JPEG", "*.PNG", "*.WEBP"],
+            file => root.run(what === "lock" ? [root.prefs, "lockscreen", "background", file]
+                                             : [root.prefs, "loginwindow", what, file]))
     }
     // Icon chooser for any app (APP-4): a local PNG or SVG. clave-prefs checks
     // the file and writes the desktop file override.
-    property string iconFor: ""
     function chooseIcon(appId: string): void {
-        root.iconFor = appId
-        iconDialog.open()
-    }
-    FileDialog {
-        id: iconDialog
-        title: "Choose an icon"
-        currentFolder: "file://" + root.home + "/Pictures"
-        nameFilters: ["Icons (*.png *.svg)"]
-        onAccepted: root.run([root.prefs, "icon", "set", root.iconFor,
-                              decodeURIComponent(`${selectedFile}`.replace(/^file:\/\//, ""))])
+        root.pickFile("Choose an icon", "Icons", ["*.png", "*.svg", "*.PNG", "*.SVG"],
+            file => root.run([root.prefs, "icon", "set", appId, file]))
     }
     readonly property var paneData: ({ "security": "usb", "battery": "battery", "datetime": "time",
         "notifications": "notify", "printers": "printers", "login": "login", "appearance": "appearance" })
@@ -214,6 +268,8 @@ Scope {
                 root.pd = d
                 if (root.paneData[root.pane] === jp.key)
                     root.refreshPane()
+                if (root.query !== "")
+                    root.buildSearchIndex()
             }
         }
     }
@@ -244,6 +300,11 @@ Scope {
     function refreshPane(): void {
         if (!root.arranging && root.choiceRow === null)
             root.sections = root.paneRows(root.pane)
+        // Stale entries would point at rows that changed; rebuilt on the next search.
+        if (root.query !== "")
+            root.buildSearchIndex()
+        else
+            root.searchIndex = []
     }
 
     // Apps for Notifications and Login Items: launcher-visible desktop entries.
@@ -452,12 +513,14 @@ Scope {
     }
 
     function setIdle(key: string, seconds: int): void {
-        let v = { "lock": Number(root.st.idle_lock || 0), "display": Number(root.st.idle_display || 0),
-                  "sleep": Number(root.st.idle_sleep || 0) }
-        v[key] = seconds
         root.setState("idle_" + key, `${seconds}`)
-        root.run([root.home + "/.local/bin/clave-idle", "set", `${v.lock}`, `${v.display}`, `${v.sleep}`])
+        // One value only: the window's copy of the others can be stale or empty.
+        root.run([root.home + "/.local/bin/clave-idle", "set-one", key, `${seconds}`])
+        // clave-idle may change a value (the display never turns off before
+        // the lock): read back what it saved.
+        idleRefresh.restart()
     }
+    Timer { id: idleRefresh; interval: 600; onTriggered: { statusProc.running = false; statusProc.running = true } }
 
     // Lid actions go to logind through /usr/local/bin/clave-lid (pkexec, no
     // password). lid_1/2/3 = on battery, plugged in, external display; an empty
@@ -500,28 +563,145 @@ Scope {
     // PANES
     // ==========================================
     readonly property var panes: [
-        { "id": "network",       "label": "Wi-Fi & Bluetooth", "glyph": "", "color": "#0a84ff" },
-        { "id": "general",       "label": "General",           "glyph": "", "color": "#8e8e93" },
-        { "id": "appearance",    "label": "Appearance",        "glyph": "", "color": "#3a3a3c" },
-        { "id": "controlcenter", "label": "Control Center",    "glyph": "", "color": "#636366" },
-        { "id": "dock",          "label": "Desktop & Dock",    "glyph": "", "color": "#3a3a3c" },
-        { "id": "displays",      "label": "Displays",          "glyph": "", "color": "#0a84ff" },
-        { "id": "wallpaper",     "label": "Wallpaper",         "glyph": "", "color": "#32ade6" },
-        { "id": "notifications", "label": "Notifications",     "glyph": "", "color": "#ff3b30" },
-        { "id": "sound",         "label": "Sound",             "glyph": "", "color": "#ff375f" },
-        { "id": "lock",          "label": "Lock Screen",       "glyph": "", "color": "#2c2c2e" },
-        { "id": "security",      "label": "Privacy & Security", "glyph": "", "color": "#0a84ff" },
-        { "id": "login",         "label": "Login Items",       "glyph": "", "color": "#636366" },
-        { "id": "battery",       "label": "Battery",           "glyph": "", "color": "#30d158" },
-        { "id": "keyboard",      "label": "Keyboard",          "glyph": "", "color": "#8e8e93" },
-        { "id": "mouse",         "label": "Mouse",             "glyph": "󰍽", "color": "#8e8e93" },
-        { "id": "trackpad",      "label": "Trackpad",          "glyph": "", "color": "#8e8e93" },
-        { "id": "printers",      "label": "Printers & Scanners", "glyph": "", "color": "#8e8e93" },
-        { "id": "datetime",      "label": "Date & Time",       "glyph": "", "color": "#0a84ff" }
+        { "id": "network",       "label": "Network & Bluetooth", "glyph": "", "color": "#0a84ff",
+          "keywords": ["wifi", "wireless", "internet", "bluetooth", "network", "airplane", "ethernet", "wired", "cable", "lan"] },
+        { "id": "general",       "label": "General",           "glyph": "", "color": "#8e8e93",
+          "keywords": ["about", "update", "software", "version", "shortcuts", "app store"] },
+        { "id": "appearance",    "label": "Appearance",        "glyph": "", "color": "#3a3a3c",
+          "keywords": ["dark mode", "light mode", "theme", "accent", "color", "font size", "text size", "icons"] },
+        { "id": "controlcenter", "label": "Control Center",    "glyph": "", "color": "#636366",
+          "keywords": ["menu bar", "clock", "battery percentage", "date"] },
+        { "id": "dock",          "label": "Desktop & Dock",    "glyph": "", "color": "#3a3a3c",
+          "keywords": ["dock", "hot corners", "spaces", "workspaces", "title bar", "traffic lights", "minimize", "genie"] },
+        { "id": "displays",      "label": "Displays",          "glyph": "", "color": "#0a84ff",
+          "keywords": ["monitor", "screen", "resolution", "refresh rate", "scale", "brightness", "night light", "mirror"] },
+        { "id": "wallpaper",     "label": "Wallpaper",         "glyph": "", "color": "#32ade6",
+          "keywords": ["background", "desktop picture"] },
+        { "id": "notifications", "label": "Notifications",     "glyph": "", "color": "#ff3b30",
+          "keywords": ["do not disturb", "dnd", "banners", "alerts"] },
+        { "id": "sound",         "label": "Sound",             "glyph": "", "color": "#ff375f",
+          "keywords": ["volume", "audio", "speakers", "output", "sound effects"] },
+        { "id": "lock",          "label": "Lock Screen",       "glyph": "", "color": "#2c2c2e",
+          "keywords": ["password", "idle", "screen saver", "sleep", "lock", "background", "lock screen picture", "login window", "profile picture", "avatar", "timeout"] },
+        { "id": "security",      "label": "Privacy & Security", "glyph": "", "color": "#0a84ff",
+          "keywords": ["privacy", "clipboard", "usb", "firewall", "encryption", "luks", "screen recording", "permissions"] },
+        { "id": "login",         "label": "Login Items",       "glyph": "", "color": "#636366",
+          "keywords": ["startup", "autostart", "open at login"] },
+        { "id": "battery",       "label": "Battery",           "glyph": "", "color": "#30d158",
+          "keywords": ["power", "lid", "charge limit", "energy", "low power"] },
+        { "id": "keyboard",      "label": "Keyboard",          "glyph": "", "color": "#8e8e93",
+          "keywords": ["layout", "language", "caps lock", "repeat", "shortcuts", "super key", "command key", "input"] },
+        { "id": "mouse",         "label": "Mouse",             "glyph": "󰍽", "color": "#8e8e93",
+          "keywords": ["pointer", "tracking speed", "scroll", "acceleration", "left handed"] },
+        { "id": "trackpad",      "label": "Trackpad",          "glyph": "", "color": "#8e8e93",
+          "keywords": ["touchpad", "tap to click", "gestures", "scroll", "swipe"] },
+        { "id": "printers",      "label": "Printers & Scanners", "glyph": "", "color": "#8e8e93",
+          "keywords": ["printer", "scanner", "print", "cups"] },
+        { "id": "datetime",      "label": "Date & Time",       "glyph": "", "color": "#0a84ff",
+          "keywords": ["time zone", "clock", "ntp", "24-hour", "date"] }
     ]
 
-    readonly property var visiblePanes: root.search === "" ? root.panes
-        : root.panes.filter(p => p.label.toLowerCase().indexOf(root.search.toLowerCase()) >= 0)
+    // ==========================================
+    // SEARCH (ISSUE-10)
+    // ==========================================
+    // Search finds panes by title, by keywords and by what is inside them:
+    // section titles, row labels and descriptions, and short choice lists.
+    // The index is built from paneRows() when a search starts and again when
+    // pane data arrives, not on every key press.
+    property var searchIndex: []        // [{ pane, label, text }]
+    readonly property string query: root.search.trim().toLowerCase()
+
+    function buildSearchIndex(): void {
+        let idx = []
+        root.panes.forEach(p => {
+            let secs = []
+            try { secs = root.paneRows(p.id) } catch (e) { console.warn("settings search:", p.id, e) }
+            secs.forEach(sec => (sec.rows || []).forEach(r => {
+                const label = r.label || sec.title || ""
+                if (label === "")
+                    return
+                let words = [sec.title || "", r.label || "", r.sub || "", r.text || ""]
+                // Long lists (apps, time zones) would match nearly anything.
+                if (r.type === "choice" && (r.options || []).length <= 12)
+                    words = words.concat(r.options.map(o => `${o.label}`))
+                idx.push({ "pane": p.id, "label": label, "text": words.join("\n").toLowerCase() })
+            }))
+        })
+        root.searchIndex = idx
+    }
+
+    // True when q starts a word in text: "lock" finds "Lock Screen", not "Clock".
+    function hasWord(text: string, q: string): bool {
+        for (let i = text.indexOf(q); i >= 0; i = text.indexOf(q, i + 1))
+            if (i === 0 || !/[a-z0-9]/.test(text[i - 1]))
+                return true
+        return false
+    }
+
+    function matchPanes(q: string, idx: var): var {
+        if (q === "")
+            return root.panes
+        const title = p => root.hasWord(p.label.toLowerCase(), q)
+            || (p.keywords || []).some(k => root.hasWord(k, q))
+        let found = []
+        root.panes.forEach(p => {
+            const hits = [...new Set(idx.filter(e => e.pane === p.id && root.hasWord(e.text, q)).map(e => e.label))]
+            if (title(p) || hits.length)
+                found.push(Object.assign({}, p, { "hits": hits.slice(0, 3), "titleHit": title(p) }))
+        })
+        // Title matches first; each group keeps the sidebar order.
+        return found.filter(p => p.titleHit).concat(found.filter(p => !p.titleHit))
+    }
+
+    readonly property var visiblePanes: root.matchPanes(root.query, root.searchIndex)
+
+    onQueryChanged: {
+        if (root.query === "")
+            return
+        if (root.searchIndex.length === 0) {
+            // Load every pane's data once so its rows can be found too.
+            Object.keys(root.dataProcs).forEach(k => { if (!root.pd[k]) root.reload(k) })
+            root.buildSearchIndex()
+        }
+    }
+
+    // Open a pane from the search results and point at the row found.
+    property string highlightLabel: ""
+    property var scrollTarget: null
+    // The content pane lives inside the window; it registers itself here.
+    property var contentView: null
+    property var contentColumn: null
+    function openResult(id: string, label: string): void {
+        root.choiceRow = null
+        root.scrollTarget = null
+        root.pane = id
+        root.highlightLabel = ""        // the same row twice scrolls again
+        root.highlightLabel = label
+        highlightTimer.restart()
+        if (label === "" && root.contentView)
+            root.contentView.contentY = 0
+    }
+    Timer { id: highlightTimer; interval: 1600; onTriggered: root.highlightLabel = "" }
+    // Rows report themselves when they match; scroll once the layout is done.
+    function wantScroll(item: var): void {
+        if (root.scrollTarget === null) {
+            root.scrollTarget = item
+            scrollTimer.restart()
+        }
+    }
+    Timer {
+        id: scrollTimer
+        interval: 60
+        onTriggered: {
+            const t = root.scrollTarget
+            const view = root.contentView, col = root.contentColumn
+            if (!t || !view || !col)
+                return
+            const y = t.mapToItem(col, 0, 0).y + col.y
+            const max = Math.max(0, view.contentHeight - view.height)
+            view.contentY = Math.max(0, Math.min(max, y - view.height / 3))
+        }
+    }
 
     readonly property string paneTitle: (root.panes.find(p => p.id === root.pane) || {}).label || ""
 
@@ -535,7 +715,16 @@ Scope {
     function paneRows(id: string): var {
         const M = ClaveSettings
         const D = DockSettings
-        if (id === "network") return [
+        if (id === "network") {
+            const eth = root.st.eth || ""
+            return [
+            { "title": "", "rows": [
+                { "type": "info", "label": "Ethernet",
+                  "sub": eth.startsWith("connected:") ? eth.slice(10).replace(/\\:/g, ":")
+                       : eth.startsWith("unavailable") ? "Cable unplugged"
+                       : eth === "" ? "No wired adapter found (built-in port, dock or USB)" : "",
+                  "value": eth.startsWith("connected:") ? "Connected" : eth === "" ? "No Adapter" : "Not Connected" }
+            ]},
             { "title": "", "rows": [
                 { "type": "switch", "label": "Wi-Fi",
                   "get": () => root.st.wifi === "enabled",
@@ -550,7 +739,8 @@ Scope {
                 { "type": "button", "label": "Devices", "text": "Bluetooth Settings…",
                   "action": () => root.run(["blueman-manager"]) }
             ]}
-        ]
+            ]
+        }
         if (id === "general") return [
             { "title": "", "rows": [
                 { "type": "button", "label": "About", "text": "About This Computer",
@@ -704,13 +894,26 @@ Scope {
                 { "type": "choice", "label": "Sleep when inactive", "options": root.idleChoices,
                   "get": () => Number(root.st.idle_sleep || 0), "set": v => root.setIdle("sleep", v) }
             ]},
+            { "title": "Lock Screen", "rows": [
+                { "type": "choice", "label": "Background",
+                  "options": [{ "id": "wallpaper", "label": "Blurred wallpaper" }, { "id": "picture", "label": "Custom picture" }],
+                  "get": () => M.get("lockScreen", "background"),
+                  // A custom picture is set once one is chosen.
+                  "set": v => v === "picture" ? root.choosePicture("lock")
+                                              : root.run([root.prefs, "lockscreen", "background", "wallpaper"]) },
+                { "type": "button", "label": "Picture", "text": "Choose Picture…",
+                  "action": () => root.choosePicture("lock") }
+            ]},
             { "title": "Login Window", "rows": [
-                { "type": "button", "label": "Background", "text": "Use Current Wallpaper",
+                // One button per row, each row named: an unnamed second
+                // "Choose Picture…" read as a duplicate of the profile picture.
+                { "type": "button", "label": "Background", "sub": "A picture of your own",
+                  "text": "Choose Picture…", "action": () => root.choosePicture("background") },
+                { "type": "button", "label": "Background from the wallpaper", "sub": "The desktop picture in use now",
+                  "text": "Use Current Wallpaper",
                   "action": () => root.run([root.prefs, "loginwindow", "background", "wallpaper"]) },
-                { "type": "button", "label": "", "text": "Choose Picture…",
-                  "action": () => root.choosePicture("background") },
-                { "type": "button", "label": "Profile picture", "text": "Choose Picture…",
-                  "action": () => root.choosePicture("picture") }
+                { "type": "button", "label": "Profile picture", "sub": "Also shown on the lock screen",
+                  "text": "Choose Picture…", "action": () => root.choosePicture("picture") }
             ]},
             { "title": "", "rows": [
                 { "type": "button", "label": "Lock the screen now", "text": "Lock Screen",
@@ -830,7 +1033,7 @@ Scope {
                 { "title": "Desktop features", "rows": [
                     sw("features", "appSwitcher", "App switcher", "Super+Tab shows your open apps. Off: Super+Tab opens Overview"),
                     sw("features", "windowTiling", "Window tiling", "Window > Move & Resize and Super+Shift+Arrows"),
-                    sw("features", "screenRecording", "Screen recording", "Record buttons in the screenshot toolbar (Shift+Super+5)")
+                    sw("features", "screenRecording", "Screen recording", "Record buttons in the screenshot toolbar (Print)")
                 ]}
             ]
             if (devs.length || root.st.usbguard === "active")
@@ -1097,6 +1300,23 @@ Scope {
                                 font.pixelSize: 13
                                 clip: true
                                 onTextChanged: root.search = text
+                                Component.onCompleted: text = root.search
+                                Connections {
+                                    target: root
+                                    function onSearchChanged() {
+                                        if (searchInput.text !== root.search)
+                                            searchInput.text = root.search
+                                    }
+                                }
+                                Keys.onReturnPressed: {
+                                    const p = root.visiblePanes[0]
+                                    if (root.query !== "" && p)
+                                        root.openResult(p.id, (p.hits || [])[0] || "")
+                                }
+                                Keys.onEscapePressed: event => {
+                                    if (text !== "") { text = ""; event.accepted = true }
+                                    else event.accepted = false
+                                }
                                 Text {
                                     textFormat: Text.PlainText
                                     anchors.fill: parent
@@ -1123,14 +1343,20 @@ Scope {
                                 Repeater {
                                     model: root.visiblePanes
                                     delegate: Rectangle {
+                                        id: paneItem
                                         required property var modelData
+                                        readonly property var hits: root.query !== "" ? (modelData.hits || []) : []
+                                        readonly property bool selected: root.pane === modelData.id
                                         Layout.fillWidth: true
-                                        implicitHeight: 30
+                                        implicitHeight: 30 + hits.length * 20 + (hits.length ? 4 : 0)
                                         radius: 6
-                                        color: root.pane === modelData.id ? Theme.accent
+                                        color: selected ? Theme.accent
                                             : (paneMouse.containsMouse ? Theme.fgA(0.06) : "transparent")
                                         RowLayout {
-                                            anchors.fill: parent
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            height: 30
                                             anchors.leftMargin: 8
                                             spacing: 8
                                             Rectangle {
@@ -1162,9 +1388,49 @@ Scope {
                                             id: paneMouse
                                             anchors.fill: parent
                                             hoverEnabled: true
-                                            onClicked: { root.choiceRow = null; root.pane = modelData.id }
+                                            onClicked: root.openResult(paneItem.modelData.id, paneItem.hits[0] || "")
+                                        }
+                                        // Rows inside the pane that match the search.
+                                        Column {
+                                            anchors.top: parent.top
+                                            anchors.topMargin: 28
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 38
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: 6
+                                            Repeater {
+                                                model: paneItem.hits
+                                                delegate: Text {
+                                                    required property string modelData
+                                                    textFormat: Text.PlainText
+                                                    width: parent.width
+                                                    height: 20
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    text: modelData
+                                                    color: paneItem.selected ? Qt.rgba(1, 1, 1, 0.85) : Theme.fgA(0.6)
+                                                    font.family: Theme.fontFamily
+                                                    font.pixelSize: 11
+                                                    elide: Text.ElideRight
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        onClicked: root.openResult(paneItem.modelData.id, parent.modelData)
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
+                                }
+                                Text {
+                                    textFormat: Text.PlainText
+                                    visible: root.query !== "" && root.visiblePanes.length === 0
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: 8
+                                    horizontalAlignment: Text.AlignHCenter
+                                    wrapMode: Text.Wrap
+                                    text: "No results for \u201c" + root.search.trim() + "\u201d"
+                                    color: Theme.fgA(0.5)
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 12
                                 }
                             }
                         }
@@ -1187,6 +1453,7 @@ Scope {
                         bottomRightRadius: 12
                     }
                     contentHeight: contentCol.implicitHeight + 40
+                    Component.onCompleted: { root.contentView = content; root.contentColumn = contentCol }
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
 
@@ -1249,10 +1516,23 @@ Scope {
                                                 required property var modelData
                                                 required property int index
                                                 readonly property var r: modelData
+                                                // Found by search: scroll here and flash (ISSUE-10).
+                                                readonly property bool found: root.highlightLabel !== ""
+                                                    && (r.label || section.modelData.title || "") === root.highlightLabel
+                                                onFoundChanged: if (found) root.wantScroll(rowItem)
+                                                Component.onCompleted: if (found) root.wantScroll(rowItem)
                                                 Layout.fillWidth: true
                                                 implicitHeight: r.type === "wallpapers" ? wallGrid.implicitHeight + 24
                                                     : r.type === "arrangement" ? 270
                                                     : (r.sub ? 52 : 40)
+
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    radius: 10
+                                                    color: Theme.accent
+                                                    opacity: rowItem.found ? 0.18 : 0
+                                                    Behavior on opacity { NumberAnimation { duration: 250 } }
+                                                }
 
                                                 // hairline between rows
                                                 Rectangle {
