@@ -7,7 +7,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 pattern='\b(Mac|MacBook|iMac|macOS|MacOS|macos|Apple|apple|Cupertino|Sonoma|Sequoia)\b|Mission Control|Spotlight|Launchpad|Night Shift|Finder|San Francisco|SF (Pro|Mono)'
 allowed='^(docs/PROJECT_PLAN\.md|README\.md|CHANGELOG\.md|lib/migrate\.sh|lib/personal\.sh|packages/personal-aur\.txt|tests/migrate-test\.sh|scripts/name-check\.sh|Notes\.md):'
-if git ls-files -co --exclude-standard -z | xargs -0 grep -nIE "$pattern" -- 2>/dev/null | grep -vE "$allowed"; then
+# xargs exits non-zero when a batch has no match, so the result is read from
+# the output: with pipefail, an "if pipeline" test would never fire.
+hits=$(git ls-files -co --exclude-standard -z | xargs -0 grep -nIE "$pattern" -- 2>/dev/null | grep -vE "$allowed" || true)
+if [ -n "$hits" ]; then
+    echo "$hits"
     echo "Apple names found outside the allowed files (see PROJECT_PLAN.md 5.1)." >&2
     exit 1
 fi

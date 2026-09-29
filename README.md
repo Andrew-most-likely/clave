@@ -1,15 +1,62 @@
-# Clave
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/wordmark-dark.png">
+    <img src="docs/assets/brand/wordmark-light.png" alt="Clave" width="280">
+  </picture>
+</p>
 
-A polished desktop for [Hyprland](https://hypr.land) on Arch Linux, with tiling kept. It has a menu bar,
-a Dock with the genie effect, Overview, Control Center, System Settings and traffic-light title bars.
-Everything is built with [Quickshell](https://quickshell.org) and Hyprland's Lua config. It is standalone: it
-needs no other dotfiles pack.
+<p align="center">
+  <strong>A complete, hardened desktop for Hyprland on Arch Linux.</strong><br>
+  Menu bar, Dock, Overview, Control Center, System Settings and standard apps, with tiling kept.
+</p>
 
-<!-- Screenshots: assets/screenshots/ -->
+<p align="center">
+  <a href="https://github.com/Andrew-most-likely/clave/releases/latest"><img src="https://img.shields.io/badge/release-v1.1.2-0a6fe0" alt="Release v1.1.2"></a>
+  <a href="https://github.com/Andrew-most-likely/clave/actions/workflows/ci.yml"><img src="https://github.com/Andrew-most-likely/clave/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Arch_Linux-1793d1?logo=archlinux&logoColor=white" alt="Arch Linux">
+  <img src="https://img.shields.io/badge/Hyprland-0.55%2B-58e1ff" alt="Hyprland 0.55+">
+  <img src="https://img.shields.io/badge/Wayland-native-4a4a55" alt="Wayland">
+  <img src="https://img.shields.io/badge/hardened-by_default-2e7d32" alt="Hardened by default">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+</p>
 
-[![CI](https://github.com/Andrew-most-likely/clave/actions/workflows/ci.yml/badge.svg)](https://github.com/Andrew-most-likely/clave/actions/workflows/ci.yml)
-![Hyprland 0.55+](https://img.shields.io/badge/Hyprland-0.55%2B-58e1ff)
-![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)
+<p align="center">
+  <a href="https://andrew-most-likely.github.io/clave/">Website</a> &nbsp;&middot;&nbsp;
+  <a href="#install">Install</a> &nbsp;&middot;&nbsp;
+  <a href="#what-you-get">Features</a> &nbsp;&middot;&nbsp;
+  <a href="CHANGELOG.md">Changelog</a> &nbsp;&middot;&nbsp;
+  <a href="docs/RECOVERY.md">Recovery</a> &nbsp;&middot;&nbsp;
+  <a href="SECURITY.md">Security</a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshots/desktop.webp" alt="The Clave desktop: menu bar, a terminal and Files tiled side by side, and the Dock" width="100%">
+</p>
+
+Clave turns Hyprland into a finished desktop. Everything is built with [Quickshell](https://quickshell.org) and
+Hyprland's Lua config, and it needs no other dotfiles pack. It installs hardened by default, works offline, and a
+feature that is turned off runs no process.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/overview.webp" alt="Overview with every window and Space"><br><sub><b>Overview</b>: every window and Space at a glance</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/control-center.webp" alt="Control Center open from the menu bar"><br><sub><b>Control Center</b>: network, Bluetooth, Focus, display, sound and media</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/settings.webp" alt="System Settings on the Appearance pane"><br><sub><b>System Settings</b>: a pane for each part of the desktop, with search</sub></td>
+    <td><img src="docs/assets/screenshots/apps.webp" alt="Apps showing the standard app set"><br><sub><b>Apps</b>: the standard apps, with helper launchers hidden</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/notes.webp" alt="Notes with a Markdown note open"><br><sub><b>Notes</b>: plain Markdown files in <code>~/Documents/Notes</code></sub></td>
+    <td><img src="docs/assets/screenshots/calendar.webp" alt="Calendar month view with events"><br><sub><b>Calendar</b>: plain <code>.ics</code> files, no account</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/activity.webp" alt="Activity Monitor listing processes"><br><sub><b>Activity Monitor</b>: CPU, memory, disk and network</sub></td>
+    <td><img src="docs/assets/screenshots/capture.webp" alt="Screenshot toolbar at the bottom of the screen"><br><sub><b>Screenshots</b>: <code>Print</code> opens the capture and recording toolbar</sub></td>
+  </tr>
+</table>
+
+A short video tour is on the [website](https://andrew-most-likely.github.io/clave/#tour).
 
 ## Install
 
@@ -108,9 +155,9 @@ Press `Super+/` to see all of them.
 
 | Keys | Action | Keys | Action |
 |---|---|---|---|
-| `Super+Space` or tap `Super` | Search | `Super+Q` | Close window |
-| `Super+A` | Apps | `Super+H` | Minimize to the Dock |
-| `Super+Tab` | Overview | `Super+F` / `Super+M` | Full screen / Zoom |
+| `Super+Space` or tap `Super` | Search | `Super+W` / `Super+Q` | Close window / Quit app |
+| `Super+A` | Apps | `Super+M` / `Super+H` | Minimize to the Dock / Hide app |
+| `Super+Tab` | Overview | `Super+F` / `Super+Ctrl+M` | Full screen / Zoom |
 | `Alt+Tab` | Switch windows | `Super+T` | Float or tile the window |
 | `Super+Return` | Terminal (kitty) | `Super+1…0` | Go to a Space |
 | `Super+E` | Files | `Super+Shift+1…0` | Move the window to a Space |

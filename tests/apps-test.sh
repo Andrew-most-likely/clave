@@ -83,6 +83,21 @@ rm "$tmp/sys/applications/org.gnome.FileRoller.desktop"
 "$prefs" apps names
 [ ! -e "$roller" ] && ok "override removed when the helper is gone" || fail "override left after the helper is gone"
 
+# A desktop file that starts with comments (hwloc's lstopo.desktop): the
+# NoDisplay line goes into [Desktop Entry], not above it.
+printf '# comment before the group\n\n[Desktop Entry]\nType=Application\nName=Hardware Locality lstopo\nExec=lstopo\n\n[Desktop Action x]\nName=X\nExec=x\n' \
+    > "$tmp/sys/applications/lstopo.desktop"
+"$prefs" apps names
+lstopo="$XDG_DATA_HOME/applications/lstopo.desktop"
+python3 - "$lstopo" <<'EOF2' && ok "hidden inside [Desktop Entry] after leading comments" || fail "NoDisplay is not in [Desktop Entry]: $(cat "$lstopo")"
+import configparser, sys
+c = configparser.ConfigParser(interpolation=None)
+c.optionxform = str
+c.read_string("\n".join(l for l in open(sys.argv[1]).read().splitlines() if not l.startswith("#")))
+assert c["Desktop Entry"]["NoDisplay"] == "true"
+assert "NoDisplay" not in c["Desktop Action x"]
+EOF2
+
 # gtk.css keeps loading clave.css after a light/dark switch.
 python3 - "$prefs" "$tmp" <<'EOF'
 import importlib.machinery, importlib.util, sys

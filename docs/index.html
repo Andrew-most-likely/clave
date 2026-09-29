@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clave</title>
+<meta name="description" content="Clave is a complete, hardened desktop for Hyprland on Arch Linux: a menu bar, a Dock, Overview, Control Center, System Settings and standard apps, with tiling kept.">
+<meta property="og:title" content="Clave">
+<meta property="og:description" content="A complete, hardened desktop for Hyprland on Arch Linux.">
+<meta property="og:image" content="assets/brand/social-preview.png">
+<meta name="theme-color" content="#16181c">
+<link rel="icon" type="image/svg+xml" href="assets/brand/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column that widens for screenshots; the keystone shape frames the hero and marks sections. */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #16181c;
+  --muted: #5b6270;
+  --line: #dde0e6;
+  --accent: #0a6fe0;
+  --accent-ink: #ffffff;
+  --code-bg: #eceef2;
+  --shadow: 0 1px 2px rgba(22, 24, 28, .06), 0 12px 32px rgba(22, 24, 28, .08);
+  --font-display: "Inter Tight", "Inter", system-ui, "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 14px;
+  --wide: 1160px;
+  --read: 720px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --surface: #1a1d23; --ink: #eef0f4; --muted: #9aa2b1; --line: #2a2e37;
+    --accent: #4aa3ff; --accent-ink: #0b1220; --code-bg: #20242c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 16px 40px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --surface: #1a1d23; --ink: #eef0f4; --muted: #9aa2b1; --line: #2a2e37;
+  --accent: #4aa3ff; --accent-ink: #0b1220; --code-bg: #20242c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 16px 40px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+body {
+  margin: 0;
+  padding-inline: 20px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.65 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+img, video { max-width: 100%; display: block; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); font-weight: 700; letter-spacing: -.02em; }
+h3 { font-size: 1.08rem; font-weight: 600; letter-spacing: -.005em; }
+p { margin: 0; }
+code, pre, kbd { font-family: var(--font-mono); font-size: .88em; }
+code { background: var(--code-bg); padding: .12em .4em; border-radius: 5px; }
+kbd {
+  display: inline-block; padding: .05em .45em; border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 6px; background: var(--surface); font-size: .82em; white-space: nowrap;
+}
+
+.wrap { max-width: var(--wide); margin-inline: auto; }
+.read { max-width: var(--read); }
+
+/* Header */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
+  margin-inline: -20px; padding: 12px 20px;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.top .wrap { display: flex; align-items: center; gap: 24px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font: 700 1.15rem var(--font-display); letter-spacing: -.01em; }
+.brand svg { width: 22px; height: 22px; }
+.nav { display: flex; gap: 20px; margin-left: auto; font-size: .92rem; }
+.nav a { color: var(--muted); text-decoration: none; }
+.nav a:hover { color: var(--ink); }
+.nav .gh { color: var(--ink); font-weight: 500; }
+@media (max-width: 760px) { .nav a:not(.gh) { display: none; } }
+
+/* Hero */
+.hero { padding-block: 72px 40px; display: grid; gap: 28px; }
+.eyebrow { font: 500 .78rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.eyebrow span { display: inline-flex; align-items: center; gap: 8px; }
+.eyebrow span + span::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--line); margin-right: 10px; }
+.hero h1 { font-size: clamp(2.4rem, 6.4vw, 4.6rem); font-weight: 700; letter-spacing: -.035em; max-width: 14ch; }
+.hero .lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--muted); max-width: 60ch; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px;
+  font: 600 .95rem var(--font-body); text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--surface);
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn:hover { filter: brightness(1.06); }
+
+.cmd {
+  display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 10px 10px 16px;
+}
+.cmd code { background: none; padding: 0; overflow-x: auto; white-space: nowrap; flex: 1; min-width: 0; font-size: .86rem; scrollbar-width: thin; }
+.cmd .prompt { color: var(--muted); user-select: none; margin-right: .6em; }
+.copy {
+  flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px;
+  padding: 6px 12px; font: 500 .82rem var(--font-body); cursor: pointer;
+}
+
+.shot {
+  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); background: #0d0f12;
+}
+.shot img, .shot video { width: 100%; height: auto; }
+.hero .shot { margin-top: 12px; }
+
+/* Sections */
+section { padding-block: 72px; border-top: 1px solid var(--line); }
+.head { display: grid; gap: 12px; margin-bottom: 36px; }
+.head .kicker { display: flex; align-items: center; gap: 10px; font: 500 .78rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.head .kicker svg { width: 12px; height: 12px; }
+.head p { color: var(--muted); max-width: 64ch; font-size: 1.05rem; }
+
+/* Gallery */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.tab {
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px;
+  padding: 7px 14px; font: 500 .88rem var(--font-body); cursor: pointer;
+}
+.tab[aria-selected="true"] { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+.caption { margin-top: 14px; color: var(--muted); font-size: .95rem; max-width: 70ch; }
+
+/* Feature grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.cell { background: var(--surface); padding: 24px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.cell p { color: var(--muted); font-size: .95rem; }
+
+/* Split rows */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 48px; align-items: center; }
+.split + .split { margin-top: 64px; }
+.split.flip > :first-child { order: 2; }
+@media (max-width: 880px) { .split { grid-template-columns: 1fr; gap: 24px; } .split.flip > :first-child { order: 0; } }
+.split .text { display: grid; gap: 14px; }
+.split .text p { color: var(--muted); }
+ul.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+ul.plain li { padding-left: 18px; position: relative; color: var(--muted); }
+ul.plain li::before { content: ""; position: absolute; left: 0; top: .72em; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); opacity: .7; }
+
+/* Apps list */
+.apps { display: flex; flex-wrap: wrap; gap: 8px; }
+.apps span { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 8px; font-size: .9rem; }
+
+/* Tables */
+.table { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 .78rem var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+td:first-child { white-space: nowrap; }
+
+/* Steps */
+.steps { display: grid; gap: 20px; counter-reset: step; }
+.step { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 16px; }
+.step::before {
+  counter-increment: step; content: counter(step); display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font: 600 .9rem var(--font-mono); color: var(--accent);
+}
+.step > div { display: grid; gap: 8px; min-width: 0; }
+.step p { color: var(--muted); }
+pre { margin: 0; background: var(--code-bg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.6; }
+
+/* FAQ */
+details { border-bottom: 1px solid var(--line); padding-block: 16px; }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; font: 600 1rem var(--font-display); list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--muted); font-family: var(--font-mono); }
+details[open] summary::after { content: "\2212"; }
+details p { color: var(--muted); margin-top: 10px; max-width: 70ch; }
+
+footer { border-top: 1px solid var(--line); padding-block: 40px 56px; color: var(--muted); font-size: .9rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; align-items: center; }
+footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
+footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="keystone" viewBox="0 0 100 100"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><svg aria-hidden="true"><use href="#keystone"/></svg>Clave</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#tour">Tour</a>
+      <a href="#features">Features</a>
+      <a href="#security">Security</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+      <a class="gh" href="https://github.com/Andrew-most-likely/clave">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div class="eyebrow"><span>Version 1.1.2</span><span>Arch Linux</span><span>Hyprland 0.55+</span><span>GPL-3.0</span></div>
+    <h1>A complete desktop for Hyprland.</h1>
+    <p class="lede">Clave turns Hyprland on Arch Linux into a finished desktop: a menu bar, a Dock, Overview, Control Center, System Settings and a set of standard apps, with tiling kept. It installs hardened by default, works offline, and runs nothing in the background that it does not need.</p>
+    <div class="cmd" role="group" aria-label="Install command">
+      <code id="install-cmd"><span class="prompt">$</span>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)</code>
+      <button class="copy" type="button" id="copy-install" data-copy="bash <(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)">Copy</button>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="#install">Install guide</a>
+      <a class="btn" href="https://github.com/Andrew-most-likely/clave/releases/latest">Release notes</a>
+      <a class="btn" href="https://github.com/Andrew-most-likely/clave">Source code</a>
+    </div>
+    <div class="shot"><img src="assets/screenshots/desktop.webp" alt="The Clave desktop with the menu bar at the top and the Dock at the bottom" width="1920" height="1080"></div>
+  </div>
+
+  <section id="tour">
+    <div class="wrap">
+      <div class="head">
+        <div class="kicker"><svg aria-hidden="true"><use href="#keystone"/></svg>Tour</div>
+        <h2>Everything a desktop needs, drawn in one style.</h2>
+        <p>The shell is built with Quickshell and Hyprland's Lua config. It is standalone and needs no other dotfiles pack. Pick a part to see it.</p>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Screenshots" id="tabs"></div>
+      <div class="shot"><img id="tour-img" src="assets/screenshots/overview.webp" alt="" width="1920" height="1080"></div>
+      <p class="caption" id="tour-caption"></p>
+      <div class="split" style="margin-top:64px">
+        <div class="text">
+          <h3 style="font-size:1.4rem">Watch the tour</h3>
+          <p>Twenty seconds on a fresh install: Overview, Control Center, Apps, System Settings and a window minimized to the Dock.</p>
+          <p style="font-size:.9rem">Recorded in a virtual machine with software rendering, so animations run at a lower frame rate than on real hardware.</p>
+        </div>
+        <div class="shot"><video src="assets/video/tour.mp4" poster="assets/video/tour-poster.jpg" controls muted playsinline preload="none" width="1600" height="900"></video></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="head">
+        <div class="kicker"><svg aria-hidden="true"><use href="#keystone"/></svg>Features</div>
+        <h2>Built in, and costs nothing when off.</h2>
+        <p>Each feature is a setting in System Settings. A feature that is turned off starts no process and uses no memory.</p>
+      </div>
+      <div class="grid">
+        <div class="cell"><h3>Menu bar</h3><p>The System menu, the app menu, battery, network, sound and the clock. One menu bar per screen.</p></div>
+        <div class="cell"><h3>Dock</h3><p>Magnification, running indicators, pinning, and a genie minimize animation drawn with GLSL shaders.</p></div>
+        <div class="cell"><h3>Overview and Spaces</h3><p>All windows at a glance, hot corners, and trackpad gestures to switch Spaces and open Apps.</p></div>
+        <div class="cell"><h3>Search and Apps</h3><p>Find and open apps from the keyboard, with a calculator one key away that works offline.</p></div>
+        <div class="cell"><h3>Control Center</h3><p>Wi-Fi, Ethernet, Bluetooth, Focus, brightness, volume, Night Light, media and screen mirroring.</p></div>
+        <div class="cell"><h3>System Settings</h3><p>A pane for each part of the desktop, from Displays to Privacy &amp; Security, with a search that finds the setting inside each pane.</p></div>
+        <div class="cell"><h3>Screenshots and recording</h3><p><kbd>Print</kbd> opens a toolbar for the screen, a window, an area or a recording. <kbd>Shift</kbd>+<kbd>Print</kbd> copies text from the screen.</p></div>
+        <div class="cell"><h3>Traffic-light title bars</h3><p>Close, minimize and zoom buttons on every window, built from source for your Hyprland version.</p></div>
+        <div class="cell"><h3>Lock, login and boot</h3><p>A lock screen with idle timeouts, an SDDM login screen and a Plymouth boot splash in the same style.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="apps">
+    <div class="wrap">
+      <div class="split">
+        <div class="text">
+          <div class="kicker" style="font:500 .78rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Apps</div>
+          <h2>Standard apps, with plain names.</h2>
+          <p>Clave installs a set of apps from the Arch repositories, with no background services. Only Weather, Maps and Podcasts go online, and only while open.</p>
+          <p>Notes, Calendar and Contacts are Clave's own. They keep your data as plain Markdown, <code>.ics</code> and <code>.vcf</code> files. No accounts and no sync: the files are yours.</p>
+        </div>
+        <div class="shot"><img src="assets/screenshots/notes.webp" alt="The Notes app with a folder list and a Markdown note" width="1920" height="1080" loading="lazy"></div>
+      </div>
+      <div class="apps" style="margin-top:36px" aria-label="Apps installed by default">
+        <span>Files</span><span>Text Editor</span><span>Calculator</span><span>Notes</span><span>Calendar</span><span>Contacts</span><span>Reminders</span><span>Stickies</span><span>Weather</span><span>Clock</span><span>Maps</span><span>Photos</span><span>Books</span><span>Podcasts</span><span>Music</span><span>Videos</span><span>Voice Memos</span><span>Camera</span><span>Fonts</span><span>Chess</span><span>Freeform board</span><span>Scanner</span><span>Screen Sharing</span><span>Console</span><span>System Information</span><span>Disk Utility</span><span>Keychain</span><span>Backups</span><span>Activity Monitor</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="security">
+    <div class="wrap">
+      <div class="head">
+        <div class="kicker"><svg aria-hidden="true"><use href="#keystone"/></svg>Security</div>
+        <h2>Hardened by default.</h2>
+        <p>The hardening layer is part of the normal install. Skip it with <code>--no-harden</code>. If it ever locks you out, the recovery guide explains how to get back in.</p>
+      </div>
+      <div class="grid">
+        <div class="cell"><h3>Kernel</h3><p><code>linux-hardened</code> with lockdown, IOMMU and <code>init_on_free</code> flags, plus a sysctl lockdown.</p></div>
+        <div class="cell"><h3>Firewall</h3><p>nftables drops all inbound traffic by default. OpenSnitch asks before apps connect out.</p></div>
+        <div class="cell"><h3>Mandatory access control</h3><p>AppArmor with the <code>apparmor.d</code> profiles, and auditd.</p></div>
+        <div class="cell"><h3>Devices and logins</h3><p>USBGuard, faillock, a stricter sudo, <code>umask 027</code> at login and a <code>noexec</code> <code>/tmp</code>.</p></div>
+        <div class="cell"><h3>Integrity</h3><p>An AIDE baseline and a daily <code>arch-audit</code> check for known vulnerabilities.</p></div>
+        <div class="cell"><h3>Disk Encryption</h3><p>Clave says when the disk is not encrypted and guides the setup with LUKS2, as a reinstall or in place.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="compatibility">
+    <div class="wrap">
+      <div class="split flip">
+        <div class="text">
+          <div class="kicker" style="font:500 .78rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Updates</div>
+          <h2>Safe on a rolling release.</h2>
+          <p>Arch updates the software Clave depends on at any time. Each release lists the versions it was tested with, and Clave checks the machine against that list.</p>
+          <ul class="plain">
+            <li><code>clave-doctor</code> checks the Hyprland config, the plugins, the shell's log and each package Clave talks to. It uses no network.</li>
+            <li>A pacman hook warns after an upgrade that this release was not tested with, and never stops the upgrade.</li>
+            <li>A daily check on GitHub opens an issue when an Arch update breaks Clave.</li>
+            <li>Releases are signed, and <code>clave-update</code> installs only signed releases.</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="assets/screenshots/settings.webp" alt="System Settings with a search for a setting" width="1920" height="1080" loading="lazy"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap read">
+      <div class="head">
+        <div class="kicker"><svg aria-hidden="true"><use href="#keystone"/></svg>Install</div>
+        <h2>Install in three steps.</h2>
+        <p>On Arch Linux or an Arch-based distribution, as your normal user. The installer shows a summary and asks before it changes anything.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><div>
+          <h3>Run the setup script</h3>
+          <p>It clones the latest release to <code>~/.local/src/clave</code> and runs the installer. It is 40 lines; read it first if you like.</p>
+          <pre><code>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)</code></pre>
+        </div></div>
+        <div class="step"><div>
+          <h3>Or clone it by hand</h3>
+          <p>Preview every change with <code>--dry-run</code> first.</p>
+          <pre><code>git clone https://github.com/Andrew-most-likely/clave ~/.local/src/clave
+cd ~/.local/src/clave
+./install.sh --dry-run
+./install.sh</code></pre>
+        </div></div>
+        <div class="step"><div>
+          <h3>Log out and pick Hyprland</h3>
+          <p>Choose Hyprland on the login screen. Update later from System Settings or with <code>clave-update</code>.</p>
+        </div></div>
+      </div>
+
+      <h3 style="margin-top:48px;margin-bottom:14px">Installer options</h3>
+      <div class="table">
+        <table>
+          <thead><tr><th>Option</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>--yes</code></td><td>No questions. Hardening is included and its warning is printed.</td></tr>
+            <tr><td><code>--no-harden</code></td><td>Skip the security hardening layer.</td></tr>
+            <tr><td><code>--extras</code></td><td>Also install the optional apps.</td></tr>
+            <tr><td><code>--personal</code></td><td>Use fonts, a cursor and sounds you supply yourself.</td></tr>
+            <tr><td><code>--user-only</code></td><td>Only install files in your home folder. No sudo.</td></tr>
+            <tr><td><code>--no-packages</code></td><td>Skip pacman, AUR and Flatpak.</td></tr>
+            <tr><td><code>--dry-run</code></td><td>Show what would happen and change nothing.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:48px;margin-bottom:14px">Uninstall</h3>
+      <p style="color:var(--muted);margin-bottom:14px">Every file the installer replaced comes back from the copy it kept. Packages stay installed.</p>
+      <pre><code>~/.local/src/clave/uninstall.sh            # files in your home folder
+~/.local/src/clave/uninstall.sh --system   # also login screen, boot splash, hardening</code></pre>
+    </div>
+  </section>
+
+  <section id="shortcuts">
+    <div class="wrap read">
+      <div class="head">
+        <div class="kicker"><svg aria-hidden="true"><use href="#keystone"/></svg>Shortcuts</div>
+        <h2>Keyboard first.</h2>
+        <p>Press <kbd>Super</kbd>+<kbd>/</kbd> on the desktop for the full list.</p>
+      </div>
+      <div class="table">
+        <table>
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Super</kbd>+<kbd>Space</kbd></td><td>Search</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>A</kbd></td><td>Apps</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>Tab</kbd></td><td>Overview</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>,</kbd></td><td>System Settings</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>Return</kbd></td><td>Terminal</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>E</kbd></td><td>Files</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>1</kbd> to <kbd>0</kbd></td><td>Go to a Space</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>Shift</kbd>+<kbd>1</kbd> to <kbd>0</kbd></td><td>Move the window to a Space</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>W</kbd></td><td>Close the window</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>Q</kbd></td><td>Quit the app</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>M</kbd></td><td>Minimize to the Dock</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>V</kbd></td><td>Clipboard history</td></tr>
+            <tr><td><kbd>Print</kbd></td><td>Screenshot and recording toolbar</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>L</kbd></td><td>Lock screen</td></tr>
+            <tr><td><kbd>Super</kbd>+<kbd>Alt</kbd>+<kbd>Esc</kbd></td><td>Force Quit</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap read">
+      <div class="head">
+        <div class="kicker"><svg aria-hidden="true"><use href="#keystone"/></svg>FAQ</div>
+        <h2>Good to know.</h2>
+      </div>
+      <details><summary>Does Clave replace my existing Hyprland config?</summary><p>The installer moves <code>~/.config/hypr</code> and <code>~/.config/quickshell</code> aside to a dated backup and keeps your <code>monitors.lua</code>, wallpapers and pinned Dock apps. <code>uninstall.sh</code> puts everything back.</p></details>
+      <details><summary>Where do my own settings go?</summary><p>In files the installer never replaces: <code>~/.config/hypr/custom.lua</code> for any Hyprland setting, <code>monitors.lua</code> for screens, <code>hypridle.conf</code> for idle timeouts and <code>~/.config/clave/</code> for everything System Settings saves.</p></details>
+      <details><summary>Does it work offline?</summary><p>Yes. The desktop, Search and the calculator need no network. Online features are off by default.</p></details>
+      <details><summary>What does the hardening change that I might notice?</summary><p>USBGuard blocks USB devices that were not plugged in during the install. Three wrong passwords lock the account for 15 minutes. Keep a recovery USB; the recovery guide explains how to get back in.</p></details>
+      <details><summary>Can I use my own logo, fonts or sounds?</summary><p>Put an SVG at <code>~/.config/clave/branding/logo.svg</code> for the menu bar, About window and boot splash. <code>./install.sh --personal</code> uses fonts, a cursor and sounds that you supply yourself.</p></details>
+      <details><summary>How do I report a problem?</summary><p>Open an issue on GitHub and attach <code>~/.cache/clave/install.log</code> and the output of <code>clave-doctor</code>.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#"><svg aria-hidden="true"><use href="#keystone"/></svg>Clave</a>
+    <nav aria-label="Links">
+      <a href="https://github.com/Andrew-most-likely/clave">GitHub</a>
+      <a href="https://github.com/Andrew-most-likely/clave/releases">Releases</a>
+      <a href="https://github.com/Andrew-most-likely/clave/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/Andrew-most-likely/clave/blob/main/docs/RECOVERY.md">Recovery</a>
+      <a href="https://github.com/Andrew-most-likely/clave/blob/main/SECURITY.md">Security</a>
+    </nav>
+    <p>Released under GPL-3.0. Clave is not affiliated with Hyprland or Arch Linux.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var shots = [
+    ["overview", "Overview", "Overview shows every window on every Space. Open it with Super+Tab, a hot corner or a three-finger swipe up."],
+    ["control-center", "Control Center", "Control Center keeps network, Bluetooth, Focus, brightness, volume, Night Light and media in one place."],
+    ["settings", "System Settings", "System Settings has a pane for each part of the desktop. Its search finds the setting inside each pane and scrolls to it."],
+    ["search", "Search", "Search opens apps from the keyboard. The calculator is one key away and works offline."],
+    ["apps", "Apps", "Apps lists every app you open on purpose. Helper launchers stay hidden."],
+    ["capture", "Screenshots", "Print opens the capture toolbar: the screen, a window, an area or a recording, with a timer and a save folder."],
+    ["activity", "Activity Monitor", "Activity Monitor shows CPU, memory, disk and network use, with Quit and Force Quit."],
+    ["calendar", "Calendar", "Calendar reads and writes plain .ics files. No account needed."]
+  ];
+  var tabs = document.getElementById("tabs");
+  var img = document.getElementById("tour-img");
+  var cap = document.getElementById("tour-caption");
+  function show(i) {
+    var s = shots[i];
+    img.src = "assets/screenshots/" + s[0] + ".webp";
+    img.alt = s[1] + " in Clave";
+    cap.textContent = s[2];
+    Array.prototype.forEach.call(tabs.children, function (b, j) { b.setAttribute("aria-selected", j === i ? "true" : "false"); });
+  }
+  shots.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tab"; b.id = "tab-" + s[0];
+    b.setAttribute("role", "tab"); b.textContent = s[1];
+    b.addEventListener("click", function () { show(i); });
+    tabs.appendChild(b);
+  });
+  show(0);
+
+  var btn = document.getElementById("copy-install");
+  btn.addEventListener("click", function () {
+    var text = btn.getAttribute("data-copy");
+    var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1600); };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(done, function () { selectCmd(); });
+    } else { selectCmd(); }
+  });
+  function selectCmd() {
+    var r = document.createRange(); r.selectNodeContents(document.getElementById("install-cmd"));
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }
+})();
+</script>
+</body>
+</html>

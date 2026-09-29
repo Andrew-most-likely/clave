@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" width="520" height="140">
+  <title>Clave</title>
+  <g transform="translate(10 15) scale(1.1)">
+    <path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#1d1d1f" stroke="#1d1d1f" stroke-width="5" stroke-linejoin="round"/>
+  </g>
+  <text x="150" y="104" font-family="Inter Display, Inter, sans-serif" font-weight="700" font-size="104" letter-spacing="-3" fill="#1d1d1f">Clave</text>
+</svg>

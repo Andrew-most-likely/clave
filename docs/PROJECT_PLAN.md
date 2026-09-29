@@ -501,6 +501,7 @@ Quickshell on top of open-source libraries (section 5.8).
   | Hardware Locality lstopo | `hwloc` | Dependency |
   | Qt V4L2 test Utility, Qt V4L2 video capture utility | `v4l-utils` | Dependency of `ffmpeg` |
   | File Roller | `file-roller` | Opens archives from Files; a helper, not an app a user starts |
+  | Advanced Network Configuration | `nm-connection-editor` | Opened from Wi-Fi Settings in the menu bar and from Control Center |
 
   The WhiteSur GTK theme's installer always adds its own theme switcher app. `scripts/fetch-themes.sh`
   removes it right after, because Clave Settings sets the theme.

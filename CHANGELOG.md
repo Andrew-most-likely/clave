@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Helper launchers stay hidden in Apps and Search when their desktop file starts with comments, as hwloc's
+  Hardware Locality launcher does. Advanced Network Configuration is hidden too; Wi-Fi Settings in the menu bar
+  and Control Center still open it.
+- `scripts/name-check.sh` fails again when it finds a name. Before, it printed the matches and still passed.
+- The README shortcut table matches the real keys: `Super+W` closes a window, `Super+Q` quits the app,
+  `Super+M` minimizes, `Super+H` hides the app and `Super+Ctrl+M` zooms.
+- A project website (`docs/index.html`), screenshots, a short video tour and the logo files in `docs/assets/`.
+
 ## v1.1.2 (2026-09-29)
 
 - **The screen locks when idle again.** Installs from before the rename to Clave kept an old lock command in
