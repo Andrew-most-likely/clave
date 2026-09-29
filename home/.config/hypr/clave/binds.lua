@@ -33,12 +33,10 @@ bind(mod .. " + L",              exec("clave-power -l"),                  "Lock 
 bind(mod .. " + CTRL + Q",       exec("clave-power -l"),                  "Lock Screen")
 bind(mod .. " + SHIFT + ESCAPE", exec("qs ipc call menubar open system"),  "System menu")
 
--- Screenshots and recording (Shift+Super+3/4/5): Clave/Screenshot.qml (SHELL-1)
-bind(mod .. " + SHIFT + 3",      exec("qs ipc call screenshot screen"),   "Screenshot: whole screen")
-bind(mod .. " + SHIFT + 4",      exec("qs ipc call screenshot area"),     "Screenshot: selected area")
-bind(mod .. " + SHIFT + 5",      exec("qs ipc call screenshot toolbar"),  "Screenshot and recording toolbar")
-bind("PRINT",                    exec("qs ipc call screenshot area"),     "Screenshot: selected area")
-bind(mod .. " + SHIFT + 6",      exec("qs ipc call screenshot text"),     "Copy text from screen area (OCR)")
+-- Screenshots and recording (Print): Clave/Screenshot.qml (SHELL-1).
+-- Super+Shift+1..0 stay free for moving windows between Spaces.
+bind("PRINT",                    exec("qs ipc call screenshot toolbar"),  "Screenshot and recording toolbar")
+bind("SHIFT + PRINT",            exec("qs ipc call screenshot text"),     "Copy text from screen area (OCR)")
 
 -- Appearance
 bind(mod .. " + SHIFT + W",      exec("clave-wallpaper --random"),        "Next wallpaper")

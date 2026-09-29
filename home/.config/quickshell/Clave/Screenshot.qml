@@ -7,11 +7,11 @@ import QtQuick
 import QtQuick.Layouts
 
 // Screenshots and screen recording (PROJECT_PLAN.md SHELL-1).
-//   qs ipc call screenshot screen     whole focused screen      (Shift+Super+3)
-//   qs ipc call screenshot area       drag a rectangle          (Shift+Super+4)
-//   qs ipc call screenshot toolbar    the toolbar               (Shift+Super+5)
+//   qs ipc call screenshot screen     whole focused screen
+//   qs ipc call screenshot area       drag a rectangle
+//   qs ipc call screenshot toolbar    the toolbar               (Print)
 //   qs ipc call screenshot window     click a window
-//   qs ipc call screenshot text       copy the text in an area  (Shift+Super+6)
+//   qs ipc call screenshot text       copy the text in an area  (Shift+Print)
 //   qs ipc call screenshot stop       stop a recording
 // Engines: grim (capture), slurp (area and window picking), wf-recorder
 // (Recorder.qml), satty (markup) and tesseract (text). Each runs with a fixed
@@ -284,7 +284,7 @@ Scope {
     }
 
     // ==========================================
-    // TOOLBAR (Shift+Super+5)
+    // TOOLBAR (Print)
     // ==========================================
     readonly property var modes: [
         { "id": "screen", "label": "Capture Entire Screen", "glyph": "screen" },

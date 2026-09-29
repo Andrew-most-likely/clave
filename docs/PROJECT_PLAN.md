@@ -137,7 +137,7 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
     Stickies, Voice Memos, Keychain, and Freeform (shown as "Freeform board"). The other names are generic
     words. `scripts/name-check.sh` does not flag these four, because they are also ordinary words. Each
     name is one entry in `clave-prefs` (`APP_NAMES`) and can be changed there without other changes.
-  - The screenshot shortcuts Shift+Super+3/4/5 match the other desktop's key numbers.
+  - The screenshot shortcuts are on Print, because Shift+Super+1..0 move windows between Spaces.
 
 ### 5.2 Security
 
@@ -411,7 +411,7 @@ Quickshell on top of open-source libraries (section 5.8).
   | Removed from the lists | Replaced by |
   |---|---|
   | `htop` (`packages/extras.txt`) | Activity Monitor (SHELL-3); `btop` stays in extras for the terminal |
-  | `clave-screenshot`, the Shift+Super+3/4/5 binds that call it | SHELL-1 |
+  | `clave-screenshot`, the Print binds that call it | SHELL-1 |
   | `clave-displays`, `scripts/display-mode.sh`, `rofi/clave-display.rasi`, the Super+P menu | SHELL-2 |
   | `Clave/ForceQuit.qml` as a separate window | SHELL-3 (Force Quit stays as a dialog of the same component) |
 
@@ -527,9 +527,9 @@ interface in Quickshell.** Clave's own code is then UI only. It runs no capture 
 needs no root, parses no untrusted files, and calls each engine with a fixed argument list, not through
 a shell.
 
-- **SHELL-1 Screenshot and screen recording.** A toolbar on Shift+Super+5 with capture screen, capture
+- **SHELL-1 Screenshot and screen recording.** A toolbar on Print with capture screen, capture
   window, capture area, record screen, record area, Options (save folder, timer, show mouse pointer,
-  floating thumbnail) and Capture. Shift+Super+3 and Shift+Super+4 capture at once, as they do now. After a
+  floating thumbnail) and Capture. Shift+Print copies the text in an area. After a
   capture, a floating thumbnail in the lower right opens markup on click. The notification is removed.
   - Engines: `grim` (capture), `slurp` (area), `wf-recorder` (recording), `satty` (markup), `tesseract`
     (copy text). All are in the Arch repositories.

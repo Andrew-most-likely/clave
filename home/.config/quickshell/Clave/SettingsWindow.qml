@@ -1033,7 +1033,7 @@ Scope {
                 { "title": "Desktop features", "rows": [
                     sw("features", "appSwitcher", "App switcher", "Super+Tab shows your open apps. Off: Super+Tab opens Overview"),
                     sw("features", "windowTiling", "Window tiling", "Window > Move & Resize and Super+Shift+Arrows"),
-                    sw("features", "screenRecording", "Screen recording", "Record buttons in the screenshot toolbar (Shift+Super+5)")
+                    sw("features", "screenRecording", "Screen recording", "Record buttons in the screenshot toolbar (Print)")
                 ]}
             ]
             if (devs.length || root.st.usbguard === "active")

@@ -25,6 +25,8 @@
 - `qs ipc call settings set` applies keyboard, mouse, window and accessibility settings at once, and light or
   dark mode and the accent color reach GTK and Qt apps too.
 - `clave-doctor` lists launchers in Apps that belong to no app Clave knows.
+- Screenshots move to `Print` (toolbar) and `Shift+Print` (copy text). `Shift+Super+3/4/5/6` are gone, so
+  `Shift+Super+1..0` move windows to Spaces again.
 - Removed: the unused `xsettingsd` config, and the packages the audit found unused (`cmake`, `meson`, `ninja`,
   `alsa-utils`, `cups-pdf`). `lynis` and the Office fonts moved to `--extras`.
 
