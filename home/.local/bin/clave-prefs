@@ -396,7 +396,7 @@ HIDDEN = [
     "system-config-printer", "cups", "opensnitch_ui",
     "qt5ct", "qt6ct", "kvantummanager", "nwg-look", "rofi", "rofi-theme-selector",
     "avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap",
-    "org.gnome.FileRoller",
+    "org.gnome.FileRoller", "nm-connection-editor",
 ]
 
 # Packages whose launchers stay visible without a new name (APP-10).
@@ -485,7 +485,12 @@ def write_override(src, name=None, icon=None, hide=False):
     if os.path.exists(dst) and OVERRIDE_MARK not in read(dst):
         return False          # the user's own file wins
     text = open(src).read()
-    head, sep, rest = text.partition("\n[")  # only the [Desktop Entry] group
+    # Only the [Desktop Entry] group. Some files start with comments (hwloc's
+    # lstopo.desktop), so the group is found by name, not taken from the top.
+    start = max(text.find("[Desktop Entry]"), 0)
+    end = text.find("\n[", start + 1)
+    end = len(text) if end < 0 else end + 1
+    pre, head, rest = text[:start], text[start:end], text[end:]
     if name:
         head = re.sub(r"^Name(\[[^\]]*\])?=.*\n?", "", head, flags=re.M)
         head = head.replace("[Desktop Entry]\n", f"[Desktop Entry]\nName={name}\n", 1)
@@ -497,7 +502,7 @@ def write_override(src, name=None, icon=None, hide=False):
         head = re.sub(r"^NoDisplay=.*\n?", "", head, flags=re.M)
         head = head.rstrip("\n") + "\nNoDisplay=true\n"
     head = head.rstrip("\n") + f"\n{OVERRIDE_MARK}=true\n"
-    write(dst, head + (sep + rest if sep else ""))
+    write(dst, pre + head + rest)
     return True
 
 
