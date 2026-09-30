@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Files shows a plain folder icon in Apps and Search too, not only in the Dock. The icon theme drew it as
+  a face that is another company's logo (BR-4). An icon you set in System Settings > Appearance > App Icons still
+  wins. The Apps screenshot shows the folder, and the video tour no longer shows the Apps grid.
 - Helper launchers stay hidden in Apps and Search when their desktop file starts with comments, as hwloc's
   Hardware Locality launcher does. Advanced Network Configuration is hidden too; Wi-Fi Settings in the menu bar
   and Control Center still open it.
@@ -15,6 +18,9 @@
   installs and updates work as before.
 - New screenshots and video on the dark wallpaper. The website is a dark product page with a highlights carousel,
   and the README shows its screenshots as one slideshow.
+- The website moves: the hero letters rise in and stone keystones float around it, the screenshot tilts flat as you
+  scroll, words light up as you read, feature tiles tilt toward the pointer, the app names slide past, and the arch
+  builds itself stone by stone before the keystone drops in. All of it stops with reduced motion.
 - Why the name: an arch needs a keystone, and clave is Spanish for keystone. The README and the website tell it.
 - The README and the website are easier to scan: one short idea per section, with the details folded away until
   you open them.

@@ -12,20 +12,24 @@
 <link rel="icon" type="image/svg+xml" href="assets/brand/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Clave: a dark product page. Black ground so the dark screenshots sit in it like hardware on a stage.
-   One bold moment: the hero screenshot tilts flat as it scrolls in. Everything else stays quiet.
-   One light band (the name) lets the stone finishes show their colour. */
+/* Clave. Black stage, living light. The keystone and its seven stones are the recurring actors:
+   they float in the hero, build the arch, and bob along the stone row. Every animation is added
+   by script over a page that is complete without it, and all of it stops for reduced motion. */
 :root {
   --black: #000000;
-  --stage: #0d0e10;
-  --panel: #17181b;
-  --panel-2: #1f2125;
+  --stage: #08090b;
+  --panel: #131418;
+  --panel-2: #1c1e23;
   --text: #f5f5f7;
-  --muted: #8e939c;
+  --muted: #9097a3;
   --hair: rgba(255, 255, 255, .09);
-  --accent: #3d95ff;
+  --blue: #3d95ff;
+  --violet: #9b6bff;
+  --teal: #2fd6c3;
+  --sand: #f2b872;
+  --rose: #ff7aa8;
   --accent-ink: #04101f;
   --paper: #f3f2ef;
   --paper-ink: #16171a;
@@ -34,81 +38,107 @@
   --body: "Inter", system-ui, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
   --wide: 1180px;
-  --read: 36rem;
+  --read: 38rem;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 64px; }
-body { margin: 0; background: var(--black); color: var(--text); font: 400 1.125rem/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+html { scroll-padding-top: 64px; }
+body { margin: 0; background: var(--black); color: var(--text); font: 400 1.125rem/1.55 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 img, video { display: block; max-width: 100%; height: auto; }
-a { color: var(--accent); text-decoration: none; }
+a { color: var(--blue); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 8px; }
 h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
 p { margin: 0; }
 code { font-family: var(--mono); font-size: .85em; }
 .inner { max-width: var(--wide); margin-inline: auto; }
-.section { padding: clamp(88px, 12vw, 160px) 20px; }
+.section { position: relative; padding: clamp(96px, 13vw, 176px) 20px; }
 .center { text-align: center; }
-.stack { display: grid; gap: 20px; justify-items: center; }
-.headline { font-size: clamp(2.5rem, 6.4vw, 5rem); font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; }
+.stack { display: grid; gap: 22px; justify-items: center; }
+.headline { font-size: clamp(2.6rem, 6.6vw, 5.4rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
 .sub { font-size: clamp(1.2rem, 2.1vw, 1.55rem); color: var(--muted); max-width: var(--read); line-height: 1.38; font-weight: 500; letter-spacing: -0.01em; }
 .note { font-size: .92rem; color: var(--muted); }
+.grad { background-clip: text; -webkit-background-clip: text; color: transparent; }
+.g-blue { background-image: linear-gradient(100deg, #7cc0ff, var(--blue) 45%, var(--violet)); }
+.g-warm { background-image: linear-gradient(100deg, var(--sand), var(--rose) 55%, var(--violet)); }
+.g-teal { background-image: linear-gradient(100deg, var(--teal), #7cc0ff 55%, var(--blue)); }
+.g-rose { background-image: linear-gradient(100deg, var(--rose), var(--violet) 60%, var(--blue)); }
+
+/* Scroll progress */
+.progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; transform-origin: 0 50%; transform: scaleX(0); background: linear-gradient(90deg, var(--teal), var(--blue), var(--violet), var(--rose), var(--sand)); }
 
 /* Local nav */
-.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; padding: 0 20px; background: rgba(0, 0, 0, .72); backdrop-filter: saturate(1.8) blur(20px); border-bottom: 1px solid var(--hair); }
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; padding: 0 20px; background: rgba(0, 0, 0, .66); backdrop-filter: saturate(1.8) blur(20px); border-bottom: 1px solid var(--hair); }
 .nav .inner { display: flex; align-items: center; gap: 28px; height: 52px; }
-.brand { display: flex; align-items: center; gap: 9px; color: var(--text); font: 700 1.1rem var(--display); letter-spacing: -0.01em; }
+.brand { display: flex; align-items: center; gap: 9px; color: var(--text); font: 800 1.12rem var(--display); letter-spacing: -0.01em; }
 .brand:hover { text-decoration: none; }
 .brand svg { width: 17px; height: 17px; }
 .links { display: flex; gap: 26px; margin-left: auto; font-size: .82rem; }
 .links a { color: #c7cad1; }
 .links a:hover, .links a[aria-current="true"] { color: var(--text); text-decoration: none; }
-.pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 15px; font: 600 .82rem var(--body); background: var(--accent); color: var(--accent-ink); }
+.pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 15px; font: 600 .82rem var(--body); background: var(--blue); color: var(--accent-ink); }
 .pill:hover { text-decoration: none; filter: brightness(1.1); }
-.pill.big { padding: 12px 26px; font-size: 1.05rem; }
-@media (max-width: 760px) { .links { display: none; } .nav .pill { margin-left: auto; } }
+.pill.big { padding: 13px 28px; font-size: 1.05rem; box-shadow: 0 10px 40px -10px rgba(61, 149, 255, .7); }
+@media (max-width: 800px) { .links { display: none; } .nav .pill { margin-left: auto; } }
+
+/* Aurora light */
+.aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .5; mix-blend-mode: screen; }
+.b1 { width: 52vw; height: 52vw; left: -8vw; top: -6vw; background: radial-gradient(circle, var(--blue), transparent 65%); animation: drift1 18s ease-in-out infinite alternate; }
+.b2 { width: 46vw; height: 46vw; right: -10vw; top: 4vw; background: radial-gradient(circle, var(--violet), transparent 65%); animation: drift2 22s ease-in-out infinite alternate; }
+.b3 { width: 40vw; height: 40vw; left: 28vw; top: 22vw; background: radial-gradient(circle, var(--teal), transparent 65%); opacity: .32; animation: drift3 26s ease-in-out infinite alternate; }
+.b4 { width: 30vw; height: 30vw; right: 14vw; top: 30vw; background: radial-gradient(circle, var(--rose), transparent 65%); opacity: .28; animation: drift1 24s ease-in-out infinite alternate-reverse; }
+@keyframes drift1 { to { transform: translate(9vw, 6vw) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-8vw, 8vw) scale(.9); } }
+@keyframes drift3 { to { transform: translate(-6vw, -7vw) scale(1.2); } }
 
 /* Hero */
-.hero { padding: clamp(64px, 10vw, 120px) 20px 0; overflow: hidden; position: relative; }
-.hero::before { content: ""; position: absolute; left: 50%; top: 42%; width: min(1400px, 140vw); aspect-ratio: 2 / 1; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(61, 149, 255, .22), rgba(61, 149, 255, .06) 55%, transparent 72%); pointer-events: none; }
+.hero { position: relative; padding: clamp(72px, 10vw, 128px) 20px clamp(40px, 6vw, 80px); overflow: hidden; }
+.hero .inner { position: relative; z-index: 2; }
 .version { font: 600 1.05rem var(--body); color: var(--muted); }
-.hero h1 { font-size: clamp(3.2rem, 10vw, 7.6rem); font-weight: 800; letter-spacing: -0.045em; line-height: .96; background: linear-gradient(180deg, #ffffff 30%, #a9b1bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.actions { display: flex; flex-wrap: wrap; gap: 14px 30px; align-items: center; justify-content: center; margin-top: 8px; }
+.hero h1 { font-size: clamp(3.4rem, 11vw, 8.6rem); font-weight: 900; letter-spacing: -0.05em; line-height: .92; }
+.hero h1 .word { display: inline-block; white-space: nowrap; }
+.hero h1 .ch { display: inline-block; background-image: linear-gradient(180deg, #ffffff 35%, #aab4c6); background-clip: text; -webkit-background-clip: text; color: transparent; }
+.actions { display: flex; flex-wrap: wrap; gap: 14px 30px; align-items: center; justify-content: center; margin-top: 10px; }
 .textlink { font-weight: 500; font-size: 1.05rem; }
 .textlink::after { content: " \203A"; }
-.stage { position: relative; margin: clamp(48px, 7vw, 88px) auto 0; max-width: 1180px; }
-.stage img { border-radius: 20px; box-shadow: 0 0 0 1px var(--hair), 0 50px 120px -40px rgba(0, 0, 0, .9), 0 30px 90px -50px rgba(61, 149, 255, .45); }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .stage { animation: settle linear both; animation-timeline: view(); animation-range: entry 0% cover 40%; transform-origin: 50% 0; }
-    @keyframes settle { from { transform: perspective(1600px) rotateX(24deg) scale(.88); } to { transform: none; } }
-  }
-}
+.floaters { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.floater { position: absolute; width: var(--s, 56px); filter: drop-shadow(0 18px 24px rgba(0, 0, 0, .55)); }
+.floater svg { width: 100%; height: auto; display: block; animation: bob var(--d, 6s) ease-in-out infinite alternate; }
+@keyframes bob { from { transform: translateY(-8px) rotate(calc(var(--r, 0deg) - 6deg)); } to { transform: translateY(10px) rotate(calc(var(--r, 0deg) + 6deg)); } }
+.stage { position: relative; z-index: 2; margin: clamp(56px, 8vw, 96px) auto 0; max-width: 1180px; perspective: 1600px; }
+.stage img { border-radius: 20px; box-shadow: 0 0 0 1px var(--hair), 0 60px 140px -40px rgba(0, 0, 0, .95), 0 40px 120px -40px rgba(61, 149, 255, .55); transform-origin: 50% 0; }
+
+/* Statement with lighting words */
+.statement { max-width: 1000px; margin-inline: auto; font: 700 clamp(1.9rem, 4.4vw, 3.6rem)/1.14 var(--display); letter-spacing: -0.03em; }
+.statement .w { color: var(--text); }
+.js .statement .w { color: #2a2d33; }
 
 /* Highlights carousel */
-.highlights { padding-top: clamp(88px, 12vw, 150px); }
 .hl-head { padding: 0 20px; max-width: 1080px; }
 .carousel { position: relative; margin-top: 40px; }
 .track { display: grid; grid-auto-flow: column; grid-auto-columns: min(1040px, 86vw); gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 0 max(20px, calc((100vw - 1040px) / 2)); scrollbar-width: none; overscroll-behavior-x: contain; }
 .track::-webkit-scrollbar { display: none; }
-.slide { scroll-snap-align: center; margin: 0; background: var(--panel); border-radius: 26px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; border: 1px solid var(--hair); }
+.slide { scroll-snap-align: center; margin: 0; background: var(--panel); border-radius: 26px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; border: 1px solid var(--hair); transition: transform .5s cubic-bezier(.2, .8, .2, 1), opacity .5s; }
+.js .slide:not(.on) { transform: scale(.94); opacity: .45; }
 .slide img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .slide figcaption { padding: 22px 28px 26px; font-size: 1.1rem; color: var(--muted); line-height: 1.45; }
 .slide figcaption b { color: var(--text); font-weight: 600; }
 .controls { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 28px; padding: 0 20px; }
 .dots { display: flex; gap: 10px; background: var(--panel-2); padding: 12px 16px; border-radius: 999px; }
 .dot { width: 8px; height: 8px; border-radius: 999px; border: 0; padding: 0; background: #5c616b; cursor: pointer; transition: width .3s, background .3s; }
-.dot[aria-current="true"] { width: 30px; background: var(--text); }
-.round { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--panel-2); color: var(--text); cursor: pointer; display: grid; place-items: center; }
-.round:hover { background: #2b2e33; }
+.dot[aria-current="true"] { width: 30px; background: linear-gradient(90deg, var(--teal), var(--blue)); }
+.round { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--panel-2); color: var(--text); cursor: pointer; display: grid; place-items: center; transition: transform .2s; }
+.round:hover { background: #2b2e33; transform: scale(1.08); }
 .round svg { width: 18px; height: 18px; }
-@media (prefers-reduced-motion: reduce) { .track { scroll-behavior: auto; } .dot { transition: none; } }
 
 /* Feature grid */
-.grid { display: grid; gap: 20px; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: clamp(48px, 6vw, 72px); text-align: left; }
-.tile { background: var(--panel); border-radius: 28px; padding: 34px 34px 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-width: 0; border: 1px solid var(--hair); }
-.tile h3 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+.grid { display: grid; gap: 20px; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: clamp(48px, 6vw, 72px); text-align: left; perspective: 1400px; }
+.tile { position: relative; background: var(--panel); border-radius: 28px; padding: 34px 34px 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-width: 0; border: 1px solid var(--hair); transform-style: preserve-3d; will-change: transform; }
+.tile::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, .07), transparent 60%); opacity: 0; transition: opacity .3s; }
+.tile:hover::before { opacity: 1; }
+.tile .tag { width: 38px; height: 4px; border-radius: 4px; background: var(--c, var(--blue)); }
+.tile h3 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; }
 .tile p { color: var(--muted); font-size: 1.05rem; }
 .tile .pic { margin-top: auto; padding-top: 28px; }
 .tile .pic img { border-radius: 14px 14px 0 0; width: 100%; }
@@ -120,14 +150,20 @@ code { font-family: var(--mono); font-size: .85em; }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } .s2, .s3, .s4 { grid-column: span 2; } }
 @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .s2, .s3, .s4 { grid-column: auto; } .tile.fit .pic { min-height: 300px; } }
 
+/* Apps marquee */
+.marquee { margin-top: clamp(64px, 8vw, 104px); display: grid; gap: 14px; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.row { display: flex; gap: 14px; width: max-content; will-change: transform; }
+.chip { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 999px; background: var(--panel); border: 1px solid var(--hair); font-weight: 600; white-space: nowrap; }
+.chip i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); display: inline-block; }
+
 /* Security */
-.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 64px; text-align: left; }
-.fact { background: var(--black); border: 1px solid var(--hair); border-radius: 24px; padding: 32px; display: grid; gap: 12px; align-content: start; min-width: 0; }
-.fact svg { width: 34px; height: 34px; color: var(--accent); }
-.fact h3 { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.015em; }
+.safe { background: var(--stage); overflow: hidden; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 64px; text-align: left; perspective: 1200px; }
+.fact { background: linear-gradient(180deg, #111216, #0a0b0d); border: 1px solid var(--hair); border-radius: 26px; padding: 34px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.fact svg { width: 44px; height: 44px; }
+.fact h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
 .fact p { color: var(--muted); font-size: 1.02rem; }
 @media (max-width: 800px) { .facts { grid-template-columns: 1fr; } }
-.panel-band { background: var(--stage); }
 
 /* Folds */
 .folds { max-width: 46rem; margin: 56px auto 0; text-align: left; }
@@ -137,7 +173,6 @@ summary { cursor: pointer; list-style: none; display: flex; justify-content: spa
 summary::-webkit-details-marker { display: none; }
 summary::after { content: "+"; font: 300 1.7rem/1 var(--body); color: var(--muted); transition: transform .25s; }
 details[open] summary::after { transform: rotate(45deg); }
-@media (prefers-reduced-motion: reduce) { summary::after { transition: none; } }
 .fold { padding: 0 2px 26px; display: grid; gap: 14px; color: var(--muted); font-size: 1.02rem; }
 .fold ul { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; }
 .fold strong { color: var(--text); font-weight: 600; }
@@ -148,43 +183,56 @@ td:first-child { width: 34%; padding-right: 16px; white-space: nowrap; color: va
 tr:last-child td { border-bottom: 0; }
 
 /* Video */
-.film { margin-top: clamp(48px, 6vw, 72px); }
-.film video { border-radius: 22px; box-shadow: 0 0 0 1px var(--hair), 0 50px 120px -50px rgba(0, 0, 0, .9); }
+.film { margin-top: clamp(48px, 6vw, 72px); width: 100%; }
+.film video { width: 100%; border-radius: 22px; box-shadow: 0 0 0 1px var(--hair), 0 50px 140px -50px rgba(155, 107, 255, .55); }
 
-/* The name (light band) */
-.paper { background: var(--paper); color: var(--paper-ink); }
+/* The name */
+.paper { background: var(--paper); color: var(--paper-ink); overflow: hidden; }
 .paper .sub, .paper .note { color: var(--paper-muted); }
 .paper .sub.dark { color: var(--paper-ink); }
-.name-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(40px, 7vw, 96px); align-items: center; text-align: left; }
-.name-grid .headline { font-size: clamp(2.4rem, 5.4vw, 4.4rem); }
+.archwrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 88px); align-items: center; min-height: 72vh; }
 .story { display: grid; gap: 22px; font-size: 1.2rem; line-height: 1.55; max-width: 34rem; }
+.story .headline { font-size: clamp(2.4rem, 5.4vw, 4.6rem); }
 .story p { color: var(--paper-muted); }
 .story p strong { color: var(--paper-ink); font-weight: 600; }
-.arch { width: 100%; max-width: 460px; justify-self: center; color: var(--paper-ink); }
-.meanings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: clamp(56px, 7vw, 88px); text-align: left; }
-.meaning { background: #ffffff; border-radius: 22px; padding: 26px; display: grid; gap: 6px; min-width: 0; box-shadow: 0 1px 0 rgba(0, 0, 0, .04); }
-.meaning .word { font: 700 1.3rem var(--display); letter-spacing: -0.015em; }
+.arch { width: 100%; max-width: 520px; justify-self: center; overflow: visible; }
+.arch .vs { fill: #e3e0da; stroke: #cfcbc3; stroke-width: 1.2; }
+.arch .ks { fill: var(--paper-ink); }
+.arch .glow { fill: url(#keyglow); opacity: 0; }
+.meanings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: clamp(56px, 7vw, 96px); text-align: left; }
+.meaning { background: #ffffff; border-radius: 24px; padding: 28px; display: grid; gap: 6px; min-width: 0; box-shadow: 0 20px 40px -30px rgba(0, 0, 0, .25); }
+.meaning .word { font: 800 1.35rem var(--display); letter-spacing: -0.02em; }
 .meaning .said { font-style: italic; color: var(--paper-muted); font-size: .95rem; }
 .meaning p { color: var(--paper-muted); font-size: 1rem; }
-@media (max-width: 860px) { .name-grid, .meanings { grid-template-columns: 1fr; } }
-.stones-intro { margin-top: clamp(56px, 7vw, 88px); }
-.stones { display: flex; flex-wrap: wrap; gap: 26px 34px; justify-content: center; margin-top: 32px; }
-.stone { display: grid; justify-items: center; gap: 10px; font-size: .88rem; color: var(--paper-muted); }
-.stone svg { width: 64px; height: 64px; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .14)); }
-.plain { margin-top: clamp(56px, 7vw, 88px); display: grid; gap: 16px; justify-items: center; }
+@media (max-width: 860px) { .archwrap, .meanings { grid-template-columns: 1fr; } .archwrap { min-height: 0; } }
+.stones-intro { margin-top: clamp(64px, 8vw, 104px); }
+.stones { display: flex; flex-wrap: wrap; gap: 26px 36px; justify-content: center; margin-top: 36px; }
+.stone { display: grid; justify-items: center; gap: 12px; font-size: .88rem; color: var(--paper-muted); cursor: default; }
+.stone svg { width: 68px; height: 68px; filter: drop-shadow(0 10px 16px rgba(0, 0, 0, .16)); transition: transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.stone:hover svg { transform: translateY(-14px) rotate(-8deg) scale(1.1); }
+.plain { margin-top: clamp(64px, 8vw, 104px); display: grid; gap: 16px; justify-items: center; }
 .plain .names { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.plain .names span { background: #ffffff; border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: .98rem; }
+.plain .names span { background: #ffffff; border-radius: 999px; padding: 9px 17px; font-weight: 600; font-size: .98rem; box-shadow: 0 10px 20px -16px rgba(0, 0, 0, .3); }
 
 /* Install */
-.cmd { display: flex; align-items: center; gap: 12px; margin-top: 44px; width: 100%; max-width: 48rem; background: var(--panel); border: 1px solid var(--hair); border-radius: 18px; padding: 12px 12px 12px 22px; text-align: left; }
-.cmd code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .92rem; line-height: 1.5; padding-block: 4px; }
-.copy { flex: none; border: 0; border-radius: 12px; padding: 10px 18px; background: var(--accent); color: var(--accent-ink); font: 600 .92rem var(--body); cursor: pointer; }
+.install { background: var(--stage); overflow: hidden; }
+.term { margin-top: 44px; width: 100%; max-width: 50rem; background: #0e0f12; border: 1px solid var(--hair); border-radius: 18px; text-align: left; box-shadow: 0 40px 120px -50px rgba(47, 214, 195, .45); overflow: hidden; }
+.term-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+.term-bar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.term-bar i:nth-child(1) { background: #ff5f57; } .term-bar i:nth-child(2) { background: #febc2e; } .term-bar i:nth-child(3) { background: #28c840; }
+.term-bar .copy { margin-left: auto; }
+.term-body { padding: 20px 22px 24px; font: 500 .95rem/1.6 var(--mono); overflow-wrap: anywhere; min-height: 5.6em; }
+.term-body .p { color: var(--teal); user-select: none; }
+.caret { display: inline-block; width: .6em; height: 1.1em; vertical-align: -0.18em; background: var(--text); margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.copy { border: 0; border-radius: 10px; padding: 7px 14px; background: var(--blue); color: var(--accent-ink); font: 600 .85rem var(--body); cursor: pointer; }
 
 /* Keys */
 .keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 64px; }
 .key { background: var(--panel); border: 1px solid var(--hair); border-radius: 22px; padding: 30px 22px; display: grid; gap: 16px; justify-items: center; min-width: 0; }
 .caps { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; justify-content: center; color: var(--muted); }
-kbd { font: 600 .98rem var(--body); min-width: 2.4em; padding: 8px 13px; border-radius: 11px; background: linear-gradient(#2c2f35, #222428); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 2px 0 #0b0c0e; text-align: center; }
+kbd { font: 600 .98rem var(--body); min-width: 2.4em; padding: 8px 13px; border-radius: 11px; background: linear-gradient(#2c2f35, #222428); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 4px 0 #0b0c0e; text-align: center; transition: transform .12s, box-shadow .12s; }
+kbd.down { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 0 #0b0c0e, 0 0 24px rgba(61, 149, 255, .6); }
 .key .what { font-weight: 600; }
 @media (max-width: 760px) { .keys { grid-template-columns: 1fr 1fr; } }
 
@@ -192,9 +240,19 @@ footer { padding: 44px 20px 60px; border-top: 1px solid var(--hair); color: var(
 footer .inner { display: flex; flex-wrap: wrap; gap: 14px 30px; align-items: center; }
 footer nav { display: flex; flex-wrap: wrap; gap: 22px; margin-left: auto; }
 footer a { color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .blob, .floater svg, .caret { animation: none; }
+  .js .statement .w { color: var(--text); }
+  .js .slide:not(.on) { transform: none; opacity: 1; }
+  .slide, .dot, .round, kbd, summary::after, .stone svg { transition: none; }
+}
 </style>
+<script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
+
+<div class="progress" id="progress" aria-hidden="true"></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="keystone" viewBox="0 0 100 100"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/></symbol>
@@ -217,8 +275,10 @@ footer a { color: var(--muted); }
 
 <main id="top">
 
-  <section class="hero center" aria-labelledby="hero-title">
-    <div class="inner stack" style="position:relative">
+  <section class="hero center" id="hero" aria-labelledby="hero-title">
+    <div class="aurora" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+    <div class="floaters" id="floaters" aria-hidden="true"></div>
+    <div class="inner stack" id="hero-copy">
       <p class="version">Clave 1.1.2</p>
       <h1 id="hero-title">Hyprland, finished.</h1>
       <p class="sub">A complete desktop for Arch Linux. Tiling kept.</p>
@@ -227,16 +287,20 @@ footer a { color: var(--muted); }
         <a class="textlink" href="#tour">Watch the tour</a>
       </div>
     </div>
-    <div class="stage"><img src="assets/screenshots/desktop.webp" alt="The Clave desktop: a terminal and Files floating over a dark wallpaper, with the menu bar and the Dock" width="1920" height="1080"></div>
+    <div class="stage" id="stage"><img src="assets/screenshots/desktop.webp" alt="The Clave desktop: a terminal and Files floating over a dark wallpaper, with the menu bar and the Dock" width="1920" height="1080"></div>
+  </section>
+
+  <section class="section">
+    <p class="statement" id="statement">Clave turns Hyprland into a desktop you can live in. A menu bar. A Dock. Overview. Control Center. System Settings. Every piece drawn in one style, and every piece off when you do not want it.</p>
   </section>
 
   <section class="highlights" id="highlights" aria-labelledby="hl-title">
     <div class="inner hl-head">
-      <h2 class="headline" id="hl-title">Get the highlights.</h2>
+      <h2 class="headline grad g-blue" id="hl-title">Get the highlights.</h2>
     </div>
     <div class="carousel" role="region" aria-roledescription="carousel" aria-label="Highlights">
       <div class="track" id="track" tabindex="0">
-        <figure class="slide" role="group" aria-roledescription="slide" aria-label="1 of 8"><img src="assets/screenshots/overview.webp" alt="Overview with every window and Space" width="1920" height="1080" loading="lazy"><figcaption><b>Overview.</b> Every window on every Space, one key away.</figcaption></figure>
+        <figure class="slide on" role="group" aria-roledescription="slide" aria-label="1 of 8"><img src="assets/screenshots/overview.webp" alt="Overview with every window and Space" width="1920" height="1080" loading="lazy"><figcaption><b>Overview.</b> Every window on every Space, one key away.</figcaption></figure>
         <figure class="slide" role="group" aria-roledescription="slide" aria-label="2 of 8"><img src="assets/screenshots/control-center.webp" alt="Control Center open in the top right corner" width="1920" height="1080" loading="lazy"><figcaption><b>Control Center.</b> Network, sound, display and focus from the menu bar.</figcaption></figure>
         <figure class="slide" role="group" aria-roledescription="slide" aria-label="3 of 8"><img src="assets/screenshots/settings.webp" alt="System Settings on the Appearance pane" width="1920" height="1080" loading="lazy"><figcaption><b>System Settings.</b> One pane for each part. Search finds any setting.</figcaption></figure>
         <figure class="slide" role="group" aria-roledescription="slide" aria-label="4 of 8"><img src="assets/screenshots/search.webp" alt="Search open over the desktop" width="1920" height="1080" loading="lazy"><figcaption><b>Search.</b> Open any app from the keyboard. The calculator works offline.</figcaption></figure>
@@ -256,70 +320,76 @@ footer a { color: var(--muted); }
 
   <section class="section center" id="features" aria-labelledby="features-title">
     <div class="inner stack">
-      <h2 class="headline" id="features-title">Everything has a place.</h2>
+      <h2 class="headline grad g-teal" id="features-title">Everything has a place.</h2>
       <p class="sub">Built in. Drawn in one style. Off means off.</p>
     </div>
-    <div class="inner grid">
-      <article class="tile s2 fit">
+    <div class="inner grid" id="tiles">
+      <article class="tile s2 fit" style="--c: var(--blue)">
+        <span class="tag"></span>
         <h3>Control Center</h3>
         <p>One click from the menu bar.</p>
         <div class="pic"><img src="assets/closeups/control-center.webp" alt="Control Center with Wi-Fi, Bluetooth, Focus, Night Light, display and sound" width="380" height="500" loading="lazy"></div>
       </article>
-      <article class="tile s4">
+      <article class="tile s4" style="--c: var(--violet)">
+        <span class="tag"></span>
         <h3>System Settings</h3>
         <p>A pane for each part of the desktop.</p>
         <div class="pic"><img src="assets/closeups/settings.webp" alt="System Settings on the Appearance pane" width="980" height="828" loading="lazy"></div>
       </article>
-      <article class="tile s3 inset">
+      <article class="tile s3 inset" style="--c: var(--teal)">
+        <span class="tag"></span>
         <h3>The Dock</h3>
         <p>Pin what you use. Minimize with a genie effect.</p>
         <div class="pic"><img src="assets/closeups/dock.webp" alt="The Dock" width="560" height="100" loading="lazy"></div>
       </article>
-      <article class="tile s3 inset">
+      <article class="tile s3 inset" style="--c: var(--rose)">
+        <span class="tag"></span>
         <h3>Screenshots</h3>
         <p>Press Print. Pick a screen, a window or an area.</p>
         <div class="pic"><img src="assets/closeups/capture.webp" alt="The capture toolbar" width="470" height="76" loading="lazy"></div>
       </article>
-      <article class="tile s3">
+      <article class="tile s3" style="--c: var(--sand)">
+        <span class="tag"></span>
         <h3>Notes</h3>
         <p>Plain Markdown files. Yours to keep.</p>
         <div class="pic"><img src="assets/closeups/notes.webp" alt="Notes with a release plan open" width="1080" height="768" loading="lazy"></div>
       </article>
-      <article class="tile s3">
+      <article class="tile s3" style="--c: var(--blue)">
+        <span class="tag"></span>
         <h3>Activity Monitor</h3>
         <p>CPU, memory, disk and network at a glance.</p>
         <div class="pic"><img src="assets/closeups/activity.webp" alt="Activity Monitor" width="1020" height="746" loading="lazy"></div>
       </article>
     </div>
-    <div class="folds">
-      <details>
-        <summary>Every app included</summary>
-        <div class="fold">
-          <p>From the Arch repositories, with no background services. Only Weather, Maps and Podcasts go online, and only while open.</p>
-          <p>Files, Text Editor, Calculator, Notes, Calendar, Contacts, Reminders, Stickies, Weather, Clock, Maps, Photos, Books, Podcasts, Music, Videos, Voice Memos, Camera, Fonts, Chess, Freeform board, Scanner, Screen Sharing, Console, System Information, Disk Utility, Keychain, Backups and Activity Monitor.</p>
-        </div>
-      </details>
+    <div class="marquee" aria-label="Apps included">
+      <div class="row" id="row1">
+        <span class="chip"><i style="--c:var(--blue)"></i>Files</span><span class="chip"><i style="--c:var(--violet)"></i>Text Editor</span><span class="chip"><i style="--c:var(--teal)"></i>Calculator</span><span class="chip"><i style="--c:var(--sand)"></i>Notes</span><span class="chip"><i style="--c:var(--rose)"></i>Calendar</span><span class="chip"><i style="--c:var(--blue)"></i>Contacts</span><span class="chip"><i style="--c:var(--violet)"></i>Reminders</span><span class="chip"><i style="--c:var(--teal)"></i>Stickies</span><span class="chip"><i style="--c:var(--sand)"></i>Weather</span><span class="chip"><i style="--c:var(--rose)"></i>Clock</span><span class="chip"><i style="--c:var(--blue)"></i>Maps</span><span class="chip"><i style="--c:var(--violet)"></i>Photos</span><span class="chip"><i style="--c:var(--teal)"></i>Books</span><span class="chip"><i style="--c:var(--sand)"></i>Podcasts</span><span class="chip"><i style="--c:var(--rose)"></i>Music</span>
+      </div>
+      <div class="row" id="row2">
+        <span class="chip"><i style="--c:var(--teal)"></i>Videos</span><span class="chip"><i style="--c:var(--sand)"></i>Voice Memos</span><span class="chip"><i style="--c:var(--rose)"></i>Camera</span><span class="chip"><i style="--c:var(--blue)"></i>Fonts</span><span class="chip"><i style="--c:var(--violet)"></i>Chess</span><span class="chip"><i style="--c:var(--teal)"></i>Freeform board</span><span class="chip"><i style="--c:var(--sand)"></i>Scanner</span><span class="chip"><i style="--c:var(--rose)"></i>Screen Sharing</span><span class="chip"><i style="--c:var(--blue)"></i>Console</span><span class="chip"><i style="--c:var(--violet)"></i>System Information</span><span class="chip"><i style="--c:var(--teal)"></i>Disk Utility</span><span class="chip"><i style="--c:var(--sand)"></i>Keychain</span><span class="chip"><i style="--c:var(--rose)"></i>Backups</span><span class="chip"><i style="--c:var(--blue)"></i>Activity Monitor</span>
+      </div>
     </div>
+    <p class="note" style="margin-top:28px">Every app comes from the Arch repositories and runs no background service.</p>
   </section>
 
-  <section class="section center panel-band" id="safe" aria-labelledby="safe-title">
+  <section class="section center safe" id="safe" aria-labelledby="safe-title">
     <div class="inner stack">
-      <h2 class="headline" id="safe-title">Safe from the start.</h2>
+      <h2 class="headline grad g-teal" id="safe-title">Safe from the start.</h2>
       <p class="sub">Secure and quiet by default. Nothing to set up.</p>
     </div>
-    <div class="inner facts">
+    <div class="inner facts" id="facts">
       <div class="fact">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2fd6c3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="draw" d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3z"/><path class="draw" d="M9 12l2 2 4-4"/></svg>
         <h3>Hardened by default</h3>
         <p>A firewall, AppArmor and a hardened kernel from the first install.</p>
       </div>
       <div class="fact">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3d95ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect class="draw" x="4" y="10" width="16" height="11" rx="2"/><path class="draw" d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         <h3>Private by design</h3>
         <p>No accounts. It works offline, and online features stay off until you want them.</p>
       </div>
       <div class="fact">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#9b6bff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="draw" d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/></svg>
         <h3>Light on its feet</h3>
         <p>A feature you turn off starts nothing and uses no memory.</p>
       </div>
@@ -351,27 +421,27 @@ footer a { color: var(--muted); }
 
   <section class="section center" id="tour" aria-labelledby="tour-title">
     <div class="inner stack">
-      <h2 class="headline" id="tour-title">The whole tour. Twenty seconds.</h2>
+      <h2 class="headline grad g-rose" id="tour-title">The whole tour. Twenty seconds.</h2>
       <p class="sub">Overview, Control Center, Apps, System Settings and Search.</p>
-      <div class="film"><video src="assets/video/tour.mp4" poster="assets/video/tour-poster.jpg" controls muted playsinline preload="none" width="1600" height="900"></video></div>
+      <div class="film" id="film"><video src="assets/video/tour.mp4" poster="assets/video/tour-poster.jpg" controls muted playsinline preload="none" width="1600" height="900"></video></div>
       <p class="note">Recorded in a virtual machine, so animations run slower than on real hardware.</p>
     </div>
   </section>
 
   <section class="section paper" id="name" aria-labelledby="name-title">
-    <div class="inner name-grid">
+    <div class="inner archwrap" id="archwrap">
       <div class="story">
         <h2 class="headline" id="name-title">Every arch needs a keystone.</h2>
         <p>An arch is built from stones that cannot stand on their own. The last stone goes in at the top. It locks the others in place, and the arch holds.</p>
         <p><strong>Arch Linux gives you the stones.</strong> A kernel, a compositor, a shell and a hundred good tools. <strong>Clave is the keystone</strong> that locks them into one desktop.</p>
       </div>
-      <svg class="arch" viewBox="40 70 380 260" role="img" aria-label="An arch of eleven stones, with the keystone at the top filled in">
-        <style>.arch .vs { fill: #e4e2dd; stroke: #cfccc5; stroke-width: 1.2; } .arch .ks { fill: currentColor; }</style>
-        <path d="M112.0 260.6 L52.0 259.9 A178 178 0 0 1 58.6 213.9 L116.4 230.1 A118 118 0 0 0 112.0 260.6 Z" class="vs"/><path d="M117.2 227.4 L59.8 209.8 A178 178 0 0 1 79.1 167.6 L130.0 199.4 A118 118 0 0 0 117.2 227.4 Z" class="vs"/><path d="M131.5 197.0 L81.4 164.0 A178 178 0 0 1 111.8 128.9 L151.7 173.8 A118 118 0 0 0 131.5 197.0 Z" class="vs"/><path d="M153.8 171.9 L115.1 126.1 A178 178 0 0 1 154.1 101.0 L179.7 155.3 A118 118 0 0 0 153.8 171.9 Z" class="vs"/><path d="M182.3 154.1 L158.0 99.2 A178 178 0 0 1 202.6 86.1 L211.8 145.4 A118 118 0 0 0 182.3 154.1 Z" class="vs"/><path d="M214.6 145.0 L206.8 85.5 A178 178 0 0 1 253.2 85.5 L245.4 145.0 A118 118 0 0 0 214.6 145.0 Z" class="ks"/><path d="M248.2 145.4 L257.4 86.1 A178 178 0 0 1 302.0 99.2 L277.7 154.1 A118 118 0 0 0 248.2 145.4 Z" class="vs"/><path d="M280.3 155.3 L305.9 101.0 A178 178 0 0 1 344.9 126.1 L306.2 171.9 A118 118 0 0 0 280.3 155.3 Z" class="vs"/><path d="M308.3 173.8 L348.2 128.9 A178 178 0 0 1 378.6 164.0 L328.5 197.0 A118 118 0 0 0 308.3 173.8 Z" class="vs"/><path d="M330.0 199.4 L380.9 167.6 A178 178 0 0 1 400.2 209.8 L342.8 227.4 A118 118 0 0 0 330.0 199.4 Z" class="vs"/><path d="M343.6 230.1 L401.4 213.9 A178 178 0 0 1 408.0 259.9 L348.0 260.6 A118 118 0 0 0 343.6 230.1 Z" class="vs"/>
-        <rect class="vs" x="52" y="265" width="60" height="52" rx="2"/><rect class="vs" x="348" y="265" width="60" height="52" rx="2"/>
+      <svg class="arch" id="arch" viewBox="30 40 400 300" role="img" aria-label="An arch of eleven stones, with the keystone at the top filled in">
+        <defs><radialGradient id="keyglow"><stop offset="0" stop-color="#3d95ff" stop-opacity=".55"/><stop offset="1" stop-color="#3d95ff" stop-opacity="0"/></radialGradient></defs>
+        <circle class="glow" id="glow" cx="230" cy="112" r="90"/>
+        <g id="stones"></g>
       </svg>
     </div>
-    <div class="inner meanings">
+    <div class="inner meanings" id="meanings">
       <div class="meaning"><span class="word">Clave</span><span class="said">Spanish, architecture</span><p>The keystone. The stone that holds an arch together.</p></div>
       <div class="meaning"><span class="word">Clave</span><span class="said">Spanish, everyday</span><p>A key. The thing that opens what you need.</p></div>
       <div class="meaning"><span class="word">Clave</span><span class="said">Music</span><p>The rhythm the whole band keeps time to.</p></div>
@@ -379,15 +449,7 @@ footer a { color: var(--muted); }
     <div class="inner stack center stones-intro">
       <p class="sub dark">The mark is a keystone. It comes in seven stones.</p>
     </div>
-    <div class="inner stones" aria-label="The Clave mark in seven stone finishes">
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#1F1F22" stroke="#1F1F22" stroke-width="5" stroke-linejoin="round"/></svg>Black marble</div>
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#4E5866" stroke="#4E5866" stroke-width="5" stroke-linejoin="round"/></svg>Slate</div>
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#8A8784" stroke="#8A8784" stroke-width="5" stroke-linejoin="round"/></svg>Granite</div>
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#2E5E4E" stroke="#2E5E4E" stroke-width="5" stroke-linejoin="round"/></svg>Green marble</div>
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#D2AE7E" stroke="#D2AE7E" stroke-width="5" stroke-linejoin="round"/></svg>Sandstone</div>
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#D8A596" stroke="#D8A596" stroke-width="5" stroke-linejoin="round"/></svg>Rose marble</div>
-      <div class="stone"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z" fill="#EEEBE5" stroke="#CFCAC0" stroke-width="5" stroke-linejoin="round"/></svg>White marble</div>
-    </div>
+    <div class="inner stones" id="stonerow" aria-label="The Clave mark in seven stone finishes"></div>
     <div class="inner plain center">
       <p class="sub dark">Inside, every part is named for what it does.</p>
       <div class="names"><span>Overview</span><span>Search</span><span>Apps</span><span>Files</span><span>Control Center</span><span>Night Light</span><span>System Settings</span></div>
@@ -395,17 +457,18 @@ footer a { color: var(--muted); }
     </div>
   </section>
 
-  <section class="section center panel-band" id="install" aria-labelledby="install-title">
-    <div class="inner stack">
-      <h2 class="headline" id="install-title">Install in one line.</h2>
+  <section class="section center install" id="install" aria-labelledby="install-title">
+    <div class="aurora" aria-hidden="true"><div class="blob b3" style="left:-10vw;top:0"></div><div class="blob b2" style="right:-14vw;top:10vw;opacity:.3"></div></div>
+    <div class="inner stack" style="position:relative;z-index:2">
+      <h2 class="headline grad g-warm" id="install-title">Install in one line.</h2>
       <p class="sub">On Arch Linux, as your normal user.</p>
-      <div class="cmd" role="group" aria-label="Install command">
-        <code id="install-cmd">bash &lt;(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)</code>
-        <button class="copy" type="button" id="copy-install">Copy</button>
+      <div class="term" role="group" aria-label="Install command">
+        <div class="term-bar"><i></i><i></i><i></i><button class="copy" type="button" id="copy-install">Copy</button></div>
+        <div class="term-body"><span class="p">$ </span><code id="install-cmd">bash &lt;(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)</code><span class="caret" aria-hidden="true"></span></div>
       </div>
       <p class="note">Then log out and choose Hyprland. The installer asks before it changes anything.</p>
     </div>
-    <div class="folds">
+    <div class="folds" style="position:relative;z-index:2">
       <details>
         <summary>Install by hand</summary>
         <div class="fold">
@@ -443,10 +506,10 @@ cd ~/.local/src/clave
 
   <section class="section center" id="keys" aria-labelledby="keys-title">
     <div class="inner stack">
-      <h2 class="headline" id="keys-title">Six keys to start.</h2>
+      <h2 class="headline grad g-blue" id="keys-title">Six keys to start.</h2>
       <p class="sub">Press <kbd>Super</kbd> <kbd>/</kbd> for the rest.</p>
     </div>
-    <div class="inner keys">
+    <div class="inner keys" id="keygrid">
       <div class="key"><div class="caps"><kbd>Super</kbd>+<kbd>Space</kbd></div><span class="what">Search</span></div>
       <div class="key"><div class="caps"><kbd>Super</kbd>+<kbd>Tab</kbd></div><span class="what">Overview</span></div>
       <div class="key"><div class="caps"><kbd>Super</kbd>+<kbd>Return</kbd></div><span class="what">Terminal</span></div>
@@ -456,7 +519,7 @@ cd ~/.local/src/clave
     </div>
   </section>
 
-  <section class="section center panel-band" id="faq" aria-labelledby="faq-title">
+  <section class="section center" id="faq" aria-labelledby="faq-title" style="background:var(--stage)">
     <div class="inner stack">
       <h2 class="headline" id="faq-title">Questions.</h2>
     </div>
@@ -482,19 +545,62 @@ cd ~/.local/src/clave
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
 (function () {
+  var KEY = "M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z";
+  var STONES = [["Black marble", "#1F1F22", "#1F1F22"], ["Slate", "#4E5866", "#4E5866"], ["Granite", "#8A8784", "#8A8784"],
+    ["Green marble", "#2E5E4E", "#2E5E4E"], ["Sandstone", "#D2AE7E", "#D2AE7E"], ["Rose marble", "#D8A596", "#D8A596"], ["White marble", "#EEEBE5", "#CFCAC0"]];
+  function mark(fill, stroke) {
+    return '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="' + KEY + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="5" stroke-linejoin="round"/></svg>';
+  }
+
+  // Stone row (always built, so the page is complete without animation).
+  var row = document.getElementById("stonerow");
+  STONES.forEach(function (s) { var d = document.createElement("div"); d.className = "stone"; d.innerHTML = mark(s[1], s[2]) + s[0]; row.appendChild(d); });
+
+  // Floating stones around the hero.
+  var FLOAT = [[6, 18, 64, -14], [14, 62, 44, 18], [83, 14, 72, 12], [90, 58, 50, -20], [24, 84, 36, 8], [72, 80, 40, -8], [48, 6, 30, 22]];
+  var floaters = document.getElementById("floaters");
+  FLOAT.forEach(function (f, i) {
+    var el = document.createElement("div"); el.className = "floater";
+    el.style.left = f[0] + "%"; el.style.top = f[1] + "%";
+    el.style.setProperty("--s", f[2] + "px"); el.style.setProperty("--r", f[3] + "deg"); el.style.setProperty("--d", (5 + i * 0.9) + "s");
+    el.dataset.speed = (0.25 + (i % 4) * 0.22).toFixed(2);
+    el.innerHTML = mark(STONES[i][1], STONES[i][2]);
+    floaters.appendChild(el);
+  });
+
+  // The arch: eleven voussoirs on two circles, the middle one is the keystone.
+  var cx = 230, cy = 262, ri = 118, ro = 178, n = 11, gap = 0.012, svgNS = "http://www.w3.org/2000/svg";
+  var g = document.getElementById("stones");
+  for (var i = 0; i < n; i++) {
+    var a0 = Math.PI - i * Math.PI / n - gap, a1 = Math.PI - (i + 1) * Math.PI / n + gap;
+    var p = function (r, a) { return (cx + r * Math.cos(a)).toFixed(1) + " " + (cy - r * Math.sin(a)).toFixed(1); };
+    var d = "M" + p(ri, a0) + " L" + p(ro, a0) + " A" + ro + " " + ro + " 0 0 1 " + p(ro, a1) + " L" + p(ri, a1) + " A" + ri + " " + ri + " 0 0 0 " + p(ri, a0) + " Z";
+    var path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", d); path.setAttribute("class", i === (n - 1) / 2 ? "ks" : "vs");
+    g.appendChild(path);
+  }
+  [[cx - ro, ro - ri], [cx + ri, ro - ri]].forEach(function (r) {
+    var rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("class", "vs"); rect.setAttribute("x", r[0]); rect.setAttribute("y", cy + 3);
+    rect.setAttribute("width", r[1]); rect.setAttribute("height", 60); rect.setAttribute("rx", 2);
+    g.appendChild(rect);
+  });
+
   // Copy the install command.
   var btn = document.getElementById("copy-install");
   var cmd = document.getElementById("install-cmd");
+  var full = cmd.textContent;
   btn.addEventListener("click", function () {
     var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1600); };
     var select = function () { var r = document.createRange(); r.selectNodeContents(cmd); var s = getSelection(); s.removeAllRanges(); s.addRange(r); };
-    if (navigator.clipboard) navigator.clipboard.writeText(cmd.textContent).then(done, select); else select();
+    if (navigator.clipboard) navigator.clipboard.writeText(full).then(done, select); else select();
   });
 
-  // Highlights carousel: scroll-snap track, dots, arrows, and autoplay that
-  // pauses on hover, focus, the pause button, or reduced motion.
+  // Highlights carousel.
   var track = document.getElementById("track");
   var slides = Array.prototype.slice.call(track.children);
   var dots = document.getElementById("dots");
@@ -503,23 +609,23 @@ cd ~/.local/src/clave
   var index = 0, timer = null;
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var playing = !reduced, held = false;
-
   slides.forEach(function (s, i) {
-    var d = document.createElement("button");
-    d.type = "button"; d.className = "dot"; d.id = "dot-" + i;
-    d.setAttribute("aria-label", "Show highlight " + (i + 1));
-    d.addEventListener("click", function () { go(i); stopAuto(); });
-    dots.appendChild(d);
+    var dt = document.createElement("button");
+    dt.type = "button"; dt.className = "dot"; dt.id = "dot-" + i;
+    dt.setAttribute("aria-label", "Show highlight " + (i + 1));
+    dt.addEventListener("click", function () { go(i); stopAuto(); });
+    dots.appendChild(dt);
   });
-  function mark(i) {
+  function markSlide(i) {
     index = i;
-    Array.prototype.forEach.call(dots.children, function (d, j) { d.setAttribute("aria-current", j === i ? "true" : "false"); });
+    Array.prototype.forEach.call(dots.children, function (dd, j) { dd.setAttribute("aria-current", j === i ? "true" : "false"); });
+    slides.forEach(function (s, j) { s.classList.toggle("on", j === i); });
   }
   function go(i) {
     i = (i + slides.length) % slides.length;
     var s = slides[i];
     track.scrollTo({ left: s.offsetLeft - (track.clientWidth - s.clientWidth) / 2, behavior: reduced ? "auto" : "smooth" });
-    mark(i);
+    markSlide(i);
   }
   document.getElementById("prev").addEventListener("click", function () { go(index - 1); stopAuto(); });
   document.getElementById("next").addEventListener("click", function () { go(index + 1); stopAuto(); });
@@ -533,7 +639,7 @@ cd ~/.local/src/clave
     settle = setTimeout(function () {
       var mid = track.scrollLeft + track.clientWidth / 2, best = 0, dist = Infinity;
       slides.forEach(function (s, i) { var c = s.offsetLeft + s.clientWidth / 2; if (Math.abs(c - mid) < dist) { dist = Math.abs(c - mid); best = i; } });
-      mark(best);
+      markSlide(best);
     }, 80);
   });
   function setIcon() {
@@ -549,13 +655,12 @@ cd ~/.local/src/clave
   region.addEventListener("mouseleave", function () { held = false; });
   region.addEventListener("focusin", function () { held = true; });
   region.addEventListener("focusout", function () { held = false; });
-  mark(0); setIcon();
-  // Autoplay only while the carousel is on screen.
+  markSlide(0); setIcon();
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) startAuto(); else clearInterval(timer); }); }, { threshold: .4 }).observe(region);
-  } else { startAuto(); }
+  }
 
-  // Mark the section in view in the top bar.
+  // Section in view marks the top bar.
   var links = Array.prototype.slice.call(document.querySelectorAll(".links a[href^='#']"));
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (entries) {
@@ -566,6 +671,130 @@ cd ~/.local/src/clave
     }, { rootMargin: "-45% 0px -50% 0px" });
     links.forEach(function (a) { var t = document.querySelector(a.getAttribute("href")); if (t) io.observe(t); });
   }
+
+  // Statement words (split so they can light up; they show fully when there is no motion).
+  var st = document.getElementById("statement");
+  st.innerHTML = st.textContent.split(" ").map(function (w) { return '<span class="w">' + w + "</span>"; }).join(" ");
+
+  // Everything below is motion. Without GSAP or with reduced motion, the page stays as it is.
+  if (!window.gsap || !window.ScrollTrigger) { document.documentElement.classList.remove("js"); return; }
+  gsap.registerPlugin(ScrollTrigger);
+  var mm = gsap.matchMedia();
+
+  mm.add("(prefers-reduced-motion: no-preference)", function () {
+    // Scroll progress bar.
+    gsap.to("#progress", { scaleX: 1, ease: "none", scrollTrigger: { start: 0, end: "max", scrub: 0.2 } });
+
+    // Hero headline: letters rise in.
+    var h1 = document.getElementById("hero-title");
+    h1.innerHTML = h1.textContent.split(" ").map(function (w) {
+      return '<span class="word">' + w.split("").map(function (c) { return '<span class="ch">' + c + "</span>"; }).join("") + "</span>";
+    }).join(" ");
+    gsap.from("#hero-title .ch", { yPercent: 110, rotate: 8, opacity: 0, duration: 1, ease: "expo.out", stagger: 0.035, delay: 0.1 });
+    gsap.from(["#hero-copy .version", "#hero-copy .sub", "#hero-copy .actions"], { y: 24, opacity: 0, duration: 1, ease: "power3.out", stagger: 0.12, delay: 0.45 });
+    gsap.from(".floater", { scale: 0, opacity: 0, duration: 1.2, ease: "back.out(2)", stagger: 0.08, delay: 0.6 });
+
+    // Hero on scroll: the screenshot tilts flat and grows, the copy lifts away, stones drift at their own speeds.
+    gsap.fromTo("#stage img", { rotateX: 28, scale: 0.86, y: 40 }, { rotateX: 0, scale: 1, y: 0, ease: "none",
+      scrollTrigger: { trigger: "#stage", start: "top 95%", end: "top 20%", scrub: 0.6 } });
+    gsap.to("#hero-copy", { y: -120, opacity: 0, filter: "blur(10px)", ease: "none",
+      scrollTrigger: { trigger: "#hero", start: "top top", end: "40% top", scrub: 0.5 } });
+    gsap.utils.toArray(".floater").forEach(function (el) {
+      var sp = parseFloat(el.dataset.speed);
+      gsap.to(el, { y: -window.innerHeight * sp, rotate: (sp > 0.5 ? 1 : -1) * 90 * sp, ease: "none",
+        scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: 0.8 } });
+    });
+
+    // Statement: each word lights up as you read down.
+    gsap.to("#statement .w", { color: "#f5f5f7", stagger: 0.1, ease: "none",
+      scrollTrigger: { trigger: "#statement", start: "top 80%", end: "bottom 45%", scrub: 0.5 } });
+
+    // Headlines slide up with a little stretch.
+    gsap.utils.toArray(".section:not(.paper) .headline, .highlights .headline").forEach(function (h) {
+      gsap.from(h, { y: 60, opacity: 0, scale: 0.96, duration: 1.1, ease: "expo.out", scrollTrigger: { trigger: h, start: "top 88%" } });
+    });
+
+    // Feature tiles: pop in with a stagger, and tilt toward the pointer.
+    gsap.from("#tiles .tile", { y: 90, opacity: 0, rotateX: 12, duration: 1.1, ease: "expo.out", stagger: 0.09,
+      scrollTrigger: { trigger: "#tiles", start: "top 85%" } });
+    gsap.utils.toArray("#tiles .tile .pic img").forEach(function (img) {
+      gsap.fromTo(img, { y: 30 }, { y: -10, ease: "none", scrollTrigger: { trigger: img, start: "top bottom", end: "bottom top", scrub: true } });
+    });
+    if (window.matchMedia("(hover: hover)").matches) {
+      gsap.utils.toArray("#tiles .tile").forEach(function (t) {
+        var rx = gsap.quickTo(t, "rotateX", { duration: 0.5, ease: "power3" });
+        var ry = gsap.quickTo(t, "rotateY", { duration: 0.5, ease: "power3" });
+        t.addEventListener("pointermove", function (e) {
+          var r = t.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+          rx((0.5 - y) * 8); ry((x - 0.5) * 10);
+          t.style.setProperty("--mx", x * 100 + "%"); t.style.setProperty("--my", y * 100 + "%");
+        });
+        t.addEventListener("pointerleave", function () { rx(0); ry(0); });
+      });
+    }
+
+    // App marquee: two rows slide in opposite directions, faster when you scroll faster.
+    [["#row1", -1], ["#row2", 1]].forEach(function (cfg) {
+      var el = document.querySelector(cfg[0]);
+      el.innerHTML += el.innerHTML;
+      var w = el.scrollWidth / 2;
+      var tl = gsap.fromTo(el, { x: cfg[1] < 0 ? 0 : -w }, { x: cfg[1] < 0 ? -w : 0, duration: 40, ease: "none", repeat: -1 });
+      ScrollTrigger.create({ trigger: ".marquee", start: "top bottom", end: "bottom top",
+        onUpdate: function (self) { gsap.to(tl, { timeScale: 1 + Math.min(Math.abs(self.getVelocity()) / 300, 6), duration: 0.2, overwrite: true, onComplete: function () { gsap.to(tl, { timeScale: 1, duration: 1.2 }); } }); } });
+    });
+
+    // Security: cards rise and turn, icons draw themselves.
+    gsap.from("#facts .fact", { y: 80, opacity: 0, rotateY: -18, duration: 1.1, ease: "expo.out", stagger: 0.12, scrollTrigger: { trigger: "#facts", start: "top 82%" } });
+    gsap.utils.toArray("#facts .draw").forEach(function (d) {
+      var len = d.getTotalLength ? d.getTotalLength() : 80;
+      gsap.fromTo(d, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.6, ease: "power2.inOut", scrollTrigger: { trigger: "#facts", start: "top 78%" } });
+    });
+
+    // Tour video grows to full size.
+    gsap.fromTo("#film", { scale: 0.82, borderRadius: 40 }, { scale: 1, ease: "none", scrollTrigger: { trigger: "#film", start: "top 95%", end: "top 30%", scrub: 0.5 } });
+
+    // The arch builds itself: stones fly in, then the keystone drops and glows.
+    var wide = window.matchMedia("(min-width: 861px)").matches;
+    var vs = gsap.utils.toArray("#stones .vs"), ks = document.querySelector("#stones .ks");
+    var build = gsap.timeline({ scrollTrigger: wide
+      ? { trigger: "#archwrap", start: "center center", end: "+=900", scrub: 0.8, pin: true, anticipatePin: 1 }
+      : { trigger: "#arch", start: "top 90%", end: "center 55%", scrub: 0.8 } });
+    build.from(vs, { x: function () { return gsap.utils.random(-260, 260); }, y: function () { return gsap.utils.random(-220, 180); },
+      rotate: function () { return gsap.utils.random(-120, 120); }, opacity: 0, transformOrigin: "50% 50%", ease: "power2.out", stagger: { each: 0.06, from: "edges" }, duration: 1 })
+      .from(ks, wide ? { y: -320, rotate: -40, transformOrigin: "50% 50%", ease: "bounce.out", duration: 0.9 }
+                    : { scale: 0, rotate: -40, transformOrigin: "50% 50%", ease: "back.out(2.5)", duration: 0.9 }, ">-0.1")
+      .to("#glow", { opacity: 1, duration: 0.4 }, ">-0.2");
+    if (wide) build.from(".story > *", { y: 40, opacity: 0, stagger: 0.12, duration: 0.6, ease: "power2.out" }, 0);
+    gsap.from("#meanings .meaning", { y: 70, opacity: 0, rotate: function (i) { return [-4, 0, 4][i]; }, duration: 1, ease: "back.out(1.6)", stagger: 0.1, scrollTrigger: { trigger: "#meanings", start: "top 85%" } });
+
+    // Stone row: a wave that keeps rolling while it is on screen.
+    var wave = gsap.to("#stonerow .stone svg", { y: -16, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: -1, stagger: { each: 0.12, repeat: -1, yoyo: true }, paused: true });
+    ScrollTrigger.create({ trigger: "#stonerow", start: "top bottom", end: "bottom top", onToggle: function (s) { s.isActive ? wave.play() : wave.pause(); } });
+    gsap.from("#stonerow .stone", { scale: 0, opacity: 0, duration: 0.8, ease: "back.out(2.2)", stagger: 0.07, scrollTrigger: { trigger: "#stonerow", start: "top 88%" } });
+    gsap.from(".plain .names span", { y: 30, opacity: 0, duration: 0.7, ease: "back.out(2)", stagger: 0.06, scrollTrigger: { trigger: ".plain", start: "top 85%" } });
+
+    // Install: the command types itself.
+    cmd.textContent = "";
+    ScrollTrigger.create({ trigger: ".term", start: "top 80%", once: true, onEnter: function () {
+      var o = { n: 0 };
+      gsap.to(o, { n: full.length, duration: 2.2, ease: "none", onUpdate: function () { cmd.textContent = full.slice(0, Math.round(o.n)); } });
+    } });
+
+    // Keys: pressed one after another.
+    var caps = gsap.utils.toArray("#keygrid .key");
+    gsap.from(caps, { y: 50, opacity: 0, duration: 0.9, ease: "expo.out", stagger: 0.08, scrollTrigger: { trigger: "#keygrid", start: "top 85%" } });
+    var presses = gsap.timeline({ repeat: -1, repeatDelay: 1.2, paused: true });
+    caps.forEach(function (k) {
+      var kb = k.querySelectorAll("kbd");
+      presses.call(function () { kb.forEach(function (b) { b.classList.add("down"); }); }).to({}, { duration: 0.35 })
+        .call(function () { kb.forEach(function (b) { b.classList.remove("down"); }); }).to({}, { duration: 0.25 });
+    });
+    ScrollTrigger.create({ trigger: "#keygrid", start: "top 80%", end: "bottom top", onToggle: function (s) { s.isActive ? presses.play() : presses.pause(); } });
+
+    return function () { cmd.textContent = full; };
+  });
+
+  mm.add("(prefers-reduced-motion: reduce)", function () { document.documentElement.classList.remove("js"); });
 })();
 </script>
 </body>
