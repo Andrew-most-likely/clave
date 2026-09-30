@@ -1,73 +1,50 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/wordmark-dark.png">
-    <img src="docs/assets/brand/wordmark-light.png" alt="Clave" width="280">
+    <img src="docs/assets/brand/wordmark-light.png" alt="Clave" width="240">
   </picture>
 </p>
 
-<p align="center">
-  <strong>A complete, hardened desktop for Hyprland on Arch Linux.</strong><br>
-  Menu bar, Dock, Overview, Control Center, System Settings and standard apps, with tiling kept.
-</p>
+<h3 align="center">Hyprland, finished.</h3>
+
+<p align="center">A complete desktop for Arch Linux. Tiling kept.</p>
 
 <p align="center">
   <a href="https://github.com/Andrew-most-likely/clave/releases/latest"><img src="https://img.shields.io/badge/release-v1.1.2-0a6fe0" alt="Release v1.1.2"></a>
   <a href="https://github.com/Andrew-most-likely/clave/actions/workflows/ci.yml"><img src="https://github.com/Andrew-most-likely/clave/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Arch_Linux-1793d1?logo=archlinux&logoColor=white" alt="Arch Linux">
-  <img src="https://img.shields.io/badge/Hyprland-0.55%2B-58e1ff" alt="Hyprland 0.55+">
-  <img src="https://img.shields.io/badge/Wayland-native-4a4a55" alt="Wayland">
-  <img src="https://img.shields.io/badge/hardened-by_default-2e7d32" alt="Hardened by default">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
 </p>
 
 <p align="center">
-  <a href="https://andrew-most-likely.github.io/clave/">Website</a> &nbsp;&middot;&nbsp;
+  <a href="https://andrew-most-likely.github.io/clave/"><b>Website</b></a> &nbsp;&middot;&nbsp;
   <a href="#install">Install</a> &nbsp;&middot;&nbsp;
-  <a href="#what-you-get">Features</a> &nbsp;&middot;&nbsp;
-  <a href="CHANGELOG.md">Changelog</a> &nbsp;&middot;&nbsp;
-  <a href="docs/RECOVERY.md">Recovery</a> &nbsp;&middot;&nbsp;
-  <a href="SECURITY.md">Security</a>
+  <a href="#a-look-around">Screenshots</a> &nbsp;&middot;&nbsp;
+  <a href="#reference">Reference</a>
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/desktop.webp" alt="The Clave desktop: menu bar, a terminal and Files tiled side by side, and the Dock" width="100%">
+  <img src="docs/assets/screenshots/desktop.webp" alt="The Clave desktop: menu bar, a terminal and Files side by side, and the Dock" width="100%">
 </p>
 
-Clave turns Hyprland into a finished desktop. Everything is built with [Quickshell](https://quickshell.org) and
-Hyprland's Lua config, and it needs no other dotfiles pack. It installs hardened by default, works offline, and a
-feature that is turned off runs no process.
+## In short
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/assets/screenshots/overview.webp" alt="Overview with every window and Space"><br><sub><b>Overview</b>: every window and Space at a glance</sub></td>
-    <td width="50%"><img src="docs/assets/screenshots/control-center.webp" alt="Control Center open from the menu bar"><br><sub><b>Control Center</b>: network, Bluetooth, Focus, display, sound and media</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/assets/screenshots/settings.webp" alt="System Settings on the Appearance pane"><br><sub><b>System Settings</b>: a pane for each part of the desktop, with search</sub></td>
-    <td><img src="docs/assets/screenshots/apps.webp" alt="Apps showing the standard app set"><br><sub><b>Apps</b>: the standard apps, with helper launchers hidden</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/assets/screenshots/notes.webp" alt="Notes with a Markdown note open"><br><sub><b>Notes</b>: plain Markdown files in <code>~/Documents/Notes</code></sub></td>
-    <td><img src="docs/assets/screenshots/calendar.webp" alt="Calendar month view with events"><br><sub><b>Calendar</b>: plain <code>.ics</code> files, no account</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/assets/screenshots/activity.webp" alt="Activity Monitor listing processes"><br><sub><b>Activity Monitor</b>: CPU, memory, disk and network</sub></td>
-    <td><img src="docs/assets/screenshots/capture.webp" alt="Screenshot toolbar at the bottom of the screen"><br><sub><b>Screenshots</b>: <code>Print</code> opens the capture and recording toolbar</sub></td>
-  </tr>
-</table>
-
-A short video tour is on the [website](https://andrew-most-likely.github.io/clave/#tour).
+- **A whole desktop.** Menu bar, Dock, Overview, Control Center and System Settings.
+- **Hardened by default.** Firewall, AppArmor and a hardened kernel from the start.
+- **Quiet.** Works offline. A feature you turn off runs nothing.
 
 ## Install
 
-On Arch Linux (or an Arch-based distribution), as your normal user:
+On Arch Linux, as your normal user:
 
 ```sh
 bash <(curl -fsSL https://raw.githubusercontent.com/Andrew-most-likely/clave/main/setup.sh)
 ```
 
-The script clones the latest release to `~/.local/src/clave` and runs `install.sh`. The installer
-shows a summary and asks before it changes anything. [Read `setup.sh`](setup.sh) first if you like. It is 40 lines.
+Then log out and choose **Hyprland** on the login screen. The installer asks before it changes anything.
+
+<details>
+<summary><b>Install by hand, and installer options</b></summary>
 
 You can also install by hand:
 
@@ -85,10 +62,15 @@ Then log out, and pick Hyprland on the login screen.
 | `--yes` | No questions. The hardening layer is included; its warning is printed. |
 | `--no-harden` | Skip the security hardening layer |
 | `--extras` | Also install the optional apps in `packages/extras*.txt`, including the GNOME utilities Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys |
-| `--personal` | Use fonts, a cursor and sounds you supply. See [Personal option](#personal-option). |
+| `--personal` | Use fonts, a cursor and sounds you supply. See Personal option under Reference. |
 | `--user-only` | Only install files in `$HOME`. No sudo, no login screen or boot splash. |
 | `--no-packages` | Skip pacman, AUR and Flatpak |
 | `--dry-run` | Show what would happen and change nothing |
+
+</details>
+
+<details>
+<summary><b>Coming from another setup</b></summary>
 
 **Coming from ML4W or another setup?** The installer moves `~/.config/hypr` and `~/.config/quickshell` to
 `<dir>.bak-<date>`. It turns config directories that were links into `~/.mydotfiles` into real copies, so it never
@@ -99,7 +81,72 @@ apps. `./uninstall.sh` puts everything back.
 install to the new names and keeps your settings, Dock, wallpaper and your own files. Old command names in
 `custom.lua` are updated, and a copy of the file is kept in `~/.local/state/clave/backups`.
 
-## What you get
+</details>
+
+## A look around
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/overview.webp" alt="Overview with every window and Space"></td>
+    <td width="50%"><img src="docs/assets/closeups/settings.webp" alt="System Settings on the Appearance pane"></td>
+  </tr>
+  <tr>
+    <td><b>Overview.</b> Every window and Space at once.</td>
+    <td><b>System Settings.</b> One pane for each part, with search.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/closeups/notes.webp" alt="Notes with a Markdown note open"></td>
+    <td><img src="docs/assets/closeups/calendar.webp" alt="Calendar month view with events"></td>
+  </tr>
+  <tr>
+    <td><b>Notes.</b> Plain Markdown files. Yours to keep.</td>
+    <td><b>Calendar.</b> Plain <code>.ics</code> files. No account.</td>
+  </tr>
+</table>
+
+More screenshots and a video tour are on the [website](https://andrew-most-likely.github.io/clave/).
+
+## Keyboard basics
+
+| Keys | Does |
+|---|---|
+| `Super+Space` | Search |
+| `Super+Tab` | Overview |
+| `Super+Return` | Terminal |
+| `Super+,` | System Settings |
+| `Print` | Screenshot |
+| `Super+/` | Show every shortcut |
+
+<details>
+<summary><b>All keyboard shortcuts</b></summary>
+
+Press `Super+/` to see all of them.
+
+| Keys | Action | Keys | Action |
+|---|---|---|---|
+| `Super+Space` or tap `Super` | Search | `Super+W` / `Super+Q` | Close window / Quit app |
+| `Super+A` | Apps | `Super+M` / `Super+H` | Minimize to the Dock / Hide app |
+| `Super+Tab` | Overview | `Super+F` / `Super+Ctrl+M` | Full screen / Zoom |
+| `Alt+Tab` | Switch windows | `Super+T` | Float or tile the window |
+| `Super+Return` | Terminal (kitty) | `Super+1…0` | Go to a Space |
+| `Super+E` | Files | `Super+Shift+1…0` | Move the window to a Space |
+| `Super+B` | Web browser | `Super+Arrows` | Move focus |
+| `Super+,` | System Settings | `Super+Alt+Arrows` | Swap windows |
+| `Super+N` | Notification Center | `Super+Shift+Arrows` | Resize the window |
+| `Super+Ctrl+N` | Control Center | `Super+S` | Scratchpad |
+| `Super+V` | Clipboard history | `Super+/` | All keyboard shortcuts |
+| `Ctrl+Super+Space` | Emoji & Symbols | `Print` | Screenshot and recording toolbar |
+| `Super+L` | Lock screen | `Shift+Print` | Copy text from the screen (OCR) |
+| `Super+Alt+Esc` | Force Quit | `Super+Alt+G` | Game mode (turns effects off) |
+
+</details>
+
+## Reference
+
+Open only what you need.
+
+<details>
+<summary><b>Everything Clave includes</b></summary>
 
 **Desktop**
 - Menu bar with the System menu, the app menu, battery, Wi-Fi, sound and the clock. There is one menu bar per screen.
@@ -142,6 +189,11 @@ CJK and emoji fonts, zram, a journald size cap, and weekly cache cleanup.
 **Disk Encryption:** Clave says when the disk is not encrypted and guides the setup, either a reinstall with
 LUKS2 or encrypting this install in place. See [docs/ENCRYPTION.md](docs/ENCRYPTION.md).
 
+</details>
+
+<details>
+<summary><b>What the hardening changes</b></summary>
+
 **Hardening** (on by default; `--no-harden` skips it. If it locks you out, see [docs/RECOVERY.md](docs/RECOVERY.md).)
 - The `linux-hardened` kernel with lockdown, IOMMU and init_on_free flags
 - sysctl lockdown, AppArmor (`apparmor.d`) and auditd
@@ -149,28 +201,10 @@ LUKS2 or encrypting this install in place. See [docs/ENCRYPTION.md](docs/ENCRYPT
 - USBGuard, faillock, a stricter sudo configuration, `umask 027` at login, and a `noexec` `/tmp`
 - An AIDE baseline and daily `arch-audit` CVE checks
 
-## Keyboard shortcuts
+</details>
 
-Press `Super+/` to see all of them.
-
-| Keys | Action | Keys | Action |
-|---|---|---|---|
-| `Super+Space` or tap `Super` | Search | `Super+W` / `Super+Q` | Close window / Quit app |
-| `Super+A` | Apps | `Super+M` / `Super+H` | Minimize to the Dock / Hide app |
-| `Super+Tab` | Overview | `Super+F` / `Super+Ctrl+M` | Full screen / Zoom |
-| `Alt+Tab` | Switch windows | `Super+T` | Float or tile the window |
-| `Super+Return` | Terminal (kitty) | `Super+1…0` | Go to a Space |
-| `Super+E` | Files | `Super+Shift+1…0` | Move the window to a Space |
-| `Super+B` | Web browser | `Super+Arrows` | Move focus |
-| `Super+,` | System Settings | `Super+Alt+Arrows` | Swap windows |
-| `Super+N` | Notification Center | `Super+Shift+Arrows` | Resize the window |
-| `Super+Ctrl+N` | Control Center | `Super+S` | Scratchpad |
-| `Super+V` | Clipboard history | `Super+/` | All keyboard shortcuts |
-| `Ctrl+Super+Space` | Emoji & Symbols | `Print` | Screenshot and recording toolbar |
-| `Super+L` | Lock screen | `Shift+Print` | Copy text from the screen (OCR) |
-| `Super+Alt+Esc` | Force Quit | `Super+Alt+G` | Game mode (turns effects off) |
-
-## Customize
+<details>
+<summary><b>Customize</b></summary>
 
 The installer never replaces files you own:
 
@@ -190,7 +224,10 @@ Super key (Super+C, X, V, Z; clipboard history then moves to Super+Shift+V).
 
 See [`examples/`](examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
 
-## Update
+</details>
+
+<details>
+<summary><b>Update</b></summary>
 
 Open System Settings > General > Software Update, or run `clave-update`. The command updates the system packages
 and Flatpaks, then pulls the newest release of this desktop and reinstalls only the files that changed. Hyprland
@@ -204,7 +241,10 @@ against the versions this release was tested with (`compat.json`): OK, Untested,
 the end, and a pacman hook warns after an upgrade and shows one notification at the next login when a newer Clave
 is needed.
 
-## Uninstall
+</details>
+
+<details>
+<summary><b>Uninstall</b></summary>
 
 ```sh
 ~/.local/src/clave/uninstall.sh            # files in $HOME
@@ -214,14 +254,10 @@ is needed.
 Every file that the installer replaced comes back from the copy it kept in `~/.local/state/clave/backups`. The config directories that were moved
 aside come back too. Packages stay installed.
 
-## Not included, on purpose
+</details>
 
-- **Third-party themes.** The WhiteSur icons and Kvantum theme come from the AUR. **Wallpapers and the
-  GTK/Firefox theme** are downloaded from the WhiteSur repositories at install time.
-- **Fonts, cursors, logos or sounds that the project has no right to ship.** Use the personal option below.
-- **Hardened `/etc/fstab` options** must be merged by hand. See `extra/fstab-hardening.txt`.
-
-## Personal option
+<details>
+<summary><b>Personal option</b></summary>
 
 `./install.sh --personal` lets you use assets that you supply yourself. It changes assets only, never wording, and
 updates keep it.
@@ -235,7 +271,20 @@ updates keep it.
 
 To go back to the public build, delete `~/.local/state/clave/personal` and run `./install.sh` again.
 
-## Things to know
+</details>
+
+<details>
+<summary><b>Not included, on purpose</b></summary>
+
+- **Third-party themes.** The WhiteSur icons and Kvantum theme come from the AUR. **Wallpapers and the
+  GTK/Firefox theme** are downloaded from the WhiteSur repositories at install time.
+- **Fonts, cursors, logos or sounds that the project has no right to ship.** Use the personal option below.
+- **Hardened `/etc/fstab` options** must be merged by hand. See `extra/fstab-hardening.txt`.
+
+</details>
+
+<details>
+<summary><b>Things to know</b></summary>
 
 - **Hardening risks:** USBGuard blocks USB devices that were not plugged in during the install. Three wrong passwords
   lock the account for 15 minutes. Keep a recovery USB. [docs/RECOVERY.md](docs/RECOVERY.md) explains how to get
@@ -249,7 +298,10 @@ To go back to the public build, delete `~/.local/state/clave/personal` and run `
 - **Logs:** the installer writes `~/.cache/clave/install.log`, and the plugin build writes
   `~/.cache/clave/rebuild-plugins.log`. Attach them to bug reports.
 
-## Development
+</details>
+
+<details>
+<summary><b>Development</b></summary>
 
 ```
 install.sh / uninstall.sh / setup.sh
@@ -272,6 +324,8 @@ The upstream watch and `compat.json` are described in [docs/UPSTREAM.md](docs/UP
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The goals, requirements and roadmap are in
 [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
+
+</details>
 
 ## Credits and license
 

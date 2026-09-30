@@ -9,6 +9,8 @@
 - The README shortcut table matches the real keys: `Super+W` closes a window, `Super+Q` quits the app,
   `Super+M` minimizes, `Super+H` hides the app and `Super+Ctrl+M` zooms.
 - A project website (`docs/index.html`), screenshots, a short video tour and the logo files in `docs/assets/`.
+- The README and the website are easier to scan: one short idea per section, with the details folded away until
+  you open them.
 
 ## v1.1.2 (2026-09-29)
 
