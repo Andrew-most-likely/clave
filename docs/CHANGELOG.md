@@ -13,6 +13,9 @@
   are in `docs/`; the contributing and security notes and the upstream watch are in `.github/`; installer data is in
   `scripts/`. `install.sh`, `setup.sh`, `uninstall.sh`, `packages/` and `compat.json` stay where they were, so
   installs and updates work as before.
+- New screenshots and video on the dark wallpaper. The website is a dark product page with a highlights carousel,
+  and the README shows its screenshots as one slideshow.
+- Why the name: an arch needs a keystone, and clave is Spanish for keystone. The README and the website tell it.
 - The README and the website are easier to scan: one short idea per section, with the details folded away until
   you open them.
 
