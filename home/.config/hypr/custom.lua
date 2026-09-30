@@ -1,5 +1,5 @@
 -- Your changes. Loads last, so anything here wins over clave/*.lua.
--- Updates never replace this file. More examples: examples/ in the repo.
+-- Updates never replace this file. More examples: docs/examples/ in the repo.
 --
 -- A laptop panel at 1.5x:
 --   hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.5 })

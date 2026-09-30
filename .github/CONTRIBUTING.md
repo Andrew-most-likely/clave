@@ -34,7 +34,7 @@ CI runs the same checks.
   logos, names), or anything personal (paths, device names, network names). See section 5.1 of the plan.
 - New settings go into `~/.config/clave/settings.json` through `Clave/ClaveSettings.qml`, not into new files.
 - Every Hyprland shortcut needs a `description`: `Super+/` lists them.
-- New features and fixes cite a requirement ID from [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md). If a change
+- New features and fixes cite a requirement ID from [docs/PROJECT_PLAN.md](../docs/PROJECT_PLAN.md). If a change
   fits no requirement, update the plan first. A new feature answers the questions in section 3 of the plan in
   its pull request.
 - Contributions are licensed under GPL-3.0.

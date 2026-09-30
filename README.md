@@ -20,6 +20,7 @@
   <a href="https://andrew-most-likely.github.io/clave/"><b>Website</b></a> &nbsp;&middot;&nbsp;
   <a href="#install">Install</a> &nbsp;&middot;&nbsp;
   <a href="#a-look-around">Screenshots</a> &nbsp;&middot;&nbsp;
+  <a href="#why-clave">Why Clave</a> &nbsp;&middot;&nbsp;
   <a href="#reference">Reference</a>
 </p>
 
@@ -85,26 +86,19 @@ install to the new names and keeps your settings, Dock, wallpaper and your own f
 
 ## A look around
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/assets/screenshots/overview.webp" alt="Overview with every window and Space"></td>
-    <td width="50%"><img src="docs/assets/closeups/settings.webp" alt="System Settings on the Appearance pane"></td>
-  </tr>
-  <tr>
-    <td><b>Overview.</b> Every window and Space at once.</td>
-    <td><b>System Settings.</b> One pane for each part, with search.</td>
-  </tr>
-  <tr>
-    <td><img src="docs/assets/closeups/notes.webp" alt="Notes with a Markdown note open"></td>
-    <td><img src="docs/assets/closeups/calendar.webp" alt="Calendar month view with events"></td>
-  </tr>
-  <tr>
-    <td><b>Notes.</b> Plain Markdown files. Yours to keep.</td>
-    <td><b>Calendar.</b> Plain <code>.ics</code> files. No account.</td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/assets/screenshots/tour.webp" alt="A slideshow of Clave: the desktop, Overview, Control Center, System Settings, Notes and Calendar" width="100%">
+</p>
 
-More screenshots and a video tour are on the [website](https://andrew-most-likely.github.io/clave/).
+<p align="center"><sub>Desktop, Overview, Control Center, System Settings, Notes and Calendar. The <a href="https://andrew-most-likely.github.io/clave/">website</a> has every screen and a video tour.</sub></p>
+
+## Why Clave
+
+An arch is built from stones that cannot stand on their own. The last stone goes in at the top and locks the
+rest in place. That stone is the keystone: **clave** in Spanish.
+
+Arch Linux gives you the stones. Clave is the keystone that locks them into one desktop. Inside, every part is
+named for what it does: Overview, Search, Apps, Files.
 
 ## Keyboard basics
 
@@ -222,7 +216,7 @@ turns on Space numbers in the menu bar and lists apps that should not get title 
 draw their own. Keyboard switches the Super key symbol in menus between ⌘ and ❖, and can turn on editing shortcuts on the
 Super key (Super+C, X, V, Z; clipboard history then moves to Super+Shift+V).
 
-See [`examples/`](examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
+See [`docs/examples/`](docs/examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
 
 </details>
 
@@ -279,7 +273,7 @@ To go back to the public build, delete `~/.local/state/clave/personal` and run `
 - **Third-party themes.** The WhiteSur icons and Kvantum theme come from the AUR. **Wallpapers and the
   GTK/Firefox theme** are downloaded from the WhiteSur repositories at install time.
 - **Fonts, cursors, logos or sounds that the project has no right to ship.** Use the personal option below.
-- **Hardened `/etc/fstab` options** must be merged by hand. See `extra/fstab-hardening.txt`.
+- **Hardened `/etc/fstab` options** must be merged by hand. See `scripts/extra/fstab-hardening.txt`.
 
 </details>
 
@@ -305,24 +299,21 @@ To go back to the public build, delete `~/.local/state/clave/personal` and run `
 
 ```
 install.sh / uninstall.sh / setup.sh
-lib/common.sh           installer functions
-lib/migrate.sh          move an install from the old project name
-lib/personal.sh         the --personal option
+compat.json             versions each release was tested with, and known breaks
 home/                   files installed into $HOME (__HOME__ is filled in)
 system/<group>/         root files, grouped look | desktop | harden
 packages/<group>*.txt   pacman, -aur and -flatpak lists per group
-scripts/system.sh       root half of the installer
-scripts/fetch-themes.sh WhiteSur GTK/Firefox/wallpapers
-scripts/capture.sh      copy a live system's files back into home/ and system/
-tests/install-test.sh   install, check, uninstall in a scratch home (CI runs it)
-tests/migrate-test.sh   update an install made under the old names (CI runs it)
-ci/watched.txt          packages whose updates run the checks (upstream.yml, daily)
-compat.json             versions each release was tested with, and known breaks
+lib/                    installer functions, the move from the old name, --personal
+scripts/                root half of the installer, theme download, capture, checks
+scripts/extra/          kernel flags, Firefox prefs, fstab hardening notes
+tests/                  install, migrate, app and compatibility tests (CI runs them)
+docs/                   guides, changelog, project plan, website and brand assets
+.github/ci/             upstream watch: watched packages and the daily check
 ```
 
 The upstream watch and `compat.json` are described in [docs/UPSTREAM.md](docs/UPSTREAM.md).
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The goals, requirements and roadmap are in
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). The goals, requirements and roadmap are in
 [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
 </details>

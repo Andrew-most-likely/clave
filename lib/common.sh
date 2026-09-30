@@ -270,7 +270,7 @@ fetch_themes() {
     for prof in "$HOME"/.config/mozilla/firefox/*.default* "$HOME"/.mozilla/firefox/*.default*; do
         [ -d "$prof" ] || continue
         grep -qs 'legacyUserProfileCustomizations' "$prof/user.js" \
-            || run sh -c "cat '$repo/extra/firefox-user.js' >> '$prof/user.js'"
+            || run sh -c "cat '$repo/scripts/extra/firefox-user.js' >> '$prof/user.js'"
     done
 }
 

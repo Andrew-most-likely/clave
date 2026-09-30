@@ -24,13 +24,13 @@ jobs:
       - name: shellcheck
         run: |
           mapfile -t files < <(
-            { ls *.sh lib/*.sh scripts/*.sh tests/*.sh ci/*.sh
+            { ls *.sh lib/*.sh scripts/*.sh tests/*.sh .github/ci/*.sh
               grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash' home/.local/bin home/.local/share/clave home/.config/hypr/scripts home/.config/quickshell
             } 2>/dev/null | sort -u)
           shellcheck -S warning -x "${files[@]}"
 
       - name: Lua syntax
-        run: find home/.config/hypr examples -name '*.lua' -print0 | xargs -0 -n1 luac -p
+        run: find home/.config/hypr docs/examples -name '*.lua' -print0 | xargs -0 -n1 luac -p
 
       - name: Hyprland config
         # Hyprland does not run as root, and the container's user is root.
