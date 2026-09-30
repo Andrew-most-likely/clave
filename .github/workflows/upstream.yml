@@ -4,7 +4,7 @@
 # break Clave in an ordinary update. Once a day this finds the current
 # version of everything Clave installs or talks to and compares it with the
 # last known good list, kept on the orphan branch ci-state (users never
-# follow it). When a package in ci/watched.txt changed, the lint and install
+# follow it). When a package in .github/ci/watched.txt changed, the lint and install
 # jobs of ci.yml run. A pass makes the new list the last known good one; a
 # failure opens or updates one issue labelled upstream-break.
 name: Upstream
@@ -38,12 +38,12 @@ jobs:
 
       - name: Current versions
         # pacman -Sy and -Si in an archlinux container, AUR RPC, git ls-remote
-        run: ci/upstream.sh versions > manifest.txt
+        run: .github/ci/upstream.sh versions > manifest.txt
 
       - name: Compare
         id: diff
         run: |
-          ci/upstream.sh diff old.txt manifest.txt | tee changes.md
+          .github/ci/upstream.sh diff old.txt manifest.txt | tee changes.md
           cat changes.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4

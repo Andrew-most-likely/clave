@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Upstream versions for the daily watch (PROJECT_PLAN.md COMP-5).
 #
-#   ci/upstream.sh versions        print "SOURCE NAME VERSION" for everything
+#   .github/ci/upstream.sh versions        print "SOURCE NAME VERSION" for everything
 #                                  Clave installs or talks to, sorted
-#   ci/upstream.sh diff OLD NEW    print what changed between two such lists
+#   .github/ci/upstream.sh diff OLD NEW    print what changed between two such lists
 #                                  as a Markdown list. With GITHUB_OUTPUT set,
 #                                  also writes changed=true|false and
 #                                  watched=true|false (a package in
-#                                  ci/watched.txt changed) there.
+#                                  .github/ci/watched.txt changed) there.
 #
 # Repository packages come from pacman -Si after pacman -Sy, never -Syu. On a
 # machine without pacman (the GitHub runner) that runs in an archlinux
@@ -15,8 +15,8 @@
 # git ls-remote. A package that is gone prints the version "missing": a
 # removed package breaks the install as surely as a changed one.
 set -euo pipefail
-repo="$(cd "$(dirname "$0")/.." && pwd)"
-watched="$repo/ci/watched.txt"
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
+watched="$repo/.github/ci/watched.txt"
 
 names() {  # names FILE...: package names from package lists
     sed 's/#.*//' "$@" | tr -s '[:blank:]' '\n' | sed '/^$/d'

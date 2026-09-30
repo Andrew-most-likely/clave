@@ -222,7 +222,7 @@ turns on Space numbers in the menu bar and lists apps that should not get title 
 draw their own. Keyboard switches the Super key symbol in menus between ⌘ and ❖, and can turn on editing shortcuts on the
 Super key (Super+C, X, V, Z; clipboard history then moves to Super+Shift+V).
 
-See [`examples/`](examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
+See [`docs/examples/`](docs/examples/) for a 2-in-1 laptop setup. Put wallpapers in `~/Pictures/Wallpapers`.
 
 </details>
 
@@ -279,7 +279,7 @@ To go back to the public build, delete `~/.local/state/clave/personal` and run `
 - **Third-party themes.** The WhiteSur icons and Kvantum theme come from the AUR. **Wallpapers and the
   GTK/Firefox theme** are downloaded from the WhiteSur repositories at install time.
 - **Fonts, cursors, logos or sounds that the project has no right to ship.** Use the personal option below.
-- **Hardened `/etc/fstab` options** must be merged by hand. See `extra/fstab-hardening.txt`.
+- **Hardened `/etc/fstab` options** must be merged by hand. See `scripts/extra/fstab-hardening.txt`.
 
 </details>
 
@@ -305,24 +305,21 @@ To go back to the public build, delete `~/.local/state/clave/personal` and run `
 
 ```
 install.sh / uninstall.sh / setup.sh
-lib/common.sh           installer functions
-lib/migrate.sh          move an install from the old project name
-lib/personal.sh         the --personal option
+compat.json             versions each release was tested with, and known breaks
 home/                   files installed into $HOME (__HOME__ is filled in)
 system/<group>/         root files, grouped look | desktop | harden
 packages/<group>*.txt   pacman, -aur and -flatpak lists per group
-scripts/system.sh       root half of the installer
-scripts/fetch-themes.sh WhiteSur GTK/Firefox/wallpapers
-scripts/capture.sh      copy a live system's files back into home/ and system/
-tests/install-test.sh   install, check, uninstall in a scratch home (CI runs it)
-tests/migrate-test.sh   update an install made under the old names (CI runs it)
-ci/watched.txt          packages whose updates run the checks (upstream.yml, daily)
-compat.json             versions each release was tested with, and known breaks
+lib/                    installer functions, the move from the old name, --personal
+scripts/                root half of the installer, theme download, capture, checks
+scripts/extra/          kernel flags, Firefox prefs, fstab hardening notes
+tests/                  install, migrate, app and compatibility tests (CI runs them)
+docs/                   guides, changelog, project plan, website and brand assets
+.github/ci/             upstream watch: watched packages and the daily check
 ```
 
 The upstream watch and `compat.json` are described in [docs/UPSTREAM.md](docs/UPSTREAM.md).
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The goals, requirements and roadmap are in
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). The goals, requirements and roadmap are in
 [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
 </details>

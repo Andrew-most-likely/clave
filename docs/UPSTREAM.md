@@ -9,12 +9,12 @@ Requirements: PROJECT_PLAN.md COMP-5 to COMP-9.
 `.github/workflows/upstream.yml` runs once a day (and by hand from the Actions tab). It runs only on the default
 branch.
 
-1. `ci/upstream.sh versions` lists the current version of every package in `packages/*.txt`, the AUR packages, and
-   the git repositories in `ci/watched.txt`: `pacman -Sy` and `pacman -Si` in an `archlinux` container (never `-Syu`),
+1. `.github/ci/upstream.sh versions` lists the current version of every package in `packages/*.txt`, the AUR packages, and
+   the git repositories in `.github/ci/watched.txt`: `pacman -Sy` and `pacman -Si` in an `archlinux` container (never `-Syu`),
    the AUR RPC, and `git ls-remote`.
-2. `ci/upstream.sh diff` compares that list with the last known good one, `manifest.txt` on the orphan branch
+2. `.github/ci/upstream.sh diff` compares that list with the last known good one, `manifest.txt` on the orphan branch
    `ci-state`. Users never follow that branch, so its commits are not signed.
-3. When a package in `ci/watched.txt` changed, the lint and install jobs of `ci.yml` run.
+3. When a package in `.github/ci/watched.txt` changed, the lint and install jobs of `ci.yml` run.
 4. A pass, or a change to other packages only, makes the new list the last known good one. A failure opens one
    issue labelled `upstream-break`, or updates the open one, with the version changes and the failed steps. The
    issue is the signal that Clave needs an update.
@@ -39,7 +39,7 @@ verifies, and the installer copies it to `/usr/share/clave/compat.json` for the 
 ```
 
 - `clave`: the release this checkout is. Bump it with every release.
-- `tested`: per release, the version of each package in `ci/watched.txt` that the release was checked with
+- `tested`: per release, the version of each package in `.github/ci/watched.txt` that the release was checked with
   (`pacman -Q` on the test machine). `tests/compat-test.sh` fails when a watched package has no entry.
 - `breaks`: a package version from which Clave misbehaves. `fixed_in_clave` is the first release that works with
   it, or `null` while there is no fix; `issue` links the `upstream-break` issue.

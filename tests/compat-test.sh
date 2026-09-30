@@ -87,22 +87,22 @@ check '[ "$(CLAVE_SYSTEM_COMPAT="$tmp/nothing.json" compat --hook < /dev/null 2>
 
 # The hook file written by system.sh lists the watched packages.
 check 'grep -q "clave-compat --hook" "$repo/scripts/system.sh"' "system.sh installs the hook"
-check '[ "$(awk "\$1 == \"repo\" || \$1 == \"aur\"" "$repo/ci/watched.txt" | wc -l)" -ge 10 ]' "watched list has the packages"
+check '[ "$(awk "\$1 == \"repo\" || \$1 == \"aur\"" "$repo/.github/ci/watched.txt" | wc -l)" -ge 10 ]' "watched list has the packages"
 check 'jq -e ".clave and .tested[.clave] and (.breaks | type == \"array\")" "$repo/compat.json" >/dev/null' "repo compat.json has the format"
-check '[ -z "$(awk "\$1 == \"repo\" || \$1 == \"aur\" { print \$2 }" "$repo/ci/watched.txt" | while read -r p; do jq -e --arg p "$p" ".tested[.clave][\$p]" "$repo/compat.json" >/dev/null || echo "$p"; done)" ]' \
+check '[ -z "$(awk "\$1 == \"repo\" || \$1 == \"aur\" { print \$2 }" "$repo/.github/ci/watched.txt" | while read -r p; do jq -e --arg p "$p" ".tested[.clave][\$p]" "$repo/compat.json" >/dev/null || echo "$p"; done)" ]' \
     "compat.json has a tested version for every watched package"
 
 # --- upstream watch: comparing two version lists (COMP-5) -------------------
 printf 'repo hyprland 0.56.2-3\nrepo kitty 0.48.0-1\nrepo gone 1-1\n' > "$tmp/old.txt"
 printf 'repo hyprland 0.57.0-1\nrepo kitty 0.48.0-1\nrepo zoxide 0.10-1\n' > "$tmp/new.txt"
 : > "$tmp/gh-out"
-out=$(GITHUB_OUTPUT="$tmp/gh-out" "$repo/ci/upstream.sh" diff "$tmp/old.txt" "$tmp/new.txt")
+out=$(GITHUB_OUTPUT="$tmp/gh-out" "$repo/.github/ci/upstream.sh" diff "$tmp/old.txt" "$tmp/new.txt")
 check 'grep -q "hyprland. (repo): 0.56.2-3 → 0.57.0-1 \*\*watched\*\*" <<< "$out"' "upstream diff: watched change marked"
 check 'grep -q "gone. (repo): 1-1 → gone" <<< "$out" && grep -q "zoxide. (repo): new → 0.10-1" <<< "$out"' "upstream diff: removed and new packages"
 check '! grep -q kitty <<< "$out"' "upstream diff: unchanged package left out"
 check 'grep -qx watched=true "$tmp/gh-out" && grep -qx changed=true "$tmp/gh-out"' "upstream diff: outputs for the workflow"
 printf 'repo zoxide 0.10-1\n' > "$tmp/new2.txt"; printf 'repo zoxide 0.9-1\n' > "$tmp/old2.txt"; : > "$tmp/gh-out"
-GITHUB_OUTPUT="$tmp/gh-out" "$repo/ci/upstream.sh" diff "$tmp/old2.txt" "$tmp/new2.txt" >/dev/null
+GITHUB_OUTPUT="$tmp/gh-out" "$repo/.github/ci/upstream.sh" diff "$tmp/old2.txt" "$tmp/new2.txt" >/dev/null
 check 'grep -qx watched=false "$tmp/gh-out"' "upstream diff: other package changes do not run the tests"
 
 # --- clave-doctor --fetch ---------------------------------------------------

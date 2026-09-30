@@ -105,14 +105,14 @@ compat_files() {
     install -d /etc/pacman.d/hooks
     backup "$hook"
     {
-        echo "# Written by Clave (scripts/system.sh) from ci/watched.txt. PROJECT_PLAN.md COMP-9."
+        echo "# Written by Clave (scripts/system.sh) from .github/ci/watched.txt. PROJECT_PLAN.md COMP-9."
         echo "# Warns after an upgrade that this Clave release was not tested with; never"
         echo "# stops the transaction."
         echo "[Trigger]"
         echo "Operation = Install"
         echo "Operation = Upgrade"
         echo "Type = Package"
-        awk '($1 == "repo" || $1 == "aur") { print "Target = " $2 }' "$repo/ci/watched.txt"
+        awk '($1 == "repo" || $1 == "aur") { print "Target = " $2 }' "$repo/.github/ci/watched.txt"
         echo
         echo "[Action]"
         echo "Description = Checking Clave compatibility..."
@@ -151,7 +151,7 @@ if has look; then
         echo "  added plymouth to mkinitcpio HOOKS"
     fi
     # shellcheck disable=SC2046  # one flag per word
-    add_cmdline $(cat "$repo/extra/kernel-cmdline-look.txt") || true
+    add_cmdline $(cat "$repo/scripts/extra/kernel-cmdline-look.txt") || true
     need_initramfs=1
 
     say "SDDM login theme"
@@ -217,7 +217,7 @@ if has harden; then
     systemctl daemon-reload
 
     say "Kernel command line"
-    flags=$(cat "$repo/extra/kernel-cmdline-hardening.txt")
+    flags=$(cat "$repo/scripts/extra/kernel-cmdline-hardening.txt")
     grep -q GenuineIntel /proc/cpuinfo && flags="$flags intel_iommu=on"
     grep -q AuthenticAMD /proc/cpuinfo && flags="$flags amd_iommu=force_isolation"
     add_cmdline $flags && need_initramfs=1 || true
@@ -250,7 +250,7 @@ if has harden; then
     systemctl enable aidecheck.timer 2>/dev/null || true
     gpasswd -a "$user" proc >/dev/null 2>&1 || true
     echo
-    echo "  Not applied automatically: hardened /etc/fstab options, see extra/fstab-hardening.txt"
+    echo "  Not applied automatically: hardened /etc/fstab options, see scripts/extra/fstab-hardening.txt"
 fi
 
 if [ "$need_initramfs" -eq 1 ]; then

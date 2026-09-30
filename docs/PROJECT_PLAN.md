@@ -289,7 +289,7 @@ user's machine.
     and WhiteSur with `git ls-remote`.
   - It compares them with the last green manifest, kept on an orphan branch `ci-state`. Users never follow
     that branch, so its commits need no signature.
-  - `ci/watched.txt` lists the packages Clave talks to directly: for example hyprland, quickshell,
+  - `.github/ci/watched.txt` lists the packages Clave talks to directly: for example hyprland, quickshell,
     hyprlock, hypridle, swaync, rofi, sddm, plymouth, gtk4, libadwaita, qt6-declarative and WhiteSur. When
     one of them changes, the workflow runs the lint and install jobs of `ci.yml` (made reusable with
     `workflow_call`). Any other change only updates the manifest.
@@ -352,7 +352,7 @@ from the checkout; everything on the user's side is local.
   - `xsettingsd`: its config shipped and `clave-prefs` signaled it, but no list installed it and
     nothing started it. Removed the config, the signal and nwg-look's export, instead of adding a
     process (PERF-1). GTK apps read the theme from `settings.ini` and gsettings.
-  - `manifest-home.txt` missed 26 shipped files (for example `clave-doctor` and the ClaveApps QML),
+  - `scripts/manifest-home.txt` missed 26 shipped files (for example `clave-doctor` and the ClaveApps QML),
     so `scripts/capture.sh` did not copy live changes to them back. They are listed now. The user's
     own files (`clave/*`, `hypr/custom.lua`, `hypr/monitors.lua`, `hypr/hypridle.conf`,
     `kitty/custom.conf`) stay out on purpose.
@@ -581,7 +581,7 @@ capture now run in upstream programs; resources are used only while open; everyt
 | FEAT-1 | Space numbers in the menu bar (the pane indicator from stock Hyprland) | Optional | Off | Desktop & Dock > Spaces (done) |
 | FEAT-4 | Login screen background and profile picture | Required | Current look | Lock Screen > Login Window (done) |
 | FEAT-5 | Traffic lights on or off for all windows | Optional | On | Desktop & Dock > Windows > Show title bar buttons (done) |
-| FEAT-6 | Replaceable logo (BR-2, BR-10) | Required | Clave keystone | `branding/logo.svg` now, a picker later |
+| FEAT-6 | Replaceable logo (BR-2, BR-10) | Required | Clave keystone | `docs/assets/brand/clave.svg` now, a picker later |
 | FEAT-7 | Modifier key glyph (BR-5) | Required | ⌘ | Keyboard > Super key symbol (done) |
 | FEAT-8 | Editing shortcuts on Super (Super+C, X, V, Z, Shift+Z) sent to the app as Ctrl shortcuts | Optional | Off | Keyboard > Editing shortcuts on the Super key (done) |
 | FEAT-9 | Calculator in Search, fully local (OFF-1): no exchange-rate downloads | Required | On | Search > Calculator, Ctrl+Tab (done) |
@@ -795,7 +795,7 @@ Phase 6 steps, in order:
 
 Phase 8 does not depend on phases 6 and 7. Steps 1 to 3 can ship in a v1.0.x update. Steps, in order:
 
-1. **Watch.** `ci/watched.txt`, the `ci-state` branch and `upstream.yml`. Make `ci.yml` reusable and
+1. **Watch.** `.github/ci/watched.txt`, the `ci-state` branch and `upstream.yml`. Make `ci.yml` reusable and
    remove its weekly schedule (COMP-5).
 2. **Issue.** The issue step with `gh`, `GITHUB_TOKEN` and `issues: write` (COMP-6).
 3. **Compatibility file.** `compat.json` and its format. The installer copies it to `/usr/share/clave/`
@@ -807,7 +807,7 @@ Phase 8 does not depend on phases 6 and 7. Steps 1 to 3 can ship in a v1.0.x upd
    is reliable, add it as COMP-10. If not, run it in the VM before each release.
 
 Progress on 2026-09-27 (branch `v1.1.1`), steps 1 to 5 built; details in `docs/UPSTREAM.md`:
-- Steps 1 and 2: `ci/watched.txt`, `ci/upstream.sh` and `upstream.yml`; `ci.yml` is reusable and has no weekly
+- Steps 1 and 2: `.github/ci/watched.txt`, `.github/ci/upstream.sh` and `upstream.yml`; `ci.yml` is reusable and has no weekly
   schedule. Scheduled workflows run only on the default branch, so the first real run, and the check that a watched
   change opens an issue, can only happen after the merge.
 - Step 3: `compat.json`, with the versions of the live machine and the desktop VM as tested for 1.1.1.

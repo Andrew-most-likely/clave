@@ -9,6 +9,10 @@
 - The README shortcut table matches the real keys: `Super+W` closes a window, `Super+Q` quits the app,
   `Super+M` minimizes, `Super+H` hides the app and `Super+Ctrl+M` zooms.
 - A project website (`docs/index.html`), screenshots, a short video tour and the logo files in `docs/assets/`.
+- The repository's top level is shorter, so the README shows sooner. Guides, the changelog, examples and brand files
+  are in `docs/`; the contributing and security notes and the upstream watch are in `.github/`; installer data is in
+  `scripts/`. `install.sh`, `setup.sh`, `uninstall.sh`, `packages/` and `compat.json` stay where they were, so
+  installs and updates work as before.
 - The README and the website are easier to scan: one short idea per section, with the details folded away until
   you open them.
 
@@ -56,7 +60,7 @@
 - **Disk Encryption.** Clave says when the disk is not encrypted: in the installer, in System Settings >
   Privacy & Security, and once at the first login. `clave-encrypt setup` explains a reinstall with LUKS2, or
   encrypts this install in place (systemd-boot, GRUB or Limine; ext4 or btrfs) with a recovery key. The boot
-  splash asks for the passphrase in the lock screen's style. See [docs/ENCRYPTION.md](docs/ENCRYPTION.md).
+  splash asks for the passphrase in the lock screen's style. See [docs/ENCRYPTION.md](ENCRYPTION.md).
 - **Standard apps.** Reminders, Stickies, Weather, Clock, Maps, Photos, Books, Podcasts, Music, Videos, Voice
   Memos, Camera, Fonts, Chess, Freeform board, Scanner, Screen Sharing, Console, System Information, Disk
   Utility, Keychain and Backups, all from the Arch repositories and none with a background service. An update
@@ -92,7 +96,7 @@ dotfiles, published as arch-macos-hyprland.
 - The terminal logo is text now, so it no longer stays on screen after a full-screen program exits.
 - The startup chime is gone.
 - The hardening layer is installed by default. `--no-harden` skips it, and `--yes` includes it. The installer
-  explains it first, and [docs/RECOVERY.md](docs/RECOVERY.md) explains how to recover from a lockout.
+  explains it first, and [docs/RECOVERY.md](RECOVERY.md) explains how to recover from a lockout.
 - `uninstall.sh --system` no longer removes `/etc/pam.d/system-auth` while restoring it, which broke sudo and
   login, and it now removes the kernel flags from the GRUB boot menu.
 - Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys moved to `--extras`.

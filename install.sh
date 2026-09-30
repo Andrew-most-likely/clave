@@ -133,7 +133,7 @@ compat_current() {
     local hook=/etc/pacman.d/hooks/clave-doctor.hook
     cmp -s "$repo/compat.json" /usr/share/clave/compat.json &&
         cmp -s "$repo/home/.local/bin/clave-compat" /usr/local/lib/clave/clave-compat &&
-        [ "$(awk '$1 == "repo" || $1 == "aur" { print $2 }' "$repo/ci/watched.txt")" = "$(sed -n 's/^Target = //p' "$hook" 2>/dev/null)" ]
+        [ "$(awk '$1 == "repo" || $1 == "aur" { print $2 }' "$repo/.github/ci/watched.txt")" = "$(sed -n 's/^Target = //p' "$hook" 2>/dev/null)" ]
 }
 if [ "$update" -eq 1 ] && [ -e /var/lib/clave/installed-files ] && ! compat_current; then
     if [ -t 0 ]; then
