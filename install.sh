@@ -79,6 +79,7 @@ remove_orphans
 # installed settings.ini; otherwise the old font and cursor stay until login.
 [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || [ "$DRY" -eq 1 ] || "$HOME/.local/bin/clave-gtk-apply" || true
 [ "$update" -eq 1 ] || fetch_themes
+lock_logo
 
 # Displays (SHELL-2): an older displays.json gets one position per screen,
 # and ~/.config/clave/monitors.lua is written from it.

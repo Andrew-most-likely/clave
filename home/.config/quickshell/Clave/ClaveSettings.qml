@@ -189,6 +189,27 @@ Singleton {
         printErrors: false
     }
 
+    // Clave's own windows all have the app id org.quickshell; the title says
+    // which app a window belongs to. windowAppId gives the id its icon and
+    // name come from: a Clave desktop entry, or an icon name in Clave-icons
+    // for a window that has none. The Dock and Overview use it (BR-13).
+    readonly property var shellWindows: ({
+        "Notes": "clave-notes",
+        "Calendar": "clave-calendar",
+        "Contacts": "clave-contacts",
+        "Activity Monitor": "clave-activity-monitor",
+        "Force Quit Applications": "clave-activity-monitor",
+        "System Settings": "preferences-system",
+        "About This Computer": "clave-logo"
+    })
+    function windowAppId(appId: string, title: string): string {
+        if (appId !== "org.quickshell")
+            return appId
+        const t = `${title ?? ""}`
+        // "About Notes" belongs to Notes.
+        return root.shellWindows[t] ?? root.shellWindows[t.replace(/^About /, "")] ?? appId
+    }
+
     // The logo in the menu bar and About window (FEAT-6). A file the user puts
     // at ~/.config/clave/branding/logo.svg replaces the keystone. Read once at
     // start; no watcher.

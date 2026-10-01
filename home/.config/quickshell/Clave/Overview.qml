@@ -612,8 +612,9 @@ Scope {
                                     implicitSize: 16
                                     anchors.verticalCenter: parent.verticalCenter
                                     source: {
-                                        const e = DesktopEntries.heuristicLookup(tile.modelData.appId)
-                                        return Quickshell.iconPath(e && e.icon ? e.icon : tile.modelData.appId, "application-x-executable")
+                                        const id = ClaveSettings.windowAppId(tile.modelData.appId, tile.modelData.title)
+                                        const e = DesktopEntries.heuristicLookup(id)
+                                        return Quickshell.iconPath(e && e.icon ? e.icon : id, "application-x-executable")
                                     }
                                 }
                                 Text {

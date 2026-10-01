@@ -82,10 +82,24 @@ Rectangle {
         opacity: 0.12
     }
 
+    // --- Logo (BR-2): the boot splash's picture, so a logo the user supplies
+    // (FEAT-6) shows here too. scripts/system.sh copies it in.
+    Image {
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: 28 * root.u
+        height: 34 * root.u
+        fillMode: Image.PreserveAspectFit
+        source: "assets/logo.png"
+        sourceSize.height: 68 * root.u
+        smooth: true
+        opacity: 0.9
+        visible: status === Image.Ready
+    }
+
     // --- Clock ---
     Column {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 60 * root.u
+        y: 74 * root.u
         spacing: -8 * root.u
 
         Text {

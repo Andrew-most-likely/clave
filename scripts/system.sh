@@ -171,6 +171,8 @@ if has look; then
     say "SDDM login theme"
     rm -rf /usr/share/sddm/themes/clave
     cp -r "$repo/home/.local/share/clave/sddm-clave" /usr/share/sddm/themes/clave
+    # The same logo as the boot splash: the keystone, or the user's (FEAT-6).
+    install -m644 /usr/share/plymouth/themes/clave/logo.png /usr/share/sddm/themes/clave/assets/logo.png
     walls="$home/.local/share/clave/wallpapers"
     # The folder is missing when the wallpaper download failed.
     bg=$(find "$walls" -maxdepth 1 -iname 'whitesur-dark*' 2>/dev/null | head -n1 || true)

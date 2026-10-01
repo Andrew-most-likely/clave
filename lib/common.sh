@@ -273,6 +273,16 @@ install_home_files() {
     echo "  $changed file(s) written, $kept of your own kept"
 }
 
+# The lock screen's logo (BR-2): the keystone, or the user's own
+# ~/.config/clave/branding/logo.svg (FEAT-6), as the PNG hyprlock.conf reads.
+lock_logo() {
+    local src="$HOME/.config/clave/branding/logo.svg" out="$HOME/.cache/clave/lock-logo.png"
+    [ -f "$src" ] || src="$HOME/.config/quickshell/Clave/icons/logo.svg"
+    command -v rsvg-convert >/dev/null || { warn "rsvg-convert missing: no logo on the lock screen"; return 0; }
+    run mkdir -p "${out%/*}"
+    run rsvg-convert -h 68 "$src" -o "$out" || warn "Lock screen logo not drawn from $src"
+}
+
 fetch_themes() {
     say "Third-party themes (WhiteSur GTK, Firefox, wallpapers)"
     run "$repo/scripts/fetch-themes.sh" || warn "Theme download failed; re-run install.sh later"

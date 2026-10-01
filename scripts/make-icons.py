@@ -68,7 +68,7 @@ ICONS = {
                  '<rect x="78" y="27" width="8" height="18" rx="4" fill="#fff"/>'
                  + ''.join(f'<rect x="{x}" y="{y}" width="11" height="9" rx="2.5" fill="BG"/>'
                            for y in (56, 72) for x in (38, 58, 78)),
-                 ["x-office-calendar", "org.gnome.Calendar"]),
+                 ["x-office-calendar"]),
     "camera": ("#8a939f", "#5d6672",
                f'<rect x="46" y="36" width="36" height="14" rx="5" fill="{W}"/>'
                f'<rect x="26" y="44" width="76" height="50" rx="11" fill="{W}"/>'
@@ -92,7 +92,7 @@ ICONS = {
     "contacts": ("#3cc7b0", "#1a9483",
                  '<circle cx="64" cy="48" r="17" fill="#fff"/>'
                  '<path fill="#fff" d="M30 98c0-19 15-30 34-30s34 11 34 30z"/>',
-                 ["x-office-address-book", "org.gnome.Contacts"]),
+                 ["x-office-address-book"]),
     "disks": ("#7d8fa3", "#4f6177",
               f'<rect x="26" y="46" width="76" height="38" rx="9" fill="{W}"/>'
               '<circle cx="88" cy="65" r="5" fill="BG"/>'
@@ -187,6 +187,24 @@ ICONS = {
               + stroke("M50 56V44a14 14 0 0 1 28 0v12", 6),
               ["io.github.kolunmi.Bazaar"]),
     "settings": ("#6e8fb3", "#46668c", gear(), ["org.quickshell", "preferences-system"]),
+    "terminal": ("#3a3f4b", "#1d2027",
+                 stroke("M34 46l18 18-18 18", 9) + '<rect x="60" y="78" width="34" height="9" rx="4.5" fill="#fff"/>',
+                 ["kitty", "utilities-terminal"]),
+    "archive": ("#c9a46a", "#9c7a3f",
+                f'<rect x="28" y="34" width="72" height="18" rx="5" fill="{W}"/>'
+                f'<path fill="{W}" d="M33 56h62v34a6 6 0 0 1-6 6H39a6 6 0 0 1-6-6z"/>'
+                '<rect x="52" y="64" width="24" height="8" rx="4" fill="BG"/>',
+                ["org.gnome.FileRoller", "file-roller"]),
+    "update": ("#3ca0ff", "#1a6fd6",
+               stroke("M64 32v44M46 60l18 18 18-18M38 94h52", 9),
+               ["system-software-update", "software-update-available"]),
+    # The Clave keystone (BR-2), the same path as docs/assets/brand/clave.svg,
+    # for About This Computer.
+    "logo": ("#3a3a40", "#1d1d22",
+             '<path fill="#fff" stroke="#fff" stroke-width="5" stroke-linejoin="round" '
+             'transform="translate(64 66) scale(.82) translate(-50 -51)" '
+             'd="M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z"/>',
+             ["clave-logo"]),
 }
 
 

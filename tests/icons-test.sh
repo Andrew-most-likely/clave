@@ -18,28 +18,72 @@ apps="$icons/Clave-icons/scalable/apps"
 if "$repo/scripts/make-icons.py" --check; then ok "icons match scripts/make-icons.py"
 else fail "icons out of date: run scripts/make-icons.py"; fi
 
-# The icon names the standard apps ask for (desktop file Icon= and app ID),
-# APP-1 and SW-3. Update this list when an app is added or its package renames
-# its icon.
-want=(
-    org.gnome.Nautilus clave-apps utilities-system-monitor timeshift com.github.johnfactotum.Foliate
-    org.gnome.Calculator x-office-calendar org.gnome.Snapshot org.gnome.Chess org.gnome.clocks
-    org.gnome.Logs x-office-address-book org.gnome.DiskUtility org.gnome.Papers org.gnome.Evince
-    org.gnome.font-viewer com.github.flxzt.rnote org.gnome.Loupe org.gnome.seahorse.Application
-    org.gnome.Maps io.bassi.Amberol accessories-text-editor org.gnome.TextEditor org.gnome.Shotwell
-    org.gnome.Podcasts io.github.mrvladus.List org.gnome.SimpleScan org.gnome.Connections sticky
-    hardinfo2 org.gnome.Showtime org.gnome.SoundRecorder org.gnome.Weather io.github.kolunmi.Bazaar
-    org.quickshell
+# The icon names each app asks for (desktop file Icon=, app ID, and the generic
+# names some versions use). Keys are packages, or Clave's own windows and
+# notifications. Every app clave-prefs names (APP_NAMES, VISIBLE) and every
+# default Dock pin must be here, every name here must have an icon, and every
+# icon must belong to an entry here (BR-12, BR-13).
+declare -A want=(
+    [errands]="io.github.mrvladus.List" [sticky]="sticky" [gnome-weather]="org.gnome.Weather"
+    [gnome-clocks]="org.gnome.clocks" [gnome-maps]="org.gnome.Maps" [shotwell]="org.gnome.Shotwell shotwell"
+    [foliate]="com.github.johnfactotum.Foliate" [gnome-podcasts]="org.gnome.Podcasts" [amberol]="io.bassi.Amberol"
+    [showtime]="org.gnome.Showtime" [gnome-sound-recorder]="org.gnome.SoundRecorder" [snapshot]="org.gnome.Snapshot"
+    [gnome-font-viewer]="org.gnome.font-viewer" [gnome-chess]="org.gnome.Chess" [rnote]="com.github.flxzt.rnote"
+    [simple-scan]="org.gnome.SimpleScan" [gnome-connections]="org.gnome.Connections" [gnome-logs]="org.gnome.Logs"
+    [hardinfo2]="hardinfo2" [gnome-disk-utility]="org.gnome.DiskUtility gnome-disks"
+    [seahorse]="org.gnome.seahorse.Application seahorse" [timeshift]="timeshift"
+    [nautilus]="org.gnome.Nautilus system-file-manager" [gnome-text-editor]="org.gnome.TextEditor"
+    [gnome-calculator]="org.gnome.Calculator accessories-calculator" [loupe]="org.gnome.Loupe"
+    [evince]="org.gnome.Evince org.gnome.Evince-symbolic" [papers]="org.gnome.Papers"
+    [kitty]="kitty utilities-terminal" [file-roller]="org.gnome.FileRoller file-roller"
+    [bazaar]="io.github.kolunmi.Bazaar"
+    [clave-apps]="clave-apps" [clave-activity-monitor]="utilities-system-monitor org.gnome.SystemMonitor"
+    [clave-calendar]="x-office-calendar" [clave-contacts]="x-office-address-book" [clave-notes]="accessories-text-editor"
+    [clave-settings]="preferences-system" [clave-about]="clave-logo" [clave-update]="system-software-update software-update-available"
+    [quickshell]="org.quickshell"
+)
+# Dock pins (desktop IDs) -> key above. Firefox is an extra: it keeps its own logo.
+declare -A pin_key=([org.gnome.Nautilus]=nautilus [org.gnome.TextEditor]=gnome-text-editor
+    [org.gnome.Calculator]=gnome-calculator [kitty]=kitty [clave-apps]=clave-apps [firefox]=-)
+
+# Every icon name above, one per element.
+names=()
+for k in "${!want[@]}"; do read -ra v <<< "${want[$k]}"; names+=("${v[@]}"); done
+
+mapfile -t listed < <(python3 - "$repo/home/.local/bin/clave-prefs" <<'PY'
+import ast, sys
+for node in ast.parse(open(sys.argv[1]).read()).body:
+    if isinstance(node, ast.Assign) and node.targets[0].id in ("APP_NAMES", "VISIBLE"):
+        v = ast.literal_eval(node.value)
+        print("\n".join(v.keys() if isinstance(v, dict) else v))
+PY
 )
 missing=()
-for n in "${want[@]}"; do [ -f "$apps/$n.svg" ] || missing+=("$n"); done
-# Clave's own launchers too.
+for pkg in "${listed[@]}"; do [ -n "${want[$pkg]:-}" ] || missing+=("$pkg (clave-prefs)"); done
+mapfile -t pins < <(sed '1,/\*\//d' "$repo/home/.config/quickshell/DockApp/dock.json" | jq -r '.apps.pinned[]')
+for id in "${pins[@]}"; do [ -n "${pin_key[$id]:-}" ] || missing+=("$id (dock.json pin)"); done
+# Clave's own launchers, and the windows the Dock and Overview map by title.
 for d in "$repo"/home/.local/share/applications/*.desktop; do
     n=$(sed -n 's/^Icon=//p' "$d" | head -n1)
-    [ -f "$apps/$n.svg" ] || missing+=("$n (${d##*/})")
+    [[ " ${names[*]} " == *" $n "* ]] || missing+=("$n (${d##*/})")
 done
-if [ "${#missing[@]}" -eq 0 ]; then ok "every standard app has a Clave icon"
+for n in $(sed -n '/shellWindows: ({/,/})/p' "$repo/home/.config/quickshell/Clave/ClaveSettings.qml" \
+           | grep -oE '": "[a-z.-]+"' | sed 's/": "//; s/"$//'); do
+    # A Clave desktop file: its Icon= is checked above.
+    [ -f "$repo/home/.local/share/applications/$n.desktop" ] && continue
+    [[ " ${names[*]} " == *" $n "* ]] || missing+=("$n (ClaveSettings.shellWindows)")
+done
+for n in "${names[@]}"; do [ -f "$apps/$n.svg" ] || missing+=("$n.svg"); done
+if [ "${#missing[@]}" -eq 0 ]; then ok "every app, pin and Clave window has a Clave icon"
 else fail "no Clave icon for: ${missing[*]}"; fi
+
+orphans=()
+for f in "$apps"/*.svg; do
+    n=${f##*/}; n=${n%.svg}
+    [[ " ${names[*]} " == *" $n "* ]] || orphans+=("$n")
+done
+if [ "${#orphans[@]}" -eq 0 ]; then ok "every icon belongs to an app"
+else fail "icons no app asks for: ${orphans[*]}"; fi
 
 if command -v rsvg-convert >/dev/null; then
     bad=()
