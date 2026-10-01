@@ -34,6 +34,26 @@
 - **Hardened by default.** Firewall, AppArmor and a hardened kernel from the start.
 - **Quiet.** Works offline. A feature you turn off runs nothing.
 
+## Why I made this
+
+I'm a cybersecurity student, and Clave is my senior-year project.
+
+In computer science, people love their Macs. I get it: they are sleek, flat, clean and clear. But I think a lot of
+the "Macs are safer" talk comes from Macs being a smaller target, not from the defenses themselves.
+
+I wanted both: a clean desktop, and security you can see and check. Clave is hardened by default, and the README
+lists what the hardening does.
+
+Other projects have brought that look to Linux. This is my take, with security first. I hope it resonates with you.
+
+I used AI tools while building Clave. I designed it, tested it, and I maintain it.
+
+## New here?
+
+First-time contributors are welcome. This is a student project, so it's a good place to make your first open source
+pull request. You don't need to write code: testing on your hardware, reporting bugs, fixing docs and asking
+questions all help. Start in [Discussions](https://github.com/Andrew-most-likely/clave/discussions).
+
 ## Install
 
 On Arch Linux, as your normal user:

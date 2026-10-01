@@ -9,3 +9,5 @@ gnome-disk-utility seahorse timeshift
 # Engines of the Clave apps (section 5.8): screen recording, and the .ics and
 # .vcf files of Calendar and Contacts (APP-8)
 wf-recorder python-icalendar python-vobject python-dateutil
+# Video decoders for Videos (APP-11): software through FFmpeg, hardware through VA-API
+gst-libav gst-plugin-va

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Videos plays common files (APP-11).** The standard apps add `gst-libav` and `gst-plugin-va`, so Videos
+  decodes H.264, H.265, VP9 and AV1, in hardware where the GPU supports it. Before, those files did not play.
+  VLC in extras gets `vlc-plugin-ffmpeg`. `clave-update` offers the new packages.
+
 ## v1.1.3 (2026-10-01)
 
 - **Security.** USBGuard no longer gives your account full rights: allowing a USB device always asks for the

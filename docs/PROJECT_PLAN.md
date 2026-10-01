@@ -429,7 +429,7 @@ Quickshell on top of open-source libraries (section 5.8).
   | E-books | Books | `foliate` | GTK4 | Embeds WebKitGTK, only while open. Accepted: EPUB needs a real layout engine |
   | Podcasts | Podcasts | `gnome-podcasts` | GTK4 | Online only while open (APP-6) |
   | Music | Music | `amberol` | GTK4 | `gnome-music` rejected: it needs the `localsearch` indexer (PERF-1) |
-  | Video | Videos | `showtime` | GTK4 | VLC stays in extras |
+  | Video | Videos | `showtime` | GTK4 | Decoders in APP-11. VLC stays in extras |
   | Voice recording | Voice Memos | `gnome-sound-recorder` | GTK4 | |
   | Camera | Camera | `snapshot` | GTK4 | Back from extras (SW-4) |
   | Fonts | Fonts | `gnome-font-viewer` | GTK4 | |
@@ -564,6 +564,13 @@ Quickshell on top of open-source libraries (section 5.8).
   - Same pass: `org.libreoffice.LibreOffice` leaves `packages/extras-flatpak.txt` (removed from the
     live machine on 2026-09-28). The comments in `monitors.lua`, `hyprland.lua` and README that say
     `nwg-displays` writes `monitors.lua` are removed, and so is its window rule; section 5.8 rejected it.
+
+- **APP-11 Video decoders (added 2026-10-01).** Videos (`showtime`) plays GStreamer streams, and the
+  `gstreamer` packages it pulls in have parsers and demuxers but no H.264, H.265, VP9 or AV1 decoder. Without
+  one, common files do not play. `packages/apps.txt` adds `gst-libav` (FFmpeg decoders, already a dependency)
+  and `gst-plugin-va` (hardware decoding through VA-API, which Mesa and `intel-media-driver` provide). Both are
+  small and start no service (APP-7). VLC in extras gets `vlc-plugin-ffmpeg` for the same reason. An update
+  offers the new packages like any new standard app (SW-4).
 
 ### 5.8 Clave apps: open-source engines, Clave interface
 
