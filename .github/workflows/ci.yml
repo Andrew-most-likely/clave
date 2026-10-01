@@ -16,7 +16,7 @@ jobs:
       - name: Install tools
         run: pacman -Syu --noconfirm --needed git shellcheck lua jq python qt6-declarative hyprland
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Name check (PROJECT_PLAN.md 5.1)
         run: scripts/name-check.sh
@@ -63,7 +63,7 @@ jobs:
       - name: Install tools
         run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil openssh librsvg
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 0 # the migration test installs an older release first
 

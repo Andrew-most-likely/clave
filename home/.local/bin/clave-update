@@ -7,9 +7,9 @@
 set -uo pipefail
 
 repo=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/clave/repo" 2>/dev/null || echo "$HOME/.local/src/clave")
-signers=~/.config/clave/allowed_signers
 
-# verify(): only releases signed by a key in $signers are installed.
+# newest_ref(): only releases signed by a trusted key, and never older than
+# the installed one, are installed.
 # shellcheck source=home/.local/share/clave/verify.sh
 . "$HOME/.local/share/clave/verify.sh"
 
@@ -41,22 +41,13 @@ if [ -d "$repo/.git" ]; then
     step "clave"
     before=$(git -C "$repo" rev-parse HEAD)
     git -C "$repo" fetch -q --tags origin
-    if git -C "$repo" symbolic-ref -q HEAD >/dev/null; then
-        # Following a branch: its newest commit must be signed.
-        upstream=$(git -C "$repo" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo origin/main)
-        git -C "$repo" fetch -q origin
-        if verify commit "$upstream"; then
-            git -C "$repo" merge -q --ff-only "$upstream"
+    if ref=$(newest_ref); then
+        # Following a branch: its newest commit is signed. Following releases:
+        # the newest release tag is.
+        if git -C "$repo" symbolic-ref -q HEAD >/dev/null; then
+            git -C "$repo" merge -q --ff-only "$ref"
         else
-            echo "Not updating: $upstream is not signed by a trusted key ($signers)."
-        fi
-    else
-        # Following releases: the newest release tag must be signed.
-        latest=$(git -C "$repo" describe --tags --abbrev=0 origin/main 2>/dev/null || true)
-        if [ -n "$latest" ] && verify tag "$latest"; then
-            git -C "$repo" checkout -q "$latest"
-        elif [ -n "$latest" ]; then
-            echo "Not updating: release $latest is not signed by a trusted key ($signers)."
+            git -C "$repo" checkout -q "$ref"
         fi
     fi
     if [ "$(git -C "$repo" rev-parse HEAD)" != "$before" ]; then

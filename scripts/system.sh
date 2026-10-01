@@ -82,6 +82,22 @@ add_cmdline() {
     return 0
 }
 
+# user_png DEST CMD...: run CMD as the user, which writes a PNG to stdout,
+# and install it at DEST (mode 644). Root never opens a path the user chose
+# and never decodes the image: it reads bytes from a pipe into its own file,
+# checks the size and the PNG signature, and copies them.
+user_png() {
+    local dest=$1 tmp ok=1
+    shift
+    tmp=$(mktemp)
+    runuser -u "$user" -- "$@" 2>/dev/null | head -c $((25 * 1024 * 1024 + 1)) > "$tmp" || ok=0
+    [ "$ok" -eq 1 ] && [ "$(stat -c %s "$tmp")" -le $((25 * 1024 * 1024)) ] &&
+        [ "$(head -c 8 "$tmp" | od -An -tx1 | tr -d ' \n')" = 89504e470d0a1a0a ] || ok=0
+    [ "$ok" -eq 1 ] && install -Dm644 "$tmp" "$dest"
+    rm -f "$tmp"
+    [ "$ok" -eq 1 ]
+}
+
 need_initramfs=0
 # After a kernel update without a reboot, the running kernel's modules are
 # gone and services such as nftables cannot start. Then services are only
@@ -135,9 +151,7 @@ if has look; then
     # A logo the user supplies (FEAT-6) replaces the keystone. Converted as
     # the user, so root never parses the file.
     logo="$home/.config/clave/branding/logo.svg"
-    if [ -f "$logo" ] && png=$(runuser -u "$user" -- sh -c 't=$(mktemp) && rsvg-convert -h 394 "$1" -o "$t" && echo "$t"' sh "$logo"); then
-        install -m644 "$png" /usr/share/plymouth/themes/clave/logo.png
-        rm -f "$png"
+    if [ -f "$logo" ] && user_png /usr/share/plymouth/themes/clave/logo.png rsvg-convert -h 394 "$logo"; then
         echo "  boot logo from ~/.config/clave/branding/logo.svg"
     fi
     record /usr/share/plymouth/themes/clave
@@ -163,7 +177,8 @@ if has look; then
     [ -n "$bg" ] || bg=$(find "$walls" -maxdepth 1 \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | head -n1 || true)
     # A background chosen in System Settings (clave-admin) wins.
     if [ -f "$state/login-background.png" ]; then install -m644 "$state/login-background.png" /usr/share/sddm/themes/clave/background.png
-    elif [ -n "$bg" ]; then magick "$bg" /usr/share/sddm/themes/clave/background.png
+    # Decoded as the user, like the boot logo.
+    elif [ -n "$bg" ] && user_png /usr/share/sddm/themes/clave/background.png magick "$bg" png:-; then :
     else magick -size 16x16 xc:'#1e1e22' /usr/share/sddm/themes/clave/background.png; fi
     if personal_on "$home"; then
         personal_fill /usr/share/sddm/themes/clave/Main.qml
@@ -241,6 +256,9 @@ if has harden; then
     sysctl --system >/dev/null
     systemctl enable $now nftables.service apparmor.service auditd.service usbguard.service \
         opensnitchd.service arch-audit.timer
+    # The daemon reads its config and access files only at start; an update
+    # that changed them (IPCAllowedUsers) applies now.
+    systemctl try-restart usbguard.service
     augenrules --load >/dev/null 2>&1 || true
     /usr/local/sbin/strip-suid
     if [ ! -f /var/lib/aide/aide.db.gz ]; then

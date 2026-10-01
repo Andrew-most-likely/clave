@@ -51,6 +51,10 @@ report() {
     say "clave files: $(find /usr/share/sddm/themes/clave /usr/share/plymouth/themes/clave /var/lib/clave -maxdepth 0 2>/dev/null | tr '\n' ' ')"
     say "home files: $(find "/home/$user/.config/quickshell/Clave" "/home/$user/.local/bin/clave-search" -maxdepth 0 2>/dev/null | tr '\n' ' ')"
     say "apparmor: $(aa-enabled 2>/dev/null)  lockdown: $(cat /sys/kernel/security/lockdown 2>/dev/null)"
+    # The desktop user may list USB devices but not change the policy.
+    ok() { runuser -u "$user" -- "$@" >/dev/null 2>&1 && echo allowed || echo denied; }
+    say "usbguard as user: list-devices $(ok usbguard list-devices) (want allowed), list-rules $(ok usbguard list-rules) (want denied), get-parameter $(ok usbguard get-parameter ImplicitPolicyTarget) (want denied)"
+    say "sddm background: $(file -b /usr/share/sddm/themes/clave/background.png 2>/dev/null | cut -d, -f1-2)"
 }
 
 case "$stage" in

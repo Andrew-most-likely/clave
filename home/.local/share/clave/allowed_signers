@@ -1,0 +1,3 @@
+# Keys whose signatures clave-update accepts on release tags and commits of
+# clave. Add a key only if you trust its owner with your desktop.
+clave namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMFbpQJHvTvtcU3WbHR719NH3/4ZWWAPaRkc3CrhnC8N

@@ -86,6 +86,7 @@
 .local/share/clave/fix-sddm-theme.sh
 .local/share/clave/clave-encrypt-offline.sh
 .local/share/clave/verify.sh
+.local/share/clave/allowed_signers
 .local/share/clave/hypr-minimize/build.sh
 .local/share/clave/hypr-minimize/main.cpp
 .local/share/clave/hyprbars/build.sh
