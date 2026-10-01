@@ -35,7 +35,7 @@ repo foliate 3.3.0-3
 repo fzf 0.74.4-1
 repo gcc 16.2.1+r23+gd564253eb6c8-1
 repo geary 1:46.0-9
-repo git 2.55.0-1
+repo git 2.56.0-1
 repo gnome-calculator 50.0-1
 repo gnome-chess 50.1-1
 repo gnome-clocks 50.0-2
@@ -73,8 +73,8 @@ aur kvantum-theme-whitesur-git r114.2b4bcc7-1
 repo libadwaita 1:1.9.4-1
 repo libnotify 0.8.8-1
 repo librsvg 2:2.62.4-1
-repo libvirt 1:12.7.0-1
-repo linux-hardened 7.2.7.hardened1-1
+repo libvirt 1:12.8.0-1
+repo linux-hardened 7.2.8.hardened1-1
 repo loupe 50.0-1
 repo lynis 3.1.7-1
 repo man-db 2.13.1-2
@@ -84,10 +84,10 @@ repo neovim 0.12.5-1
 repo network-manager-applet 1.36.0-2
 repo networkmanager 1.58.1-1
 repo nftables 1:1.1.7-3
-repo noto-fonts 1:2026.09.01-1
+repo noto-fonts 1:2026.10.01-1
 repo noto-fonts-cjk 20240730-1
 repo noto-fonts-emoji 1:2.051-1
-repo noto-fonts-extra 1:2026.09.01-1
+repo noto-fonts-extra 1:2026.10.01-1
 repo nss-mdns 0.15.1-2
 repo ntfs-3g 2026.9.28-1
 repo nwg-look 1.1.2-1
@@ -151,7 +151,7 @@ repo virt-manager 5.1.0-4
 repo vlc 3.0.23_2-16
 repo wf-recorder 0.6.0-2
 aur whitesur-icon-theme 2026.09.10-1
-repo wireplumber 0.5.17-2
+repo wireplumber 0.5.18-1
 repo wireshark-qt 4.7.3-1
 repo wl-clipboard 1:2.3.0-1
 repo xdg-desktop-portal-gtk 1.15.3-1
