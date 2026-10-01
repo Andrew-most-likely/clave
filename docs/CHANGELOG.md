@@ -2,9 +2,12 @@
 
 ## Unreleased
 
-- Files shows a plain folder icon in Apps and Search too, not only in the Dock. The icon theme drew it as
-  a face that is another company's logo (BR-4). An icon you set in System Settings > Appearance > App Icons still
-  wins. The Apps screenshot shows the folder, and the video tour no longer shows the Apps grid.
+- **Clave's own app icons.** Every app in the standard set has a new icon drawn for Clave, in the icon themes
+  `Clave-icons` and `Clave-icons-dark` (BR-12). WhiteSur still draws folders, file types and status icons. Its app
+  icons copied another company's app icons, and gave the document viewer and the keyring other products' logos.
+  Files shows a folder, not a face (BR-4). `--personal` switches back to the WhiteSur app icons, and an icon you
+  set in System Settings > Appearance > App Icons still wins. The Apps screenshot and the video tour no longer
+  show the old icons.
 - Helper launchers stay hidden in Apps and Search when their desktop file starts with comments, as hwloc's
   Hardware Locality launcher does. Advanced Network Configuration is hidden too; Wi-Fi Settings in the menu bar
   and Control Center still open it.

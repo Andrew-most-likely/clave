@@ -1,0 +1,14 @@
+# Clave's app icons (PROJECT_PLAN.md BR-12) on top of WhiteSur-dark. The icons
+# are Clave-icons' own files, found through the relative directory below.
+[Icon Theme]
+Name=Clave-icons-dark
+Comment=Clave app icons, WhiteSur-dark for everything else
+Inherits=WhiteSur-dark,hicolor
+Directories=../Clave-icons/scalable/apps
+
+[../Clave-icons/scalable/apps]
+Size=128
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Applications

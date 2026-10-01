@@ -61,7 +61,7 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Install tools
-        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil openssh
+        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil openssh librsvg
 
       - uses: actions/checkout@v4
         with:
@@ -89,6 +89,7 @@ jobs:
         run: |
           su tester -c 'bash /home/tester/repo/tests/displays-test.sh'
           su tester -c 'bash /home/tester/repo/tests/apps-test.sh'
+          su tester -c 'bash /home/tester/repo/tests/icons-test.sh'
           su tester -c 'bash /home/tester/repo/tests/pim-test.sh'
 
       - name: Compatibility check, pacman hook, clave-doctor, upstream diff (COMP-5 to COMP-9)

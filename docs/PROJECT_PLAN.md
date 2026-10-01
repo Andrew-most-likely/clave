@@ -91,7 +91,8 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | Apple menu | System menu |
 
   Dock, Control Center, Hot Corners and Force Quit stay. They are generic terms.
-- **BR-4 Files icon.** The Dock shows a neutral folder icon for the file manager, not a face.
+- **BR-4 Files icon.** The file manager shows a folder, not a face, everywhere: Dock, Apps, Search, the
+  app switcher and the app's own windows. The icon is Clave's own (BR-12).
 - **BR-5 Modifier key glyph.** The ⌘ glyph appears in menus, the shortcut list and the menu bar. Add a
   setting to show ⌘ or a Super/Windows glyph, since most target machines have a Windows key.
 - **BR-6 No Apple assets in the repo.** Remove `apple.svg`, `apple-rainbow.png` and the Plymouth logo.
@@ -109,9 +110,28 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
     FEAT-6)
   - SF fonts and the Apple-style cursor, installed from the AUR (`packages/personal-aur.txt`)
   - sounds built from the user's own files with `clave-sounds-build`
+  - the WhiteSur app icons, which redraw the other company's app icons (BR-12): the icon theme is
+    `WhiteSur`/`WhiteSur-dark` instead of `Clave-icons`/`Clave-icons-dark`
 
   The repo never contains these files. `branding/` is user-owned, so updates keep it. The choice is stored in
   `~/.local/state/clave/personal`, so updates keep it too. Code: `lib/personal.sh`.
+- **BR-12 App icons.** The public build draws every app icon in the default app set with Clave's own
+  artwork. The WhiteSur icon theme redraws the other company's app icons and logos (its file manager face,
+  photo flower, podcast and voice memo icons), and it gives some apps a third party's logo (a PDF viewer
+  logo for the document viewer, a password manager logo for the keyring). Neither may reach a public
+  install or screenshot.
+  - Clave ships two icon themes in `~/.local/share/icons`: `Clave-icons` (inherits `WhiteSur`) and
+    `Clave-icons-dark` (inherits `WhiteSur-dark`). Both read the same SVG files in
+    `Clave-icons/scalable/apps`, so WhiteSur still supplies folders, file types and status icons.
+  - Each icon is a rounded square with a flat color and a simple glyph of a generic idea (folder, clock,
+    chess knight). It never copies the composition, color scheme or glyph of the other company's icon for
+    the same app.
+  - Icons are named by the icon names the apps ask for (desktop file `Icon=` and the app ID), so windows,
+    notifications and About dialogs show them too, not only the Dock and Apps.
+  - `tests/icons-test.sh` checks that every app in APP-1 and SW-3 has an icon in the theme, that each SVG
+    renders, and that GTK finds it through `Clave-icons-dark`.
+  - Apps the user adds keep their theme icon. Extras (`--extras`) show those apps' own logos, which is
+    their owners' use, not another company's.
 - **BR-11 Layout, not identity.** Clave's own interfaces (section 5.8, System Settings, the shell) may match
   the layout and behavior of the desktop they are modeled on. They always use Clave's own icons, artwork and
   names (BR-3), and never the other company's. Every surface that closely matches the original layout is
@@ -425,7 +445,7 @@ Quickshell on top of open-source libraries (section 5.8).
 
 - **APP-4 Names and icons.** The Dock, Apps and Search show the "Shown as" names from APP-1. The names are
   generic words (BR-3, BR-11). Clave sets them with `.desktop` overrides in
-  `~/.local/share/applications`. It does not patch packages. Icons come from the icon theme. Any app's
+  `~/.local/share/applications`. It does not patch packages. Icons come from the icon theme (`Clave-icons`, BR-12). Any app's
   icon can be changed in `~/.config/clave/settings.json`:
 
   ```json

@@ -137,10 +137,6 @@ PanelWindow {
     // their themed icon. The provider prefix and query string a desktop entry
     // may carry are stripped, the same way the overview does it.
     function iconFor(entry: var, appId: string): string {
-        // File managers get a plain folder: some icon themes draw them as a
-        // face (PROJECT_PLAN.md BR-4).
-        if ((entry?.categories ?? []).includes("FileManager"))
-            return Quickshell.iconPath("folder", "system-file-manager")
         const raw = `${entry?.icon ?? ""}`.trim()
             .replace(/^image:\/\/icon\//, "").split("?")[0].trim()
         const name = raw.length > 0 ? raw : (appId ? appId : "")

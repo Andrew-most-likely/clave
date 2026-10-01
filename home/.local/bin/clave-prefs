@@ -296,9 +296,9 @@ def login(args):
 # ---------------------------------------------------------------- Appearance
 
 THEMES = {
-    "dark":  {"gtk": "WhiteSur-Dark", "icons": "WhiteSur-dark", "kvantum": "WhiteSurDark",
+    "dark":  {"gtk": "WhiteSur-Dark", "icons": "Clave-icons-dark", "kvantum": "WhiteSurDark",
               "gtk4css": "WhiteSur-Dark/gtk-4.0/gtk-dark.css", "scheme": "prefer-dark"},
-    "light": {"gtk": "WhiteSur-Light", "icons": "WhiteSur", "kvantum": "WhiteSur",
+    "light": {"gtk": "WhiteSur-Light", "icons": "Clave-icons", "kvantum": "WhiteSur",
               "gtk4css": "WhiteSur-Light/gtk-4.0/gtk.css", "scheme": "prefer-light"},
 }
 
