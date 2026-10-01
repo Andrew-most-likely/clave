@@ -62,7 +62,7 @@ Then log out, and pick Hyprland on the login screen.
 |---|---|
 | `--yes` | No questions. The hardening layer is included; its warning is printed. |
 | `--no-harden` | Skip the security hardening layer |
-| `--extras` | Also install the optional apps in `packages/extras*.txt`, including the GNOME utilities Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys |
+| `--extras` | Also install the optional apps in `packages/extras*.txt`, for example Firefox, Disk Usage Analyzer, Mail and Dictionary |
 | `--personal` | Use fonts, a cursor, app icons and sounds you supply. See Personal option under Reference. |
 | `--user-only` | Only install files in `$HOME`. No sudo, no login screen or boot splash. |
 | `--no-packages` | Skip pacman, AUR and Flatpak |

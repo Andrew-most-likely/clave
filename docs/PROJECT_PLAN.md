@@ -75,9 +75,10 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   `clave`: commands `clave-*`, directories `~/.config/clave`, `~/.local/share/clave`,
   `~/.local/state/clave` and `~/.cache/clave`, the SDDM and Plymouth themes `clave`, and polkit actions
   `org.clave.*`. The installer moves an existing install from the old names (see BR-9).
-- **BR-2 Logo.** A solid, one-color keystone: a flat, wide top, sides that taper to about 60% of the top
-  width, and a concave arc for the bottom edge. It is used in the menu bar, the About window, the boot
-  splash and the terminal.
+- **BR-2 Logo.** A solid, one-color keystone: a top that arches gently upward, straight sides that taper to
+  about half the top width, and a concave arc for the bottom edge. The drawing is
+  `docs/assets/brand/clave.svg` (path `M12 20 Q50 -2 88 20 L70 92 Q50 80 30 92 Z`); every copy uses that path.
+  It is used in the menu bar, the About window, the boot splash, the login and lock screens and the terminal.
 - **BR-3 Feature names.** Use neutral names:
 
   | Old name | New name |
@@ -157,7 +158,26 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
     Stickies, Voice Memos, Keychain, and Freeform (shown as "Freeform board"). The other names are generic
     words. `scripts/name-check.sh` does not flag these four, because they are also ordinary words. Each
     name is one entry in `clave-prefs` (`APP_NAMES`) and can be changed there without other changes.
+    Decision 2026-10-01: the four names stay. "App Store" (the menu and System Settings entry for Bazaar) is
+    a product name, not an ordinary word: it is now **Software**, and `scripts/name-check.sh` flags it.
   - The screenshot shortcuts are on Print, because Shift+Super+1..0 move windows between Spaces.
+- **BR-13 One logo, one icon set (added 2026-10-01).** Everything Clave ships shows one matching set:
+  - **Logo.** The BR-2 keystone, or the user's own logo (FEAT-6), on every surface that shows a logo:
+
+    | Surface | Source |
+    |---|---|
+    | Menu bar and About This Computer | `quickshell/Clave/icons/logo.svg`, in the text color |
+    | Boot splash and login screen | `plymouth-clave/logo.png`, copied into the SDDM theme by `scripts/system.sh` |
+    | Lock screen | `~/.cache/clave/lock-logo.png`, drawn by `install.sh` |
+    | Terminal | `fastfetch/assets/clave.txt` (keystone only) |
+    | App icon of About This Computer | `clave-logo` in Clave-icons |
+
+  - **Icons.** Every app in APP-1, SW-3 and the default Dock pins, every Clave window and the Software
+    Update notice use a Clave-icons icon (BR-12). Clave's own windows share the app id `org.quickshell`, so
+    the Dock and Overview pick the icon by window title (`ClaveSettings.windowAppId`).
+  - **Names.** One name per feature, the same in menus, window titles, the Dock, the README and the site.
+  - `tests/icons-test.sh` reads the apps from `clave-prefs`, the Dock pins and the window table, and fails on
+    an app without an icon or an icon without an app. `scripts/name-check.sh` checks the names.
 
 ### 5.2 Security
 
@@ -232,6 +252,12 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
     scratch files. `tests/vm-encrypt.sh` (qemu, UEFI): in-place encryption of `/` alone and of `/` plus
     `/home`, with each supported boot loader, and one run where the VM is powered off during `reencrypt`
     and then resumed.
+
+- **SEC-6 Signed updates (added 2026-10-01).** `setup.sh` and `clave-update` install only releases signed by
+  a trusted key, and never one older than the installed release. The project key ships in
+  `~/.local/share/clave/allowed_signers`, so a signed release can replace it; the user's own
+  `~/.config/clave/allowed_signers` only adds keys. Root helpers never decode a picture the user chose, and
+  USBGuard gives the user list and listen rights only (`IPCAllowedUsers=root`). See `.github/SECURITY.md`.
 
 ### 5.3 Performance and background work
 
@@ -395,6 +421,7 @@ Quickshell on top of open-source libraries (section 5.8).
   | Reminders | Reminders | `errands` | GTK4 | Local lists. CalDAV sync off by default |
   | Notes | Notes | Clave app (APP-9) | QML | `iotas` rejected: it embeds WebKitGTK to show Markdown |
   | Sticky notes | Stickies | `sticky` | GTK4 | |
+  | Terminal | Terminal | `kitty` | OpenGL | Pinned in the Dock; `Super+Return` |
   | Weather | Weather | `gnome-weather` | GTK4 | Online only while open (APP-6) |
   | Clock, alarms, timers | Clock | `gnome-clocks` | GTK4 | Depends on geoclue; no network location (APP-6) |
   | Maps | Maps | `gnome-maps` | GTK4 | Online only while open (APP-6) |
@@ -869,8 +896,7 @@ Status on 2026-09-27, after phases 0 to 5:
 | Works offline, including the calculator | Calculator app and Search calculator make no downloads (OFF-1, FEAT-9). Online features are off by default (SEC-3) |
 | README, CHANGELOG, plan | Up to date |
 
-Before publishing: create the GitHub repository `Andrew-most-likely/clave` (setup.sh, clave-update and the
-README point there), push, let CI run, and sign the `v1.0.0` tag with the key in `home/.config/clave/allowed_signers`.
+v1.0.0 was published on 2026-09-27: signed tag, CI green, clean-VM round trip passed.
 
 ## 13. Tabled
 
@@ -894,9 +920,11 @@ Resolved on 2026-09-27:
 Still open:
 
 - **Per-set display layouts.** Does losing them (SHELL-2) matter? Check on the dock with the two Dell
-  screens before tagging v1.1.0.
-- **Terminal name.** kitty shows as "kitty" in Apps. Should it show as "Terminal" through an APP-4
-  override, like the other APP-1 names?
+  screens; it is on the release checklist for the next tag.
+
+Resolved on 2026-10-01:
+
+- **Terminal name.** kitty shows as "Terminal" through an APP-4 override (`APP_NAMES` in `clave-prefs`).
 
 ## Appendix: source notes
 
