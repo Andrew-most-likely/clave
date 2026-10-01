@@ -44,6 +44,13 @@ done
 
 log_start
 preflight
+# Quickshell reloads changed QML by itself, but keeps the icons it has looked
+# up and the components a Loader made: after an update that changed either,
+# the shell restarts (decided now, before record_install moves the mark).
+restart_shell=0
+if [ "$update" -eq 1 ] && changed_since_last_install '^home/\.config/quickshell/|^home/\.local/share/icons/'; then
+    restart_shell=1
+fi
 [ "$update" -eq 1 ] || show_plan
 # --personal is remembered, so updates keep the personal fonts and cursor.
 if [ "$personal" -eq 1 ] && [ "$DRY" -eq 0 ]; then touch "$STATE/personal"; fi
@@ -157,8 +164,17 @@ fi
 record_install
 say "Done."
 if [ "$update" -eq 1 ]; then
-    # Quickshell reloads changed files by itself; Hyprland needs a nudge.
-    [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || run hyprctl reload >/dev/null 2>&1 || true
+    # Hyprland needs a nudge; the shell restarts when its files changed.
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        run hyprctl reload >/dev/null 2>&1 || true
+        if [ "$restart_shell" -eq 1 ]; then
+            # Only the desktop shell; Notes, Calendar and Contacts run as
+            # their own instances and stay open.
+            run qs kill -p "$HOME/.config/quickshell/shell.qml" >/dev/null 2>&1 || true
+            run hyprctl eval 'hl.exec_cmd("qs")' >/dev/null 2>&1 || true
+            echo "Desktop shell restarted."
+        fi
+    fi
     echo "Desktop files updated."
 else
     echo "Log out and back in (or reboot) to start Clave."
