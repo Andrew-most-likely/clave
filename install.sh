@@ -169,8 +169,11 @@ if [ "$update" -eq 1 ]; then
         run hyprctl reload >/dev/null 2>&1 || true
         if [ "$restart_shell" -eq 1 ]; then
             # Only the desktop shell; Notes, Calendar and Contacts run as
-            # their own instances and stay open.
-            run qs kill -p "$HOME/.config/quickshell/shell.qml" >/dev/null 2>&1 || true
+            # their own instances and stay open. qs kill stops one instance
+            # per call, so it runs until none is left.
+            kills=0
+            while [ "$DRY" -eq 0 ] && [ "$kills" -lt 10 ] &&
+                qs kill -p "$HOME/.config/quickshell/shell.qml" >/dev/null 2>&1; do kills=$((kills + 1)); done
             run hyprctl eval 'hl.exec_cmd("qs")' >/dev/null 2>&1 || true
             echo "Desktop shell restarted."
         fi
