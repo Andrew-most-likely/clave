@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.1.3 (2026-10-01)
 
 - **Security.** USBGuard no longer gives your account full rights: allowing a USB device always asks for the
   password, as System Settings said it would. Root no longer decodes the login background or your own logo; your
@@ -12,6 +12,8 @@
   logo and menu bar icons are dark in light mode. The login and lock screens show the keystone, or your own logo.
 - **Names.** App Store is now Software. kitty shows as Terminal.
 - The installer, run from a git checkout, skips files `.gitignore` excludes.
+- An update that changes the desktop shell or its icons restarts the shell, so the Dock shows the new icons at
+  once. Notes, Calendar and Contacts stay open.
 - **Clave's own app icons.** Every app in the standard set has a new icon drawn for Clave, in the icon themes
   `Clave-icons` and `Clave-icons-dark` (BR-12). WhiteSur still draws folders, file types and status icons. Its app
   icons copied another company's app icons, and gave the document viewer and the keyring other products' logos.
