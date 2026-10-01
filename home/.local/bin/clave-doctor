@@ -17,7 +17,6 @@
 set -uo pipefail
 
 repo=${CLAVE_REPO:-$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/clave/repo" 2>/dev/null || echo "$HOME/.local/src/clave")}
-signers=~/.config/clave/allowed_signers
 look="$HOME/.local/share/clave"
 # Next to this file: works installed and from the checkout.
 here=$(dirname "$(readlink -f "$0")")

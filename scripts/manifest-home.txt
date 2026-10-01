@@ -77,6 +77,8 @@
 .local/share/applications/clave-contacts.desktop
 .local/share/applications/clave-notes.desktop
 .local/share/icons/hicolor/scalable/apps/clave-apps.svg
+.local/share/icons/Clave-icons
+.local/share/icons/Clave-icons-dark
 .local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.clave.service
 .local/share/xdg-desktop-portal/portals/clave.portal
 .local/share/clave/wallpaper-portal.py
@@ -84,6 +86,7 @@
 .local/share/clave/fix-sddm-theme.sh
 .local/share/clave/clave-encrypt-offline.sh
 .local/share/clave/verify.sh
+.local/share/clave/allowed_signers
 .local/share/clave/hypr-minimize/build.sh
 .local/share/clave/hypr-minimize/main.cpp
 .local/share/clave/hyprbars/build.sh

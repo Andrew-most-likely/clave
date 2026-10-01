@@ -141,6 +141,29 @@ else
     out=$(doc --fetch)
     check 'grep -q "No signed compatibility list" <<< "$out" && ! grep -q "1.1.3 is available" <<< "$out"' \
         "doctor --fetch: unsigned release ignored"
+
+    # --- verify.sh: shipped keys and no rollback --------------------------
+    # The project key ships next to verify.sh, so a release can bring a new
+    # one; the user's file only adds keys.
+    vs="$tmp/vs"
+    mkdir -p "$vs"
+    cp "$repo/home/.local/share/clave/verify.sh" "$vs/"
+    cp "$HOME/.config/clave/allowed_signers" "$vs/allowed_signers"
+    : > "$HOME/.config/clave/allowed_signers"
+    git clone -q "$up" "$tmp/checkout2" && git -C "$tmp/checkout2" checkout -q v1.1.2
+    vref() { (repo="$tmp/checkout2"; . "$vs/verify.sh"; newest_ref) 2>&1; }
+    # Its own commit, away from the unsigned v1.1.3 (see above).
+    git -C "$up" commit -q --allow-empty -m four && git -C "$up" tag -s -m v1.1.4 v1.1.4
+    git -C "$tmp/checkout2" fetch -q --tags origin
+    check '[ "$(vref)" = v1.1.4 ]' "verify: a key shipped next to verify.sh is trusted"
+    : > "$vs/allowed_signers"
+    check 'grep -q "Not trusted" <<< "$(vref)"' "verify: no key, no update"
+    cp "$tmp/key.pub" "$tmp/k" && echo "test@example.com $(cat "$tmp/k")" > "$vs/allowed_signers"
+    # main moved back to an older signed release: never installed.
+    git -C "$up" tag -d v1.1.4 >/dev/null && git -C "$tmp/checkout2" tag -d v1.1.4 >/dev/null
+    git -C "$up" reset -q --hard v1.1.1
+    git -C "$tmp/checkout2" fetch -q --tags origin
+    check 'grep -q "older than the installed release" <<< "$(vref)"' "verify: an older release is refused"
 fi
 
 echo

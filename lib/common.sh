@@ -228,6 +228,20 @@ fill_placeholders() {
     if personal_on "$HOME"; then personal_fill "$1"; fi
 }
 
+# home_files: the files under home/ to install, NUL-separated. From a git
+# checkout, only files git tracks or would track: nothing .gitignore excludes
+# (__pycache__, build output, *.bak-*). From a plain copy, every file.
+home_files() {
+    if git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+        git -C "$repo" ls-files -z --cached --others --exclude-standard -- home \
+            | while IFS= read -r -d '' f; do
+                [ -f "$repo/$f" ] && [ ! -L "$repo/$f" ] && printf '%s\0' "$repo/$f"
+            done | sort -zu
+    else
+        find "$repo/home" -type f -print0 | sort -z
+    fi
+}
+
 install_home_files() {
     say "Desktop files in $HOME"
     local src rel dest tmp changed=0 kept=0
@@ -254,9 +268,19 @@ install_home_files() {
         cp "$tmp" "$dest"
         if [ -x "$src" ]; then chmod 755 "$dest"; else chmod 644 "$dest"; fi
         grep -qxF "$dest" "$STATE/installed-files" 2>/dev/null || echo "$dest" >> "$STATE/installed-files"
-    done < <(find "$repo/home" -type f -print0 | sort -z)
+    done < <(home_files)
     rm -f "$tmp"
     echo "  $changed file(s) written, $kept of your own kept"
+}
+
+# The lock screen's logo (BR-2): the keystone, or the user's own
+# ~/.config/clave/branding/logo.svg (FEAT-6), as the PNG hyprlock.conf reads.
+lock_logo() {
+    local src="$HOME/.config/clave/branding/logo.svg" out="$HOME/.cache/clave/lock-logo.png"
+    [ -f "$src" ] || src="$HOME/.config/quickshell/Clave/icons/logo.svg"
+    command -v rsvg-convert >/dev/null || { warn "rsvg-convert missing: no logo on the lock screen"; return 0; }
+    run mkdir -p "${out%/*}"
+    run rsvg-convert -h 68 "$src" -o "$out" || warn "Lock screen logo not drawn from $src"
 }
 
 fetch_themes() {

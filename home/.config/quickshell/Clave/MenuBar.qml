@@ -8,6 +8,7 @@ import Quickshell.Services.SystemTray
 import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import qs.DockApp
 
 // Menu bar: System menu, active app name and its menus, status
@@ -304,7 +305,7 @@ PanelWindow {
             { "label": "About This Computer", "action": () => root.run(["qs", "ipc", "call", "about", "toggle"]) },
             { "type": "sep" },
             { "label": "System Settings…", "action": () => root.run(["qs", "ipc", "call", "settings", "open", "general"]) },
-            { "label": "App Store…", "action": () => root.run(["flatpak", "run", "io.github.kolunmi.Bazaar"]) },
+            { "label": "Software…", "action": () => root.run(["flatpak", "run", "io.github.kolunmi.Bazaar"]) },
             { "type": "sep" },
             { "label": "Force Quit…", "hint": "⌥⌘⎋", "action": () => root.run(["qs", "ipc", "call", "forcequit", "open"]) },
             { "type": "sep" },
@@ -608,6 +609,9 @@ PanelWindow {
         property string label: ""
         property string icon: ""
         property int iconSize: 16
+        // The shipped icons are white line glyphs: in light mode they are
+        // drawn in the text color. A picture the user supplies is not.
+        property bool tint: true
         property bool bold: false
         property bool dim: false
         property string menuId: ""
@@ -635,6 +639,8 @@ PanelWindow {
                 Layout.preferredWidth: bi.iconSize
                 Layout.preferredHeight: bi.iconSize
                 fillMode: Image.PreserveAspectFit
+                layer.enabled: bi.tint && !Theme.dark
+                layer.effect: MultiEffect { colorization: 1; colorizationColor: root.fg }
             }
             Text {
                 textFormat: Text.PlainText
@@ -679,6 +685,7 @@ PanelWindow {
 
         BarItem {
             icon: ClaveSettings.logo
+            tint: !ClaveSettings.userLogo
             iconSize: 15
             implicitWidth: 38
             menuId: "system"

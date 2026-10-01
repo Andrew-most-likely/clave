@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import qs.CustomTheme
 import qs.DockApp
+import qs.Clave
 
 // Application dock: the running Hyprland applications plus a persistent list of 
 // pinned ones, on a single (primary) screen at the bottom edge.
@@ -137,10 +138,6 @@ PanelWindow {
     // their themed icon. The provider prefix and query string a desktop entry
     // may carry are stripped, the same way the overview does it.
     function iconFor(entry: var, appId: string): string {
-        // File managers get a plain folder: some icon themes draw them as a
-        // face (PROJECT_PLAN.md BR-4).
-        if ((entry?.categories ?? []).includes("FileManager"))
-            return Quickshell.iconPath("folder", "system-file-manager")
         const raw = `${entry?.icon ?? ""}`.trim()
             .replace(/^image:\/\/icon\//, "").split("?")[0].trim()
         const name = raw.length > 0 ? raw : (appId ? appId : "")
@@ -162,10 +159,10 @@ PanelWindow {
         let byKey = ({})
         let order = []
 
-        function makeItem(key, appId, pinned) {
+        function makeItem(key, appId, pinned, fallbackName) {
             const desktopEntry = root.lookupEntry(appId)
             const name = desktopEntry && desktopEntry.name.length > 0
-                ? desktopEntry.name : appId
+                ? desktopEntry.name : (fallbackName || appId)
             return { "key": key, "appId": appId, "desktopEntry": desktopEntry,
                      "name": name, "iconSource": root.iconFor(desktopEntry, appId),
                      "windows": [], "pinned": pinned }
@@ -183,11 +180,15 @@ PanelWindow {
 
         for (let i = 0; i < toplevels.length; i++) {
             const toplevel = toplevels[i]
-            const key = root.entryKey(toplevel.appId)
+            // A Clave window (org.quickshell) is grouped by the app its
+            // title names, so Notes shows the Notes icon, not Quickshell's.
+            const appId = ClaveSettings.windowAppId(toplevel.appId, toplevel.title)
+            const key = root.entryKey(appId)
             if (key === "")
                 continue
             if (byKey[key] === undefined) {
-                byKey[key] = makeItem(key, toplevel.appId, false)
+                byKey[key] = makeItem(key, appId, false,
+                                      appId !== toplevel.appId ? toplevel.title : "")
                 order.push(key)
             }
             byKey[key].windows.push(toplevel)

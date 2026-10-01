@@ -2,9 +2,22 @@
 
 ## Unreleased
 
-- Files shows a plain folder icon in Apps and Search too, not only in the Dock. The icon theme drew it as
-  a face that is another company's logo (BR-4). An icon you set in System Settings > Appearance > App Icons still
-  wins. The Apps screenshot shows the folder, and the video tour no longer shows the Apps grid.
+- **Security.** USBGuard no longer gives your account full rights: allowing a USB device always asks for the
+  password, as System Settings said it would. Root no longer decodes the login background or your own logo; your
+  account converts them. An update never goes back to an older release, and a signed release can bring a new
+  signing key (`~/.local/share/clave/allowed_signers`; your own keys go in `~/.config/clave/allowed_signers`).
+  CI actions are pinned to commit hashes.
+- **One logo, one icon set (BR-13).** Notes, Calendar, Contacts, System Settings and Activity Monitor show their
+  own icons in the Dock and Overview, not a gear. Terminal, File Roller and Software Update have Clave icons. The
+  logo and menu bar icons are dark in light mode. The login and lock screens show the keystone, or your own logo.
+- **Names.** App Store is now Software. kitty shows as Terminal.
+- The installer, run from a git checkout, skips files `.gitignore` excludes.
+- **Clave's own app icons.** Every app in the standard set has a new icon drawn for Clave, in the icon themes
+  `Clave-icons` and `Clave-icons-dark` (BR-12). WhiteSur still draws folders, file types and status icons. Its app
+  icons copied another company's app icons, and gave the document viewer and the keyring other products' logos.
+  Files shows a folder, not a face (BR-4). `--personal` switches back to the WhiteSur app icons, and an icon you
+  set in System Settings > Appearance > App Icons still wins. The Apps screenshot and the video tour no longer
+  show the old icons.
 - Helper launchers stay hidden in Apps and Search when their desktop file starts with comments, as hwloc's
   Hardware Locality launcher does. Advanced Network Configuration is hidden too; Wi-Fi Settings in the menu bar
   and Control Center still open it.

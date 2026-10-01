@@ -3,6 +3,7 @@ import Quickshell.Io
 import qs.CustomTheme
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 
 // "About This Computer" window. Toggled with: qs ipc call about toggle
 Scope {
@@ -65,6 +66,10 @@ Scope {
                     sourceSize.height: 196
                     Layout.preferredWidth: 90
                     Layout.preferredHeight: 98
+                    // The keystone is white; in light mode it takes the text
+                    // color. A logo the user supplies keeps its own (FEAT-6).
+                    layer.enabled: !ClaveSettings.userLogo && !Theme.dark
+                    layer.effect: MultiEffect { colorization: 1; colorizationColor: Theme.fg }
                 }
 
                 Text {

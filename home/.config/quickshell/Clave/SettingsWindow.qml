@@ -747,7 +747,7 @@ Scope {
                   "action": () => root.run(["qs", "ipc", "call", "about", "toggle"]) },
                 { "type": "button", "label": "Software Update", "text": "Check for Updates…",
                   "action": () => root.run([root.home + "/.local/bin/clave-update"]) },
-                { "type": "button", "label": "App Store", "text": "Open…",
+                { "type": "button", "label": "Software", "text": "Open…",
                   "action": () => root.run(["flatpak", "run", "io.github.kolunmi.Bazaar"]) }
             ]},
             { "title": "", "rows": [

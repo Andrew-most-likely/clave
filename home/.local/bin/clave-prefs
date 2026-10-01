@@ -296,9 +296,9 @@ def login(args):
 # ---------------------------------------------------------------- Appearance
 
 THEMES = {
-    "dark":  {"gtk": "WhiteSur-Dark", "icons": "WhiteSur-dark", "kvantum": "WhiteSurDark",
+    "dark":  {"gtk": "WhiteSur-Dark", "icons": "Clave-icons-dark", "kvantum": "WhiteSurDark",
               "gtk4css": "WhiteSur-Dark/gtk-4.0/gtk-dark.css", "scheme": "prefer-dark"},
-    "light": {"gtk": "WhiteSur-Light", "icons": "WhiteSur", "kvantum": "WhiteSur",
+    "light": {"gtk": "WhiteSur-Light", "icons": "Clave-icons", "kvantum": "WhiteSur",
               "gtk4css": "WhiteSur-Light/gtk-4.0/gtk.css", "scheme": "prefer-light"},
 }
 
@@ -385,7 +385,7 @@ APP_NAMES = {
     "gnome-font-viewer": "Fonts", "gnome-chess": "Chess", "rnote": "Freeform board",
     "simple-scan": "Scanner", "gnome-connections": "Screen Sharing", "gnome-logs": "Console",
     "hardinfo2": "System Information", "gnome-disk-utility": "Disk Utility",
-    "seahorse": "Keychain", "timeshift": "Backups",
+    "seahorse": "Keychain", "timeshift": "Backups", "kitty": "Terminal",
 }
 
 # Launchers that only back a feature, configure a theme or come with a
@@ -400,7 +400,7 @@ HIDDEN = [
 ]
 
 # Packages whose launchers stay visible without a new name (APP-10).
-VISIBLE = ["nautilus", "gnome-text-editor", "gnome-calculator", "loupe", "evince", "papers", "kitty"]
+VISIBLE = ["nautilus", "gnome-text-editor", "gnome-calculator", "loupe", "evince", "papers"]
 
 # MIME type -> package or desktop id of the default app (APP-5).
 VIDEO = ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo",

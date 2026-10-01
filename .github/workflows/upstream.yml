@@ -29,7 +29,7 @@ jobs:
       changed: ${{ steps.diff.outputs.changed }}
       watched: ${{ steps.diff.outputs.watched }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Last known good list
         run: |
@@ -46,7 +46,7 @@ jobs:
           .github/ci/upstream.sh diff old.txt manifest.txt | tee changes.md
           cat changes.md >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: upstream
           path: |
@@ -73,9 +73,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           name: upstream
           path: ${{ runner.temp }}/upstream

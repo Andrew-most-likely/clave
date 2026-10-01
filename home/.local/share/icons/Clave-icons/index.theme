@@ -1,0 +1,14 @@
+# Clave's app icons (PROJECT_PLAN.md BR-12) on top of WhiteSur. Clave-icons-dark
+# reads the same files. Written by scripts/make-icons.py.
+[Icon Theme]
+Name=Clave-icons
+Comment=Clave app icons, WhiteSur for everything else
+Inherits=WhiteSur,hicolor
+Directories=scalable/apps
+
+[scalable/apps]
+Size=128
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Applications

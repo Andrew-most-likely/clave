@@ -5,7 +5,9 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 home=$(mktemp -d "${TMPDIR:-/var/tmp}/amh-test.XXXXXX")
-trap 'rm -rf "$home"' EXIT
+# A file .gitignore excludes is never installed from a checkout.
+ignored="$repo/home/.config/clave-test.bak-ignored"
+trap 'rm -rf "$home" "$ignored"' EXIT
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 # An "ML4W" home: config directories linked into ~/.mydotfiles.
@@ -19,6 +21,7 @@ ln -s "$ml4w/rofi" "$home/.config/rofi"
 
 run() { env -i HOME="$home" PATH="$PATH" USER="$(id -un)" TERM=dumb "$@"; }
 
+echo stray > "$ignored"
 echo "==> install"
 run "$repo/install.sh" --user-only --no-packages --yes
 
@@ -34,6 +37,9 @@ grep -q 'scale = 2' "$home/.config/hypr/monitors.lua" || fail "monitors.lua was 
 ! grep -rl '__HOME__\|__REPO__\|__GITHUB_REPO__' "$home/.config" "$home/.local" 2>/dev/null | grep -v '\.bak-' \
     || fail "placeholders left unfilled"
 [ -s "$state/installed-files" ] || fail "no install record"
+if git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+    [ ! -e "$home/.config/clave-test.bak-ignored" ] || fail "a file .gitignore excludes was installed"
+fi
 ! find "$home/.config" "$home/.local" -name '*.bak-*' -not -name 'hypr.bak-*' | grep . \
     || fail "backup files left next to live files"
 

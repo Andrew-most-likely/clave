@@ -62,8 +62,8 @@ Then log out, and pick Hyprland on the login screen.
 |---|---|
 | `--yes` | No questions. The hardening layer is included; its warning is printed. |
 | `--no-harden` | Skip the security hardening layer |
-| `--extras` | Also install the optional apps in `packages/extras*.txt`, including the GNOME utilities Disks, Disk Usage Analyzer, Snapshot and Passwords and Keys |
-| `--personal` | Use fonts, a cursor and sounds you supply. See Personal option under Reference. |
+| `--extras` | Also install the optional apps in `packages/extras*.txt`, for example Firefox, Disk Usage Analyzer, Mail and Dictionary |
+| `--personal` | Use fonts, a cursor, app icons and sounds you supply. See Personal option under Reference. |
 | `--user-only` | Only install files in `$HOME`. No sudo, no login screen or boot splash. |
 | `--no-packages` | Skip pacman, AUR and Flatpak |
 | `--dry-run` | Show what would happen and change nothing |
@@ -167,8 +167,8 @@ Open only what you need.
 **Trackpad:** swipe left or right with 3 fingers to switch Spaces. Swipe up for Overview. Pinch with 4
 fingers for Apps, and spread 4 fingers for full screen.
 
-**Theme:** WhiteSur GTK, icons, Kvantum and Firefox themes, the Bibata cursor, Inter and JetBrains Mono, and the
-freedesktop sound theme. Qt5, Qt6,
+**Theme:** Clave's own app icons on top of the WhiteSur icons, the WhiteSur GTK, Kvantum and Firefox themes, the
+Bibata cursor, Inter and JetBrains Mono, and the freedesktop sound theme. Qt5, Qt6,
 GTK4/libadwaita and Flatpak apps all follow the theme.
 
 **Standard apps** (`packages/apps.txt`, all from the Arch repositories): Reminders, Stickies, Weather, Clock,
@@ -260,6 +260,8 @@ updates keep it.
   them everywhere instead of Inter, JetBrains Mono and Bibata.
 - **Sounds:** put your own sound files in `~/.local/share/sounds/clave/source/` and run `clave-sounds-build`. The
   names it looks for are listed in that script. Without them, the freedesktop sounds play.
+- **App icons:** uses the WhiteSur app icons instead of Clave's. The `whitesur-icon-theme` package is installed
+  either way; `--personal` only switches the icon theme to it.
 - **Logo:** put an SVG at `~/.config/clave/branding/logo.svg`. This works without `--personal` too. Run
   `install.sh` again to put it on the boot splash.
 
@@ -321,8 +323,8 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md). The goals, requirements and road
 ## Credits and license
 
 Parts of this project started from [ML4W dotfiles](https://github.com/mylinuxforwork/dotfiles) by mylinuxforwork,
-so this project is under the same license, [GPL-3.0](LICENSE). The WhiteSur themes are by
-[vinceliuice](https://github.com/vinceliuice). `hyprbars` comes from
+so this project is under the same license, [GPL-3.0](LICENSE). The app icons in `Clave-icons` are drawn for
+Clave by `scripts/make-icons.py`. The WhiteSur themes are by [vinceliuice](https://github.com/vinceliuice). `hyprbars` comes from
 [hyprwm/hyprland-plugins](https://github.com/hyprwm/hyprland-plugins) (BSD-3-Clause) and is downloaded at build
 time.
 
