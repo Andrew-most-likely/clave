@@ -5,7 +5,7 @@
 #   tests/qml-smoke.sh ActivityMonitor activity forcequit
 # Each IPC target gets "open" called, so the window's LazyLoader content
 # loads too. Needs quickshell (qs). No windows are shown.
-#   tests/qml-smoke.sh --file clave-notes.qml
+#   tests/qml-smoke.sh --file clave-calendar.qml
 # --file runs one of the app entry files in home/.config/quickshell with a
 # scratch HOME, so the app's files land in a temp folder.
 set -euo pipefail

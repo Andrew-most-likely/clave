@@ -343,7 +343,7 @@ Scope {
             text: tb.label
             color: tb.enabledState ? Theme.fg : Theme.fgA(0.35)
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.px(Theme.fontBody)
         }
         MouseArea {
             id: tbMouse
@@ -407,7 +407,7 @@ Scope {
                                         text: modelData.label
                                         color: Theme.fg
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontBody
+                                        font.pixelSize: Theme.px(Theme.fontBody)
                                     }
                                     MouseArea { anchors.fill: parent; onClicked: root.setTab(modelData.id) }
                                 }
@@ -433,7 +433,7 @@ Scope {
                             verticalAlignment: TextInput.AlignVCenter
                             color: Theme.fg
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.px(Theme.fontBody)
                             clip: true
                             onTextChanged: root.filter = text
                         }
@@ -445,7 +445,7 @@ Scope {
                             text: "Search"
                             color: Theme.fgA(0.4)
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.px(Theme.fontBody)
                         }
                     }
                 }
@@ -486,7 +486,7 @@ Scope {
                                         text: modelData.label + (root.sortKey === modelData.key ? (root.sortDesc ? " ▾" : " ▴") : "")
                                         color: Theme.fgA(0.6)
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSecondary
+                                        font.pixelSize: Theme.px(Theme.fontSecondary)
                                         font.weight: Font.DemiBold
                                     }
                                     MouseArea {
@@ -530,7 +530,7 @@ Scope {
                                             text: root.cell(row.modelData, modelData.key)
                                             color: row.sel ? Theme.onAccent : Theme.fg
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: Theme.fontBody - 1
+                                            font.pixelSize: Theme.px(Theme.fontBody - 1)
                                             font.features: { "tnum": 1 }
                                             elide: Text.ElideRight
                                         }
@@ -567,14 +567,14 @@ Scope {
                                     text: modelData[0]
                                     color: Theme.fgA(0.6)
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSecondary
+                                    font.pixelSize: Theme.px(Theme.fontSecondary)
                                 }
                                 Text {
                                     textFormat: Text.PlainText
                                     text: modelData[1]
                                     color: Theme.fg
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontTitle
+                                    font.pixelSize: Theme.px(Theme.fontTitle)
                                     font.features: { "tnum": 1 }
                                 }
                             }
@@ -610,7 +610,7 @@ Scope {
                     wrapMode: Text.WordWrap
                     color: Theme.fg
                     font.family: "Inter"
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.px(13)
                 }
 
                 Rectangle {
@@ -649,7 +649,7 @@ Scope {
                                     text: modelData.name
                                     color: Theme.fg
                                     font.family: "Inter"
-                                    font.pixelSize: 13
+                                    font.pixelSize: Theme.px(13)
                                     elide: Text.ElideRight
                                 }
                             }
@@ -670,7 +670,7 @@ Scope {
                         text: "You can open this window by pressing Super-Alt-Escape."
                         color: Theme.fgA(0.5)
                         font.family: "Inter"
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.px(11)
                     }
                     ToolButton {
                         label: "Activity Monitor…"
@@ -691,7 +691,7 @@ Scope {
                         text: "Force Quit"
                         color: parent.usable ? Theme.onAccent : Theme.fgA(0.4)
                         font.family: "Inter"
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.px(13)
                     }
                     MouseArea {
                         id: fqMouse

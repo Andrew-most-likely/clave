@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""Network Identity (SEC-7): reorder the TCP options of the laptop's own
+outgoing SYNs so they look like the chosen profile's operating system.
+
+Reads packets from netfilter queue 7071, which nftables fills only with IPv4
+SYNs leaving through an Ethernet-type interface (chain netid_out, written by
+clave-netid). Standard library only: the queue is spoken to over netlink.
+
+Rules: the options are reordered and padded, and an option the profile does
+not send is left out; an option is never added and its value (MSS, window
+scale, timestamps) never changes, so the connection is what the kernel set up.
+A SYN with an option this tool does not know (TCP Fast Open, MD5, MPTCP) or a
+malformed header passes unchanged. The nftables rule uses "bypass": if this
+process stops, SYNs flow unchanged.
+
+Runs as clave-synshape.service (DynamicUser, CAP_NET_ADMIN only).
+"""
+import os
+import socket
+import struct
+import sys
+
+QUEUE = 7071
+CONFIG = "/etc/clave/netid/syn"
+
+TOKENS = ("mss", "nop", "ws", "sok", "ts", "eol")
+KIND = {2: "mss", 3: "ws", 4: "sok", 8: "ts"}
+LENGTH = {"mss": 4, "ws": 3, "sok": 2, "ts": 10}
+
+
+def checksum(data):
+    if len(data) % 2:
+        data += b"\0"
+    s = sum(struct.unpack("!%dH" % (len(data) // 2), data))
+    while s >> 16:
+        s = (s & 0xFFFF) + (s >> 16)
+    return ~s & 0xFFFF
+
+
+def parse_options(opts):
+    """Return {name: raw bytes} for the known options, or None if the options
+    are malformed or hold one we do not rewrite."""
+    found = {}
+    i = 0
+    while i < len(opts):
+        kind = opts[i]
+        if kind == 0:  # end of list: the rest is padding
+            break
+        if kind == 1:
+            i += 1
+            continue
+        if i + 1 >= len(opts):
+            return None
+        length = opts[i + 1]
+        name = KIND.get(kind)
+        if name is None or length != LENGTH[name] or i + length > len(opts) or name in found:
+            return None
+        found[name] = bytes(opts[i:i + length])
+        i += length
+    return found
+
+
+def rewrite(pkt, order, window=0):
+    """Return the rewritten IPv4 packet, or None to pass it unchanged."""
+    if len(pkt) < 40 or pkt[0] >> 4 != 4 or pkt[9] != 6:
+        return None
+    ihl = (pkt[0] & 0x0F) * 4
+    total = struct.unpack("!H", pkt[2:4])[0]
+    if ihl < 20 or total != len(pkt) or len(pkt) < ihl + 20:
+        return None
+    if struct.unpack("!H", pkt[6:8])[0] & 0x3FFF:  # fragment
+        return None
+    tcp = pkt[ihl:]
+    flags = tcp[13]
+    if not flags & 0x02 or flags & 0x10:  # SYN without ACK only
+        return None
+    doff = (tcp[12] >> 4) * 4
+    if doff < 20 or doff > len(tcp):
+        return None
+    found = parse_options(tcp[20:doff])
+    if found is None:
+        return None
+    new = bytearray()
+    for tok in order:
+        if tok == "nop":
+            new.append(1)
+        elif tok == "eol":
+            new.append(0)
+        elif tok in found:
+            new += found[tok]
+    while len(new) % 4:
+        new.append(0)
+    if len(new) > 40:
+        return None
+    payload = tcp[doff:]
+    head = bytearray(tcp[:20])
+    head[12] = ((20 + len(new)) // 4) << 4 | (head[12] & 0x0F)
+    if window:
+        head[14:16] = struct.pack("!H", window)
+    head[16:18] = b"\0\0"
+    seg = bytes(head) + bytes(new) + bytes(payload)
+    ip = bytearray(pkt[:ihl])
+    ip[2:4] = struct.pack("!H", ihl + len(seg))
+    ip[10:12] = b"\0\0"
+    ip[10:12] = struct.pack("!H", checksum(bytes(ip)))
+    pseudo = bytes(ip[12:20]) + struct.pack("!BBH", 0, 6, len(seg))
+    seg = bytearray(seg)
+    seg[16:18] = struct.pack("!H", checksum(pseudo + bytes(seg)))
+    out = bytes(ip) + bytes(seg)
+    return None if out == bytes(pkt) else out
+
+
+def read_config(path):
+    order, window = [], 0
+    with open(path) as f:
+        for line in f:
+            key, _, value = line.strip().partition("=")
+            if key == "order" and value:
+                order = value.split(",")
+            elif key == "window" and value:
+                window = int(value)
+    if not order or any(t not in TOKENS for t in order) or not 0 <= window <= 65535:
+        raise SystemExit("clave-synshape: bad config in %s" % path)
+    return order, window
+
+
+# --- netfilter queue over netlink --------------------------------------------
+NETLINK_NETFILTER = 12
+NFNL_SUBSYS_QUEUE = 3
+NFQNL_MSG_PACKET, NFQNL_MSG_VERDICT, NFQNL_MSG_CONFIG = 0, 1, 2
+NFQA_PACKET_HDR, NFQA_VERDICT_HDR, NFQA_PAYLOAD = 1, 2, 10
+NFQA_CFG_CMD, NFQA_CFG_PARAMS, NFQA_CFG_MASK, NFQA_CFG_FLAGS = 1, 2, 4, 5
+NFQNL_CFG_CMD_BIND = 1
+NFQNL_COPY_PACKET = 2
+NFQA_CFG_F_FAIL_OPEN = 1
+NLM_F_REQUEST, NLM_F_ACK = 1, 4
+NLMSG_ERROR = 2
+NF_ACCEPT = 1
+
+
+def attr(kind, data):
+    a = struct.pack("=HH", 4 + len(data), kind) + data
+    return a + b"\0" * (-len(a) % 4)
+
+
+def message(msg, queue, attrs, flags=NLM_F_REQUEST):
+    body = struct.pack("!BBH", socket.AF_UNSPEC, 0, queue) + b"".join(attrs)
+    kind = NFNL_SUBSYS_QUEUE << 8 | msg
+    return struct.pack("=IHHII", 16 + len(body), kind, flags, 0, 0) + body
+
+
+def attrs_of(data):
+    out = {}
+    i = 0
+    while i + 4 <= len(data):
+        length, kind = struct.unpack("=HH", data[i:i + 4])
+        if length < 4:
+            break
+        out[kind & 0x3FFF] = data[i + 4:i + length]
+        i += (length + 3) & ~3
+    return out
+
+
+def check_ack(sock):
+    data = sock.recv(65536)
+    _, kind, _, _, _ = struct.unpack("=IHHII", data[:16])
+    if kind == NLMSG_ERROR:
+        err = struct.unpack("=i", data[16:20])[0]
+        if err:
+            raise OSError(-err, os.strerror(-err))
+
+
+def run(queue, order, window):
+    sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, NETLINK_NETFILTER)
+    sock.bind((0, 0))
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)
+    ack = NLM_F_REQUEST | NLM_F_ACK
+    sock.send(message(NFQNL_MSG_CONFIG, queue,
+                      [attr(NFQA_CFG_CMD, struct.pack("!BxH", NFQNL_CFG_CMD_BIND, 0))], ack))
+    check_ack(sock)
+    sock.send(message(NFQNL_MSG_CONFIG, queue, [
+        attr(NFQA_CFG_PARAMS, struct.pack("!IB", 0xFFFF, NFQNL_COPY_PACKET)),
+        attr(NFQA_CFG_MASK, struct.pack("!I", NFQA_CFG_F_FAIL_OPEN)),
+        attr(NFQA_CFG_FLAGS, struct.pack("!I", NFQA_CFG_F_FAIL_OPEN)),
+    ], ack))
+    check_ack(sock)
+    print("clave-synshape: queue %d, order %s, window %s" % (queue, ",".join(order), window or "kernel"),
+          flush=True)
+    while True:
+        data = sock.recv(1 << 17)
+        i = 0
+        while i + 16 <= len(data):
+            length, kind, _, _, _ = struct.unpack("=IHHII", data[i:i + 16])
+            if length < 16:
+                break
+            if kind == NFNL_SUBSYS_QUEUE << 8 | NFQNL_MSG_PACKET:
+                a = attrs_of(data[i + 20:i + length])
+                hdr, pkt = a.get(NFQA_PACKET_HDR), a.get(NFQA_PAYLOAD)
+                if hdr:
+                    pid = struct.unpack("!I", hdr[:4])[0]
+                    new = rewrite(pkt, order, window) if pkt else None
+                    attrs = [attr(NFQA_VERDICT_HDR, struct.pack("!II", NF_ACCEPT, pid))]
+                    if new:
+                        attrs.append(attr(NFQA_PAYLOAD, new))
+                    sock.send(message(NFQNL_MSG_VERDICT, queue, attrs))
+            i += (length + 3) & ~3
+
+
+def main(argv):
+    queue, config = QUEUE, CONFIG
+    args = list(argv)
+    while args:
+        a = args.pop(0)
+        if a == "--queue":
+            queue = int(args.pop(0))
+        elif a == "--config":
+            config = args.pop(0)
+        else:
+            raise SystemExit("usage: clave-synshape [--queue N] [--config FILE]")
+    order, window = read_config(config)
+    run(queue, order, window)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -410,8 +410,11 @@ Scope {
             anchors { bottom: true }
             margins { bottom: 80 }
             exclusiveZone: 0
-            implicitWidth: Math.max(toolbar.implicitWidth, root.optionsOpen ? 520 : 0) + 20
-            implicitHeight: toolbar.implicitHeight + (root.optionsOpen ? options.implicitHeight + 8 : 0) + 20
+            // Room above and beside the toolbar for the button tooltips (30 px
+            // tall, up to 100 px past the end buttons). A smaller window cut
+            // them to a few pixels unless the options menu made it taller.
+            implicitWidth: Math.max(toolbar.implicitWidth + 200, root.optionsOpen ? 520 : 0) + 20
+            implicitHeight: toolbar.implicitHeight + Math.max(root.optionsOpen ? options.implicitHeight + 8 : 0, 30) + 20
             color: "transparent"
 
             Item {

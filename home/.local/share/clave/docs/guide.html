@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clave User Guide</title>
+<!-- Clave user guide (DOC-1). Local file, no network. Opened from System Settings > General. -->
+<style>
+  :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7; --card: #f5f5f7; --accent: #0a66d9; --code: #f0f0f3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1c1c1e; --fg: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c; --card: #2c2c2e; --accent: #4da3ff; --code: #2c2c2e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 40px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 24px 0 6px; }
+  p, li { max-width: 72ch; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  a { color: var(--accent); }
+  code { font: 13px/1.4 ui-monospace, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font: 13px/1.5 ui-monospace, monospace; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 14px; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .note { background: var(--card); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  nav { background: var(--card); border-radius: 8px; padding: 10px 14px; margin: 16px 0 8px; }
+  nav a { margin-right: 14px; display: inline-block; }
+</style>
+</head>
+<body>
+<main>
+<h1>Clave User Guide</h1>
+<p class="lead">Everything Clave adds to Hyprland, where to change it, and what to do when something goes wrong.
+This page is a local file: <code>~/.local/share/clave/docs/guide.html</code>. Open it from System Settings &gt;
+General &gt; User Guide.</p>
+
+<nav>
+  <a href="#start">Start here</a><a href="#desktop">Desktop</a><a href="#windows">Windows</a>
+  <a href="#shortcuts">Shortcuts</a><a href="#settings">System Settings</a><a href="#apps">Apps</a>
+  <a href="#terminal">Terminal</a><a href="#security">Security</a><a href="#update">Updating</a>
+  <a href="#files">Your files</a><a href="#trouble">Troubleshooting</a><a href="#uninstall">Uninstalling</a>
+</nav>
+
+<h2 id="start">Start here</h2>
+<p>Clave is a desktop for Hyprland on Arch Linux. Hyprland still tiles your windows; Clave adds a menu bar, a
+Dock, Control Center, Notification Center, an Overview of windows and Spaces, System Settings, a login screen, a
+boot splash and title bar buttons. Most of it is changed in System Settings (<code>Super+,</code>).</p>
+<ul>
+  <li><b>Super</b> is the key with the Windows or command symbol. Menus show it as ⌘ (or ❖, System Settings &gt;
+    Keyboard).</li>
+  <li>Press <code>Super+/</code> at any time for the full list of shortcuts.</li>
+  <li>Press <code>Super+Space</code> to find an app, a file or a setting, or to calculate.</li>
+</ul>
+
+<h2 id="desktop">Desktop</h2>
+<h3>Menu bar</h3>
+<p>One bar on every screen. On the left: the logo menu (About This Computer, System Settings, Software, Force Quit,
+Sleep, Restart, Shut Down, Lock Screen, Log Out), then the name and menus of the app in front. On the right: app status icons,
+battery, Wi-Fi, sound, Control Center and the clock. Click the clock for Notification Center. Battery
+percentage, date, day and 24-hour clock are in System Settings &gt; Control Center.</p>
+<h3>Dock</h3>
+<p>Running apps have a dot under them. Right-click an icon to pin it to the Dock or unpin it, or to open a new window. Minimized windows go into the Dock (<code>Super+M</code>). Size, magnification,
+position and hiding are in System Settings &gt; Desktop &amp; Dock.</p>
+<h3>Overview and Spaces</h3>
+<p><code>Super+Tab</code>, or a three-finger swipe up, shows every window and Space. <code>Super+1…0</code> goes
+to a Space; <code>Super+Shift+1…0</code> moves the window there. Swipe left and right with three fingers to
+change Space. Hot corners (System Settings &gt; Desktop &amp; Dock) can open Overview, Notification Center,
+Control Center or Apps, lock the screen or put the display to sleep.</p>
+<h3>Control Center</h3>
+<p>The switch icon in the menu bar, or <code>Super+Ctrl+N</code>. Click a circle to turn Wi-Fi, Bluetooth,
+Ethernet, VPN, Focus (Do Not Disturb), Night Light or Mirroring on or off; click the text next to it to open its
+settings. Below: brightness, volume, Light or Dark mode, keyboard brightness and what is playing.</p>
+<h3>Notification Center</h3>
+<p>Click the clock or press <code>Super+N</code>. Banners stay for the time set in System Settings &gt;
+Notifications, where you also pick the notification sound, turn on Do Not Disturb and mute single apps.</p>
+<h3>Search and Apps</h3>
+<p><code>Super+Space</code> (or a tap of Super) opens Search: type an app name, or a sum such as
+<code>12*7</code>; <code>Ctrl+Tab</code> switches to the calculator, Enter copies the result. <code>Super+A</code>
+or a four-finger pinch opens the Apps grid.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Windows tile by default. <code>Super+T</code> floats or tiles the window in front, <code>Super+F</code> makes
+it full screen, <code>Super+Arrows</code> moves focus, <code>Super+Alt+Arrows</code> swaps windows and
+<code>Super+Shift+Arrows</code> resizes.</p>
+<h3>Title bar buttons</h3>
+<p>Apps without their own title bar get a bar with red (close), yellow (minimize into the Dock) and green (full
+screen) buttons. Double-click the bar to zoom. The bar follows Light and Dark mode. Turn the buttons off in System
+Settings &gt; Desktop &amp; Dock &gt; Windows.</p>
+<p><b>An app shows two sets of buttons?</b> It draws its own title bar. While it is open, pick it under
+"App shows two sets of buttons?" in System Settings &gt; Desktop &amp; Dock &gt; Windows; Clave then leaves its
+bar off. Remove it there to undo. Clave's own windows (System Settings, Calendar, Activity Monitor) are never on
+this list.</p>
+
+<h2 id="shortcuts">Keyboard shortcuts</h2>
+<table>
+  <tr><th>Keys</th><th>Action</th><th>Keys</th><th>Action</th></tr>
+  <tr><td><code>Super+Space</code></td><td>Search</td><td><code>Super+W</code> / <code>Super+Q</code></td><td>Close window / Quit app</td></tr>
+  <tr><td><code>Super+A</code></td><td>Apps</td><td><code>Super+M</code> / <code>Super+H</code></td><td>Minimize / Hide app</td></tr>
+  <tr><td><code>Super+Tab</code></td><td>Overview</td><td><code>Super+F</code></td><td>Full screen</td></tr>
+  <tr><td><code>Alt+Tab</code></td><td>Switch windows</td><td><code>Super+T</code></td><td>Float or tile the window</td></tr>
+  <tr><td><code>Super+Return</code></td><td>Terminal</td><td><code>Super+1…0</code></td><td>Go to a Space</td></tr>
+  <tr><td><code>Super+E</code></td><td>Files</td><td><code>Super+Shift+1…0</code></td><td>Move the window to a Space</td></tr>
+  <tr><td><code>Super+B</code></td><td>Web browser</td><td><code>Super+Arrows</code></td><td>Move focus</td></tr>
+  <tr><td><code>Super+,</code></td><td>System Settings</td><td><code>Super+Alt+Arrows</code></td><td>Swap windows</td></tr>
+  <tr><td><code>Super+N</code></td><td>Notification Center</td><td><code>Super+Shift+Arrows</code></td><td>Resize the window</td></tr>
+  <tr><td><code>Super+Ctrl+N</code></td><td>Control Center</td><td><code>Super+S</code></td><td>Scratchpad</td></tr>
+  <tr><td><code>Super+V</code></td><td>Clipboard history</td><td><code>Print</code></td><td>Screenshot and recording</td></tr>
+  <tr><td><code>Ctrl+Super+Space</code></td><td>Emoji picker</td><td><code>Shift+Print</code></td><td>Copy text from the screen</td></tr>
+  <tr><td><code>Super+L</code></td><td>Lock screen</td><td><code>Super+Alt+G</code></td><td>Game mode (effects off)</td></tr>
+  <tr><td><code>Super+Alt+Esc</code></td><td>Force Quit</td><td><code>Super+/</code></td><td>All shortcuts</td></tr>
+</table>
+<p>Add your own in <code>~/.config/hypr/custom.lua</code> (System Settings &gt; General &gt; Advanced).</p>
+
+<h2 id="settings">System Settings</h2>
+<table>
+  <tr><th>Pane</th><th>What is there</th></tr>
+  <tr><td>Network &amp; Bluetooth</td><td>Wi-Fi, wired, VPN and Bluetooth devices</td></tr>
+  <tr><td>General</td><td>About, Software Update, Software, Keyboard Shortcuts, this guide, Hyprland <code>custom.lua</code></td></tr>
+  <tr><td>Appearance</td><td>Light or Dark, accent color, text size of Clave's windows and GTK apps, app icons</td></tr>
+  <tr><td>Control Center</td><td>Battery percentage and the menu bar clock</td></tr>
+  <tr><td>Desktop &amp; Dock</td><td>Dock, minimize effect, Space numbers, title bar buttons, hot corners</td></tr>
+  <tr><td>Displays</td><td>Resolution, scale, arrangement, mirroring, Night Light</td></tr>
+  <tr><td>Wallpaper</td><td>Desktop picture from <code>~/Pictures/Wallpapers</code> or any file</td></tr>
+  <tr><td>Notifications</td><td>Do Not Disturb, banner time, notification sound, apps that may notify</td></tr>
+  <tr><td>Sound</td><td>Output volume, devices and levels, interface sound effects</td></tr>
+  <tr><td>Lock Screen</td><td>When the screen locks, the display turns off and the computer sleeps; lock screen background; login window</td></tr>
+  <tr><td>Privacy &amp; Security</td><td>Clipboard history, screen capture permission, USB accessories, disk encryption, firewall, Network Identity</td></tr>
+  <tr><td>Login Items</td><td>Apps that start when you log in</td></tr>
+  <tr><td>Battery</td><td>Energy mode, battery health, what closing the lid does</td></tr>
+  <tr><td>Keyboard, Mouse, Trackpad</td><td>Repeat rate, layout, Caps Lock, Super glyph, speed, scrolling, tap to click</td></tr>
+  <tr><td>Printers &amp; Scanners</td><td>Printers found on the network, the default printer and the queue</td></tr>
+  <tr><td>Date &amp; Time</td><td>Time zone and automatic time</td></tr>
+</table>
+<p>Text size changes Clave's windows (System Settings, Calendar, Activity Monitor) and GTK apps at once. The menu
+bar, Dock and Control Center keep their size. Qt apps follow when reopened. The terminal has its own font size
+in <code>~/.config/kitty/custom.conf</code>.</p>
+
+<h2 id="apps">Apps</h2>
+<p>Clave installs one app per job from the Arch repositories: Files, Text Editor, Calculator, Image Viewer,
+Document Viewer, Archive Manager, Clock, Videos, Camera, Console, System Information, Disk Utility, Keychain and
+Backups. Clave's own apps are Calendar (plain <code>.ics</code> files, no accounts), Activity Monitor and Force
+Quit. More apps install through Software (Flathub).</p>
+<h3>Screenshots and recording</h3>
+<p><code>Print</code> opens the toolbar: a window, an area or the whole screen, as a picture or a recording.
+<code>Shift+Print</code> copies the text inside an area (no network). Options are in the toolbar.</p>
+
+<h2 id="terminal">Terminal</h2>
+<p>The terminal is kitty (<code>Super+Return</code>). Clave's shell setup is
+<code>~/.local/share/clave/clave.bash</code>, loaded by your <code>~/.bashrc</code>. Put your own settings in
+<code>~/.bashrc</code>; Clave never replaces it. Commands it adds:</p>
+<table>
+  <tr><th>Command</th><th>Does</th><th>Command</th><th>Does</th></tr>
+  <tr><td><code>settings</code></td><td>System Settings</td><td><code>updates</code></td><td>Update everything in this terminal</td></tr>
+  <tr><td><code>apps</code> / <code>search</code></td><td>Apps / Search</td><td><code>wallpaper FILE</code></td><td>Set the desktop picture</td></tr>
+  <tr><td><code>screenshot</code></td><td>Screenshot toolbar</td><td><code>lock</code></td><td>Lock the screen</td></tr>
+  <tr><td><code>wifi</code></td><td>Wi-Fi in the terminal (nmtui)</td><td><code>ff</code></td><td>System info with the Clave logo</td></tr>
+</table>
+<p>To start without the logo, add <code>CLAVE_FASTFETCH=0</code> to <code>~/.bashrc</code> before the line that
+loads <code>clave.bash</code>.</p>
+
+<h2 id="security">Security</h2>
+<p>Unless you installed with <code>--no-harden</code>, Clave hardens the system: the <code>linux-hardened</code>
+kernel, a firewall that drops incoming connections (nftables), OpenSnitch for outgoing connections, AppArmor,
+auditd, USBGuard, three wrong passwords lock the account for 15 minutes, stricter sudo, a <code>noexec</code>
+<code>/tmp</code>, an AIDE file baseline and daily <code>arch-audit</code> checks for known vulnerabilities.</p>
+<h3>USB accessories</h3>
+<p>USBGuard blocks USB devices that were not connected at installation. A notification says when one is blocked.
+System Settings &gt; Privacy &amp; Security &gt; USB accessories lists every device with <b>Allow</b> or
+<b>Block</b>; the choice is kept for the next time it is plugged in, and it asks for your password. Keyboards,
+mice and hubs cannot be blocked there, so you cannot lock yourself out.</p>
+<h3>OpenSnitch</h3>
+<p>The first time an app connects to the internet, OpenSnitch asks whether to allow it. Without an answer it
+denies after 30 seconds. Change the rules in OpenSnitch (System Settings &gt; Privacy &amp; Security).</p>
+<h3>Network Identity</h3>
+<p>Off by default. Makes this computer look like another common device on shared networks, or answer nothing new
+(Stealth). See <a href="network-identity.html">How Network Identity works</a>.</p>
+<h3>Disk encryption</h3>
+<p>System Settings &gt; Privacy &amp; Security says whether your files are encrypted. How to encrypt, and how to
+get back in when locked out: <code>__REPO__/docs/ENCRYPTION.md</code> and
+<code>__REPO__/docs/RECOVERY.md</code>. Keep a recovery USB.</p>
+
+<h2 id="update">Updating</h2>
+<p>System Settings &gt; General &gt; Software Update, or <code>clave-update</code> in a terminal. It updates system
+packages and Flatpaks, then installs the newest signed Clave release. Hyprland plugins (title bars, minimize) are
+rebuilt after each Hyprland upgrade. <code>clave-doctor</code> says whether the installed packages work with this
+Clave release.</p>
+
+<h2 id="files">Your files</h2>
+<p>Clave updates its own files and never replaces these:</p>
+<table>
+  <tr><th>File</th><th>For</th></tr>
+  <tr><td><code>~/.config/hypr/custom.lua</code></td><td>Your Hyprland settings, shortcuts and autostart, loaded last</td></tr>
+  <tr><td><code>~/.config/hypr/monitors.lua</code></td><td>Monitor layout (System Settings &gt; Displays writes it)</td></tr>
+  <tr><td><code>~/.config/hypr/hypridle.conf</code></td><td>Idle timeouts (System Settings &gt; Lock Screen writes it)</td></tr>
+  <tr><td><code>~/.config/kitty/custom.conf</code></td><td>Terminal font and colors</td></tr>
+  <tr><td><code>~/.bashrc</code></td><td>Your shell settings</td></tr>
+  <tr><td><code>~/.config/clave/</code></td><td>What System Settings saves</td></tr>
+  <tr><td><code>~/.config/clave/branding/logo.svg</code></td><td>Your own logo for the menu bar, About and boot splash</td></tr>
+</table>
+<p>Files Clave replaced at installation are kept in <code>~/.local/state/clave/backups</code>.</p>
+
+<h2 id="trouble">Troubleshooting</h2>
+<ul>
+  <li><b>Something looks wrong after an update:</b> run <code>clave-doctor</code>.</li>
+  <li><b>No title bar buttons:</b> the plugin may not match your Hyprland. Clave offers a rebuild at login, or run
+    <code>~/.local/share/clave/rebuild-plugins.sh</code>. Log: <code>~/.cache/clave/rebuild-plugins.log</code>.</li>
+  <li><b>A USB device does nothing:</b> it is blocked; allow it in Privacy &amp; Security.</li>
+  <li><b>An app cannot reach the internet:</b> OpenSnitch denied it; change the rule in OpenSnitch.</li>
+  <li><b>Locked out:</b> wait 15 minutes after three wrong passwords, or see <code>__REPO__/docs/RECOVERY.md</code>.</li>
+  <li><b>Installer log:</b> <code>~/.cache/clave/install.log</code>. Attach it and the plugin log to bug reports.</li>
+</ul>
+
+<h2 id="uninstall">Uninstalling</h2>
+<pre><code>__REPO__/uninstall.sh            # files in your home folder
+__REPO__/uninstall.sh --system   # also the login screen, boot splash and hardening</code></pre>
+<p>Your earlier files come back from the backups. Installed packages stay; remove them with
+<code>sudo pacman -Rs</code> if you want.</p>
+</main>
+</body>
+</html>

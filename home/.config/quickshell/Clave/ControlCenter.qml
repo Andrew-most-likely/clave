@@ -159,7 +159,9 @@ PanelWindow {
             + " if ($2 == \"connected\" && c == \"\") c = l; else if (d == \"\") d = l }"
             + " END { if (c != \"\") print \"eth=\" c; else if (d != \"\") print \"eth=\" d }';"
             + "echo \"dnd=$(swaync-client -D 2>/dev/null)\";"
-            + "pgrep -x hyprsunset >/dev/null && echo night=1 || echo night=0"]
+            + "pgrep -x hyprsunset >/dev/null && echo night=1 || echo night=0;"
+            // Network Identity (SEC-7), only when clave-netid is installed.
+            + "[ -x /usr/local/bin/clave-netid ] && /usr/local/bin/clave-netid status | sed -n 's/^\\(profile\\|stealth\\|profiles\\)=/netid_\\1=/p'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let v = ({})
@@ -181,9 +183,19 @@ PanelWindow {
                 root.ethName = eth.slice(2).join(":").replace(/\\$/, "")
                 root.dnd = v.dnd === "true"
                 root.nightLight = v.night === "1"
+                root.netidProfile = v.netid_profile || ""
+                root.netidStealth = v.netid_stealth === "1"
+                let names = ({})
+                for (const pair of (v.netid_profiles || "").split(";"))
+                    if (pair.indexOf(":") > 0) names[pair.slice(0, pair.indexOf(":"))] = pair.slice(pair.indexOf(":") + 1)
+                root.netidNames = names
             }
         }
     }
+    // Network Identity: "" when clave-netid is not installed.
+    property string netidProfile: ""
+    property bool netidStealth: false
+    property var netidNames: ({})   // id -> label, from clave-netid status
     Timer { id: restatus; interval: 1500; onTriggered: status.running = true }
     // mullvad status takes about a second; have values ready for the first open.
     Component.onCompleted: status.running = true
@@ -355,10 +367,15 @@ PanelWindow {
 
                 Module {
                     Layout.preferredWidth: 153
-                    // One more row for Ethernet when there is a port as well as a VPN.
-                    Layout.preferredHeight: root.hasEthernet && root.hasVpn ? 204 : 158
+                    // As tall as its rows, and at least as tall as the right column
+                    // (two 74 px modules), which stretches to match: both halves
+                    // always end on the same line.
+                    Layout.preferredHeight: Math.max(158, rows.implicitHeight + 22)
                     ColumnLayout {
-                        anchors.fill: parent
+                        id: rows
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 11
                         spacing: 8
 
@@ -427,17 +444,40 @@ PanelWindow {
                                 Quickshell.execDetached(root.vpnKind === "mullvad" ? ["mullvad-vpn"] : ["nm-connection-editor"])
                             }
                         }
-                        Item { Layout.fillHeight: true }
+                        // Circle: Stealth on or off. Text: the profile; opens Privacy & Security.
+                        ToggleRow {
+                            Layout.fillWidth: true
+                            visible: root.netidProfile !== ""
+                            icon: "icons/shield.svg"
+                            label: "Stealth"
+                            detail: "Identity: " + (root.netidNames[root.netidProfile] || root.netidProfile)
+                            on: root.netidStealth
+                            onToggled: {
+                                root.netidStealth = !root.netidStealth
+                                // Control Center is an overlay above every window: close it,
+                                // or the password dialog opens underneath where it cannot be typed in.
+                                root.close()
+                                root.run([Quickshell.env("HOME") + "/.local/bin/clave-netid-set",
+                                          root.netidProfile === "off" ? "linux" : root.netidProfile,
+                                          root.netidStealth ? "1" : "0"])
+                            }
+                            onOpened: {
+                                root.close()
+                                Quickshell.execDetached(["qs", "ipc", "call", "settings", "open", "security"])
+                            }
+                        }
                     }
                 }
 
                 ColumnLayout {
                     spacing: 10
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
 
                     // Focus
                     Module {
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
                         Layout.preferredHeight: 74
                         RowLayout {
                             anchors.fill: parent
@@ -464,10 +504,12 @@ PanelWindow {
                     RowLayout {
                         spacing: 10
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
 
                         // Night Light
                         Module {
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
                             Layout.preferredHeight: 74
                             ColumnLayout {
                                 anchors.centerIn: parent
@@ -494,6 +536,7 @@ PanelWindow {
                         // Screen Mirroring
                         Module {
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
                             Layout.preferredHeight: 74
                             ColumnLayout {
                                 anchors.centerIn: parent

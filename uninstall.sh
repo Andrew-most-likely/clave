@@ -59,7 +59,7 @@ if [ -f "$STATE/moved-aside" ]; then
                 mv "$other" "$path"
                 echo "  restored $path" ;;
             unlinked)
-                [ -d "$other" ] || continue
+                [ -e "$other" ] || continue
                 rm -rf "$path"
                 ln -s "$other" "$path"
                 echo "  relinked $path -> $other" ;;
@@ -72,6 +72,12 @@ rm -f "$STATE/installed-commit" "$STATE/repo"
 if [ "${1:-}" = "--system" ]; then
     sys_files=/var/lib/clave/installed-files
     if sudo test -f "$sys_files"; then
+        # Network Identity first, while its helper is still there: it puts
+        # back dhcpcd.conf and removes the files it rendered (SEC-7).
+        if [ -f /etc/clave/netid/state ] && [ -x /usr/local/bin/clave-netid ]; then
+            say "Network Identity off"
+            sudo /usr/local/bin/clave-netid reset
+        fi
         say "System files"
         while IFS= read -r f; do restore "$f" sudo; done < <(sudo cat "$sys_files")
         sudo rm -f "$sys_files"

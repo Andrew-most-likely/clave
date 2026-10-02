@@ -1,0 +1,16 @@
+# Network Identity (SEC-7): re-apply the saved profile at boot. The files it
+# rendered stay on disk; this loads the firewall chains, the sysctl values and
+# the SYN rewriter. Enabled by "clave-netid apply", disabled by "clave-netid reset".
+[Unit]
+Description=Network Identity (clave-netid)
+ConditionPathExists=/etc/clave/netid/state
+After=nftables.service systemd-sysctl.service
+Before=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/clave-netid boot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

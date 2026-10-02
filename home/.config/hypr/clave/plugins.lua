@@ -13,12 +13,14 @@ local bars = settings.traffic_lights ~= false
     and hl.plugin.hyprbars ~= nil
 
 if bars then
+    -- Title bars follow Light or Dark in System Settings > Appearance.
+    local dark = settings.dark_mode ~= false
     hl.config({
         plugin = {
             hyprbars = {
                 bar_height            = 28,
-                bar_color             = "rgba(2a2a2cf0)",
-                ["col.text"]          = "rgba(ffffffcc)",
+                bar_color             = dark and "rgba(2a2a2cf0)" or "rgba(e8e8eaf0)",
+                ["col.text"]          = dark and "rgba(ffffffcc)" or "rgba(1d1d1fcc)",
                 bar_text_font         = "Inter",
                 bar_text_size         = 10,
                 bar_text_weight       = "semibold",
@@ -30,7 +32,7 @@ if bars then
                 bar_part_of_window    = true,
                 bar_precedence_over_border = true,
                 icon_on_hover         = true,
-                inactive_button_color = "rgba(ffffff30)",
+                inactive_button_color = dark and "rgba(ffffff30)" or "rgba(00000026)",
                 -- Double-clicking the title bar zooms.
                 on_double_click       = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']],
             },
@@ -53,18 +55,18 @@ if bars then
     -- Apps that draw their own title bar (GTK/libadwaita, Firefox, Steam,
     -- VS Code, Bazaar) would get two sets of traffic lights. Hyprland does not
     -- tell which windows draw their own, so this is a list (ISSUE-1). Users add
-    -- to it in System Settings > Desktop & Dock > Windows.
+    -- to it in System Settings > Desktop & Dock > Windows. GTK apps without a
+    -- header bar (Volume Control, Bluetooth, network connections, nwg-look,
+    -- virt-manager) draw no buttons here, so they are not on it.
     hl.window_rule({
         name  = "clave-no-bar-csd",
-        match = { class = "^(firefox|steam|code|code-oss|vscodium|codium|io\\.github\\.kolunmi\\.Bazaar|org\\.gnome\\..*|nautilus|.*pavucontrol|blueman-.*|nm-connection-editor|nwg-.*|virt-manager|satty|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1|io\\.elementary\\..*|fsearch|io\\.github\\.cboxdoerfer\\.FSearch|" ..
-            -- standard apps that draw their own title bar (APP-3)
-            "io\\.github\\.mrvladus\\.List|sticky|com\\.github\\.johnfactotum\\.Foliate|io\\.bassi\\.Amberol|" ..
-            "com\\.github\\.flxzt\\.rnote)$" },
+        match = { class = "^(firefox|steam|code|code-oss|vscodium|codium|io\\.github\\.kolunmi\\.Bazaar|org\\.gnome\\..*|nautilus|satty|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1|io\\.elementary\\..*|fsearch|io\\.github\\.cboxdoerfer\\.FSearch)$" },
         ["hyprbars:no_bar"] = true,
     })
     local extra = {}
     for _, class in ipairs(settings.no_bar_apps or {}) do
-        if class:match("^[%w._-]+$") then
+        -- Clave's own windows always keep their buttons (ClaveSettings.noBarApps).
+        if class:match("^[%w._-]+$") and class ~= "org.quickshell" then
             extra[#extra + 1] = (class:gsub("%.", "\\."))
         end
     end

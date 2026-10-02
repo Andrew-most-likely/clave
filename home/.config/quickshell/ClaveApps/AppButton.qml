@@ -27,7 +27,7 @@ Rectangle {
         text: b.label
         color: b.accent ? Theme.onAccent : b.enabledState ? Theme.fg : Theme.fgA(0.3)
         font.family: Theme.fontFamily
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: Theme.px(Theme.fontBody)
     }
     MouseArea {
         id: m
@@ -53,7 +53,7 @@ Rectangle {
             text: b.tip
             color: Theme.fg
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSecondary
+            font.pixelSize: Theme.px(Theme.fontSecondary)
         }
     }
 }

@@ -5,6 +5,8 @@ configuration {
     icon-theme:          "Clave-icons-dark";
     display-drun:        "";
     drun-display-format: "{name}";
+    /* The Apps launcher itself stays out of its own grid. */
+    drun-exclude-categories: "X-Clave-Launcher";
     font:                "Inter 12";
 }
 * {

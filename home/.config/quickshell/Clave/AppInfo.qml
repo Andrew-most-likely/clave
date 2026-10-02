@@ -94,7 +94,7 @@ Scope {
                     text: root.info.name || root.appId
                     color: Theme.fg
                     font.family: "Inter Display"
-                    font.pixelSize: 18
+                    font.pixelSize: Theme.px(18)
                     font.weight: Font.Bold
                 }
                 Text {
@@ -104,7 +104,7 @@ Scope {
                     text: "Version " + (root.info.version || "")
                     color: Theme.fgA(0.6)
                     font.family: "Inter"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
                 Text {
                     textFormat: Text.PlainText
@@ -115,7 +115,7 @@ Scope {
                     horizontalAlignment: Text.AlignHCenter
                     color: Theme.fgA(0.75)
                     font.family: "Inter"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
                 Item { Layout.fillHeight: true }
                 Text {
@@ -125,7 +125,7 @@ Scope {
                     text: root.info.url || ""
                     color: Theme.accent
                     font.family: "Inter"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                     elide: Text.ElideMiddle
                     Layout.maximumWidth: 256
                     MouseArea {
@@ -141,7 +141,7 @@ Scope {
                         : root.info.source === "pacman" ? "Installed with pacman" : ""
                     color: Theme.fgA(0.4)
                     font.family: "Inter"
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.px(11)
                 }
             }
         }

@@ -25,7 +25,7 @@
   "script-fail-notify": true,
   "scripts": {
     "clave-alert-sound": {
-      "exec": "__HOME__/.local/bin/clave-sound message-new-instant",
+      "exec": "__HOME__/.local/bin/clave-sound --notification",
       "app-name": "^(?!Screenshot$).*"
     }
   },

@@ -1,10 +1,65 @@
 # Changelog
 
-## Unreleased
+## v1.1.4 (2026-10-02)
 
+- **Traffic lights on every Clave window (ISSUE-11).** System Settings, Calendar and Activity Monitor lost their
+  window buttons when Clave's own windows (`org.quickshell`) were added to the "App shows two sets of buttons?"
+  list. They can no longer be added, an update drops them from the list, and the picker lists each open app once.
+  Volume Control, Bluetooth, network connections, nwg-look and virt-manager draw no buttons of their own, so
+  they now get Clave's.
+- **Title bars follow Light and Dark (ISSUE-12).** The title bar was always dark. It now turns light with dark
+  text in Light mode.
+- **Text size works (ISSUE-13).** System Settings > Appearance > Text size now changes the text of System
+  Settings, Calendar, Activity Monitor, About and App Info, not only GTK apps.
+- **Notification sound (ISSUE-14).** System Settings > Notifications has a Notification sound choice (Message,
+  Chime, Bell, Complete, Note, Attention, Ring or None). Choosing one plays it.
+- **USB accessories can be changed (ISSUE-15).** Privacy & Security lists every USB device once, with Allow or
+  Block. Keyboards, mice and hubs cannot be blocked there, so you cannot lock yourself out.
+- **Control Center lines up (ISSUE-16).** With four connection rows (for example VPN and Stealth) both halves
+  of the top block end on the same line, with no empty space under the rows.
+- **No Search icon in the menu bar.** Search stays on Super+Space.
+- **User Guide (DOC-1).** A local page that explains every part of Clave: System Settings > General > User Guide,
+  or `~/.local/share/clave/docs/guide.html`.
+- **A standard README (BR-15, v1.1.4).** The README now has the usual sections, from Features and Installation to
+  Troubleshooting and License, with a table of contents and no collapsed blocks. Taglines, the name story and
+  tips unrelated to Clave are gone.
+- **Nothing left of ML4W (BR-14).** Clave has its own bash setup: aliases for its commands (`lock`, `apps`,
+  `settings`, `screenshot`, `wallpaper`, `updates`), the starship prompt when the extras are installed, and the
+  Clave logo in new terminal windows. It lives in `~/.local/share/clave/clave.bash`, which `~/.bashrc` loads.
+  Installing over ML4W moves its `~/.bashrc` aside and turns every remaining link into `~/.mydotfiles` into a
+  real copy, so ML4W's folder can be deleted. An update removes the old ML4W-named wallpaper portal.
+- **Network Identity (SEC-7, FEAT-10).** On a shared network the laptop can look like Windows 11, macOS, an
+  iPhone, an Android phone or Linux, and a Stealth switch makes it answer nothing new. Choose it in System
+  Settings > Privacy & Security, in the Wi-Fi menu, or turn Stealth on in Control Center. It sets the DHCP
+  request, the IP TTL, TCP timestamps, ping replies, the answer on closed ports and the DHCP hostname, and a
+  small service reorders the options of the laptop's own TCP SYNs. That service starts only after a test shows
+  the kernel passes rewritten packets. Off by default; `sudo clave-netid reset` turns it off from a terminal.
+- **Network Identity says what it did.** Choosing a profile or Stealth now shows a notification with the result:
+  the new identity, or "Not changed" and why. Before, a click gave no sign for the several seconds the reconnect
+  takes, and looked like it did nothing. Stealth in Control Center closes Control Center first, so the password
+  dialog is not hidden under it. Two quick clicks no longer run two changes at once, and turning the feature off
+  clears the DHCP hostname from every saved network, not only the one in use.
+- **Fewer apps (APP-13).** Stickies, Voice Memos, Weather, Podcasts, Freeform board, Reminders, Fonts, Notes and
+  Contacts are gone: each fell short of the common alternatives. Maps, Books, Music and Scanner are gone too:
+  Clave is for people in security and computer science, who rarely use them. Photos is gone:
+  Image Viewer opens pictures. Chess and Screen Sharing are gone too. An update removes Clave's own files for them and lists
+  the packages you can remove with `sudo pacman -Rs`; it removes none itself. Notes you wrote stay in
+  `~/Documents/Notes`. `btop` left the extras: Activity Monitor is the one task manager. VLC left the extras too:
+  Videos is the one media player.
+- **Calendar.** In Day and Week, each heading sits over its own column, today's date is in a red circle, and
+  all-day events have their own row. The year view fits the window. Importing a file that is not a calendar
+  shows one line saying so, not a Python traceback.
+- **Calculator modes.** Advanced, Financial and Programming show their extra keys again. A window rule kept
+  Calculator 400 px wide, too narrow for those keys, so every mode looked like Basic.
+- **Traffic lights.** The window buttons of GTK 4 apps are round 12 px dots everywhere, also in Camera, where
+  they were grey squares. The ×, − and + are larger, on GTK apps and on Clave's own title bars.
+- **OpenSnitch asks where you can see it.** Its question about a new connection floats in the middle of every
+  Space. It could open behind the app that asked and deny after 30 seconds, so Maps showed no map and Books
+  could not load its catalogs.
+- **Help works.** `yelp` is installed, so Help buttons and F1 open the app's help.
 - **Videos plays common files (APP-11).** The standard apps add `gst-libav` and `gst-plugin-va`, so Videos
   decodes H.264, H.265, VP9 and AV1, in hardware where the GPU supports it. Before, those files did not play.
-  VLC in extras gets `vlc-plugin-ffmpeg`. `clave-update` offers the new packages.
+  `clave-update` offers the new packages.
 
 ## v1.1.3 (2026-10-01)
 

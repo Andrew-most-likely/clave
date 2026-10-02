@@ -378,12 +378,9 @@ OVERRIDE_MARK = "X-Clave-Override"
 # Package -> the name the Dock, Apps and Search show (APP-1). Generic words
 # (BR-3, BR-11); the package's own desktop file is looked up with pacman.
 APP_NAMES = {
-    "errands": "Reminders", "sticky": "Stickies", "gnome-weather": "Weather",
-    "gnome-clocks": "Clock", "gnome-maps": "Maps", "shotwell": "Photos",
-    "foliate": "Books", "gnome-podcasts": "Podcasts", "amberol": "Music",
-    "showtime": "Videos", "gnome-sound-recorder": "Voice Memos", "snapshot": "Camera",
-    "gnome-font-viewer": "Fonts", "gnome-chess": "Chess", "rnote": "Freeform board",
-    "simple-scan": "Scanner", "gnome-connections": "Screen Sharing", "gnome-logs": "Console",
+    "gnome-clocks": "Clock",
+    "showtime": "Videos", "snapshot": "Camera",
+    "gnome-logs": "Console",
     "hardinfo2": "System Information", "gnome-disk-utility": "Disk Utility",
     "seahorse": "Keychain", "timeshift": "Backups", "kitty": "Terminal",
 }
@@ -405,12 +402,8 @@ VISIBLE = ["nautilus", "gnome-text-editor", "gnome-calculator", "loupe", "evince
 # MIME type -> package or desktop id of the default app (APP-5).
 VIDEO = ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo",
          "video/mpeg", "video/ogg", "video/x-m4v"]
-AUDIO = ["audio/mpeg", "audio/flac", "audio/x-flac", "audio/ogg", "audio/x-vorbis+ogg", "audio/opus",
-         "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav"]
 MIME_DEFAULTS = {"clave-calendar.desktop": ["text/calendar"],
-                 "clave-contacts.desktop": ["text/vcard", "text/x-vcard"],
-                 "showtime": VIDEO, "amberol": AUDIO,
-                 "foliate": ["application/epub+zip"], "gnome-maps": ["x-scheme-handler/geo"]}
+                 "showtime": VIDEO}
 
 
 def package_desktop(pkg):

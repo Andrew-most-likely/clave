@@ -478,6 +478,18 @@ PanelWindow {
                              "action": () => root.run(["nmcli", "device", "wifi", "connect", ssid]) })
                 }
             }
+            if (root.netidProfile !== "") {
+                m.push({ "type": "sep" })
+                m.push({ "type": "header", "label": "Network Identity" })
+                for (const pair of root.netidList.filter(x => x.indexOf(":") > 0)) {
+                    const pid = pair.slice(0, pair.indexOf(":"))
+                    m.push({ "label": pair.slice(pair.indexOf(":") + 1), "checked": root.netidProfile === pid,
+                             "action": () => root.netidApply(pid, root.netidStealth) })
+                }
+                m.push({ "type": "toggle", "label": "Stealth", "get": () => root.netidStealth,
+                         "set": on => { root.netidStealth = on
+                             root.netidApply(root.netidProfile === "off" ? "linux" : root.netidProfile, on) } })
+            }
             m.push({ "type": "sep" })
             m.push({ "label": "Wi-Fi Settings…", "action": () => root.run(["nm-connection-editor"]) })
             return m
@@ -558,6 +570,17 @@ PanelWindow {
     }
 
     property var wifiNetworks: []
+    // Network Identity (SEC-7): "" when clave-netid is not installed.
+    property string netidProfile: ""
+    property bool netidStealth: false
+    property var netidList: []   // "id:label" pairs from clave-netid status
+    // clave-netid-set asks for the password and reports the result in a
+    // notification; the check mark moves at once and is read back next time.
+    function netidApply(profile: string, stealth: bool): void {
+        root.netidProfile = profile
+        root.netidStealth = profile !== "off" && stealth
+        root.run([Quickshell.env("HOME") + "/.local/bin/clave-netid-set", profile, stealth ? "1" : "0"])
+    }
     // Lock for secured networks, then signal bars (strongest shown first).
     function wifiHint(n: var): string {
         const bars = n.signal >= 67 ? "▂▄▆" : n.signal >= 34 ? "▂▄" : "▂"
@@ -565,14 +588,20 @@ PanelWindow {
     }
     Process {
         id: wifiScan
-        command: ["bash", "-c", "nmcli -t radio wifi; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list --rescan no 2>/dev/null"]
+        // The Network Identity lines (SEC-7) come last, read without root.
+        command: ["bash", "-c", "nmcli -t radio wifi; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list --rescan no 2>/dev/null;"
+            + " [ -x /usr/local/bin/clave-netid ] && /usr/local/bin/clave-netid status | sed -n 's/^\\(profile\\|stealth\\|profiles\\)=/netid_\\1 /p'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = this.text.trim().split("\n")
                 root.wifiEnabled = lines.length > 0 && lines[0].trim() === "enabled"
                 let seen = ({})
                 let nets = []
+                root.netidProfile = ""
                 for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].startsWith("netid_profile ")) { root.netidProfile = lines[i].slice(14).trim(); continue }
+                    if (lines[i].startsWith("netid_stealth ")) { root.netidStealth = lines[i].slice(14).trim() === "1"; continue }
+                    if (lines[i].startsWith("netid_profiles ")) { root.netidList = lines[i].slice(15).trim().split(";"); continue }
                     // IN-USE:SSID:SECURITY:SIGNAL, with ":" inside the SSID escaped as "\:"
                     const parts = lines[i].replace(/\\:/g, "\u0001").split(":")
                     if (parts.length < 3)
@@ -601,8 +630,8 @@ PanelWindow {
     // ==========================================
     // BAR ITEM
     // ==========================================
-    // A menu-bar title: text or icon with a rounded highlight while hovered or
-    // while its menu is open. Titles with a menuId open that menu on click and,
+    // A menu-bar title: text or icon with a rounded highlight while its menu is
+    // open. Hovering alone draws nothing. Titles with a menuId open that menu on click and,
     // take over from another open menu on hover.
     component BarItem: Rectangle {
         id: bi
@@ -623,9 +652,7 @@ PanelWindow {
         implicitWidth: Math.max(row.implicitWidth + 16, 26)
         implicitHeight: 24
         radius: Theme.radiusRow
-        color: bi.pressed ? Theme.fgA(0.22)
-             : ma.containsMouse && root.openMenu === "" ? Theme.fgA(0.12)
-             : "transparent"
+        color: bi.pressed ? Theme.fgA(0.22) : "transparent"
 
         RowLayout {
             id: row
@@ -728,7 +755,7 @@ PanelWindow {
     }
 
     // ==========================================
-    // RIGHT: tray, battery, wifi, volume, search, control center, clock
+    // RIGHT: tray, battery, wifi, volume, control center, clock (Search: Super+Space)
     // ==========================================
     RowLayout {
         id: rightRow
@@ -881,13 +908,6 @@ PanelWindow {
                 sink.audio.muted = false
                 sink.audio.volume = Math.max(0, Math.min(1, sink.audio.volume + (wheel.angleDelta.y > 0 ? 0.05 : -0.05)))
             }
-        }
-
-        // Search
-        BarItem {
-            icon: "icons/search.svg"
-            iconSize: 15
-            onClicked: root.run([root.home + "/.local/bin/clave-search"])
         }
 
         // Control Center (ControlCenter.qml)

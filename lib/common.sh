@@ -20,6 +20,7 @@ USER_OWNED=(
     .config/hypr/hypridle.conf
     .config/kitty/custom.conf
     ".config/clave/*"
+    .bashrc
 )
 
 # Directories that are replaced as a whole on first install. An existing one
@@ -183,11 +184,25 @@ move_aside_old_setup() {
         fi
     done
 
-    for d in "$repo"/home/.config/*/; do
-        path="$HOME/.config/$(basename "$d")"
+    # A linked ~/.bashrc (ML4W's loader) makes way for Clave's.
+    path="$HOME/.bashrc"
+    if [ -L "$path" ]; then
+        dest="$path.bak-$STAMP"; n=1
+        while [ -e "$dest" ] || [ -L "$dest" ]; do dest="$path.bak-$STAMP-$n"; n=$((n + 1)); done
+        echo "  ~/.bashrc -> ${dest#"$HOME/"} (your old shell setup)"
+        run mv "$path" "$dest"
+        [ "$DRY" -eq 1 ] || printf 'moved\t%s\t%s\n' "$path" "$dest" >> "$STATE/moved-aside"
+        moved=1
+    fi
+
+    # Every other link into ~/.mydotfiles (the old ~/.bashrc too) becomes a
+    # real copy, so ML4W's folder is no longer used and can be removed.
+    for path in "$HOME"/.config/* "$HOME"/.[!.]*; do
         [ -L "$path" ] || continue
         target=$(readlink -f "$path")
-        [ -d "$target" ] || continue
+        [ -e "$target" ] || continue
+        # Clave's own config directories are copied whatever they linked to.
+        [ -d "$repo/home/${path#"$HOME/"}" ] || [[ "$target" == "$HOME/.mydotfiles/"* ]] || continue
         echo "  ~/${path#"$HOME/"} was a link to $target; now a copy"
         run rm "$path"
         run cp -a "$target" "$path"
@@ -328,14 +343,38 @@ recovery USB at hand."
 # Packages an earlier release installed and a Clave app now replaces
 # (APP-2). They are never removed here: the user may use them for other
 # things. The list is printed once per package.
-REPLACED_PACKAGES=("htop:Activity Monitor (Apps > Activity Monitor); btop stays in extras for the terminal")
+# Packages a release took out of the lists (APP-2): an update names each one
+# once and never removes it, because the user may use it.
+REPLACED_PACKAGES=(
+    "htop:Replaced by Activity Monitor (Apps > Activity Monitor)."
+    "btop:Replaced by Activity Monitor (Apps > Activity Monitor): one task manager."
+    "gnome-font-viewer:Fonts was removed (APP-13)."
+    "font-manager:Fonts was removed (APP-13)."
+    "gnome-maps:Maps was removed (APP-13)."
+    "foliate:Books was removed (APP-13)."
+    "amberol:Music was removed (APP-13)."
+    "simple-scan:Scanner was removed (APP-13)."
+    "shotwell:Photos was removed (APP-13). Image Viewer opens pictures."
+    "gnome-chess:Chess was removed (APP-13)."
+    "gnuchess:It was the computer opponent of Chess, which was removed (APP-13)."
+    "gnome-connections:Screen Sharing was removed (APP-13)."
+    "vlc:Replaced by Videos: one media player."
+    "vlc-plugin-ffmpeg:It was the decoder plugin of VLC, which left the extras."
+    "errands:Reminders was removed (APP-13)."
+    "sticky:Stickies was removed (APP-13)."
+    "gnome-weather:Weather was removed (APP-13)."
+    "gnome-podcasts:Podcasts was removed (APP-13)."
+    "gnome-sound-recorder:Voice Memos was removed (APP-13)."
+    "rnote:Freeform board was removed (APP-13)."
+    "python-vobject:It read the files of Contacts, which was removed (APP-13)."
+)
 report_replaced_packages() {
     local entry pkg why seen="$STATE/replaced-reported"
     for entry in "${REPLACED_PACKAGES[@]}"; do
         pkg=${entry%%:*} why=${entry#*:}
         pacman -Qq "$pkg" >/dev/null 2>&1 || continue
         grep -qxF "$pkg" "$seen" 2>/dev/null && continue
-        echo "  $pkg is no longer part of Clave. Replaced by: $why"
+        echo "  $pkg is no longer part of Clave. $why"
         echo "    Remove it if you do not use it: sudo pacman -Rs $pkg"
         [ "$DRY" -eq 1 ] || echo "$pkg" >> "$seen"
     done

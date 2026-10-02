@@ -41,3 +41,14 @@ desktop  /usr/share/polkit-1/actions/org.clave.admin.policy
 desktop  /usr/share/polkit-1/actions/org.clave.lid.policy
 harden   /usr/local/bin/clave-usb
 harden   /usr/share/polkit-1/actions/org.clave.usb.policy
+harden   /usr/local/bin/clave-netid
+harden   /usr/local/bin/clave-synshape
+harden   /usr/share/polkit-1/actions/org.clave.netid.policy
+harden   /usr/share/clave/netid/windows.conf
+harden   /usr/share/clave/netid/macos.conf
+harden   /usr/share/clave/netid/iphone.conf
+harden   /usr/share/clave/netid/android.conf
+harden   /usr/share/clave/netid/linux.conf
+harden   /etc/systemd/system/clave-netid.service
+harden   /etc/systemd/system/clave-synshape.service
+harden   /etc/NetworkManager/dispatcher.d/20-clave-netid

@@ -24,6 +24,11 @@ Singleton {
     readonly property int fontSecondary: 11
     readonly property int fontCaption: 10
     readonly property int fontTitle: 15
+    // System Settings > Appearance > Text size (appearance.textScale). Clave's
+    // windows (System Settings, Calendar, Activity Monitor, About, App Info)
+    // size their text with px(); the menu bar, Dock and panels keep theirs.
+    property real textScale: 1
+    function px(size: real): int { return Math.round(size * root.textScale) }
 
     // --- Shape -------------------------------------------------------------
     readonly property int radiusMenu: 10
@@ -92,6 +97,7 @@ Singleton {
                 const a = s.appearance || {}
                 const x = s.accessibility || {}
                 root.mode = a.mode === "light" ? "light" : "dark"
+                root.textScale = a.textScale >= 0.5 && a.textScale <= 3 ? a.textScale : 1
                 root.accentName = root.accents[a.accent] ? a.accent : "blue"
                 root.highContrast = x.increaseContrast === true
                 root.reduceTransparency = x.reduceTransparency === true

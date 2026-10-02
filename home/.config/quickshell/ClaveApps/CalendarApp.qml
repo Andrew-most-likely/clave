@@ -195,7 +195,7 @@ FloatingWindow {
                     text: "Calendars"
                     color: Theme.fgA(0.5)
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSecondary
+                    font.pixelSize: Theme.px(Theme.fontSecondary)
                     font.weight: Font.DemiBold
                 }
                 Repeater {
@@ -208,7 +208,7 @@ FloatingWindow {
                             color: root.hidden[modelData.id] ? "transparent" : modelData.color
                             border.width: 2
                             border.color: modelData.color
-                            Text { anchors.centerIn: parent; visible: !root.hidden[modelData.id]; text: "✓"; color: "white"; font.pixelSize: 10 }
+                            Text { anchors.centerIn: parent; visible: !root.hidden[modelData.id]; text: "✓"; color: "white"; font.pixelSize: Theme.px(10) }
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: { let h = Object.assign({}, root.hidden); h[modelData.id] = !h[modelData.id]; root.hidden = h }
@@ -221,7 +221,7 @@ FloatingWindow {
                             elide: Text.ElideRight
                             color: Theme.fg
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.px(Theme.fontBody)
                         }
                     }
                 }
@@ -289,7 +289,7 @@ FloatingWindow {
                                     text: modelData[1]
                                     color: Theme.fg
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontBody
+                                    font.pixelSize: Theme.px(Theme.fontBody)
                                 }
                                 MouseArea { anchors.fill: parent; onClicked: root.view = modelData[0] }
                             }
@@ -308,7 +308,7 @@ FloatingWindow {
                 text: root.heading
                 color: Theme.fg
                 font.family: Theme.displayFamily
-                font.pixelSize: 26
+                font.pixelSize: Theme.px(26)
                 font.weight: Font.Bold
             }
             Text {
@@ -320,7 +320,7 @@ FloatingWindow {
                 wrapMode: Text.Wrap
                 color: Theme.red
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSecondary
+                font.pixelSize: Theme.px(Theme.fontSecondary)
                 MouseArea { anchors.fill: parent; onClicked: root.error = "" }
             }
 
@@ -352,7 +352,7 @@ FloatingWindow {
                         text: Qt.locale().standaloneDayName((root.firstDay + index) % 7, Locale.ShortFormat)
                         color: Theme.fgA(0.6)
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSecondary
+                        font.pixelSize: Theme.px(Theme.fontSecondary)
                     }
                 }
             }
@@ -396,7 +396,7 @@ FloatingWindow {
                                 text: cell.day.getDate() === 1 ? Qt.formatDate(cell.day, "d MMM") : `${cell.day.getDate()}`
                                 color: root.same(cell.day, new Date()) ? "white" : cell.inMonth ? Theme.fg : Theme.fgA(0.3)
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: Theme.px(Theme.fontBody)
                             }
                         }
                         Column {
@@ -414,7 +414,7 @@ FloatingWindow {
                                 leftPadding: 4
                                 color: Theme.fgA(0.55)
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSecondary
+                                font.pixelSize: Theme.px(Theme.fontSecondary)
                             }
                         }
                     }
@@ -447,7 +447,7 @@ FloatingWindow {
                 elide: Text.ElideRight
                 color: chip.ev.allDay ? "white" : Theme.fg
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSecondary
+                font.pixelSize: Theme.px(Theme.fontSecondary)
             }
         }
         MouseArea { anchors.fill: parent; onClicked: root.editing = Object.assign({ "oldCalendar": chip.ev.calendar }, chip.ev) }
@@ -461,32 +461,76 @@ FloatingWindow {
             spacing: 0
             readonly property int days: root.view === "day" ? 1 : 7
             readonly property int hourH: 48
-            // All-day row
-            RowLayout {
+            // Day headings, then the all-day row. Placed with the same x
+            // arithmetic as the hour grid below, so each heading sits over its column.
+            Item {
+                id: heads
                 Layout.fillWidth: true
-                Layout.leftMargin: 56
-                spacing: 0
+                readonly property int allDayRows: {
+                    let n = 0
+                    for (let i = 0; i < tv.days; i++)
+                        n = Math.max(n, root.eventsOn(root.addDays(root.range[0], i)).filter(e => e.allDay).length)
+                    return n
+                }
+                implicitHeight: 24 + (heads.allDayRows > 0 ? heads.allDayRows * 19 + 4 : 0)
+                Text {
+                    visible: heads.allDayRows > 0
+                    textFormat: Text.PlainText
+                    x: 6
+                    y: 26
+                    text: "all-day"
+                    color: Theme.fgA(0.45)
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.px(10)
+                }
                 Repeater {
                     model: tv.days
-                    ColumnLayout {
+                    Item {
                         id: head
                         required property int index
                         readonly property var day: root.addDays(root.range[0], index)
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 1
-                        spacing: 2
-                        Text {
-                            textFormat: Text.PlainText
-                            Layout.alignment: Qt.AlignHCenter
-                            text: Qt.formatDate(head.day, "ddd d")
-                            color: root.same(head.day, new Date()) ? Theme.red : Theme.fg
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBody
-                            font.weight: root.same(head.day, new Date()) ? Font.Bold : Font.Normal
+                        readonly property bool isToday: root.same(head.day, new Date())
+                        x: 56 + index * (heads.width - 56) / tv.days
+                        width: (heads.width - 56) / tv.days
+                        height: heads.height
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            y: 2
+                            spacing: 5
+                            Text {
+                                textFormat: Text.PlainText
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Qt.formatDate(head.day, "ddd")
+                                color: head.isToday ? Theme.red : Theme.fgA(0.7)
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.px(Theme.fontBody)
+                            }
+                            // Today's date in a red circle, as in the month view.
+                            Rectangle {
+                                width: Math.max(22, dayNum.implicitWidth + 10); height: 20; radius: 10
+                                color: head.isToday ? Theme.red : "transparent"
+                                Text {
+                                    id: dayNum
+                                    textFormat: Text.PlainText
+                                    anchors.centerIn: parent
+                                    text: `${head.day.getDate()}`
+                                    color: head.isToday ? "white" : Theme.fg
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.px(Theme.fontBody)
+                                    font.weight: head.isToday ? Font.Bold : Font.Normal
+                                }
+                            }
                         }
-                        Repeater {
-                            model: root.eventsOn(head.day).filter(e => e.allDay)
-                            EventChip { required property var modelData; ev: modelData; Layout.fillWidth: true; Layout.margins: 1 }
+                        Rectangle { visible: index > 0; y: 24; width: 1; height: parent.height - 24; color: Theme.fgA(0.08) }
+                        Column {
+                            x: 2
+                            y: 26
+                            width: parent.width - 4
+                            spacing: 2
+                            Repeater {
+                                model: root.eventsOn(head.day).filter(e => e.allDay)
+                                EventChip { required property var modelData; ev: modelData; width: parent.width }
+                            }
                         }
                     }
                 }
@@ -498,7 +542,8 @@ FloatingWindow {
                 Layout.fillHeight: true
                 clip: true
                 contentHeight: 24 * tv.hourH
-                Component.onCompleted: contentY = 8 * tv.hourH
+                // A little above 08:00, so that hour's label is not cut off.
+                Component.onCompleted: contentY = 8 * tv.hourH - 10
                 Item {
                     width: fl.width
                     height: 24 * tv.hourH
@@ -517,7 +562,7 @@ FloatingWindow {
                                 text: `${index}`.padStart(2, "0") + ":00"
                                 color: Theme.fgA(0.45)
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Theme.px(10)
                             }
                             Rectangle { x: 56; width: parent.width - 56; height: 1; color: Theme.fgA(0.08) }
                         }
@@ -587,7 +632,7 @@ FloatingWindow {
                                             elide: Text.ElideRight
                                             color: Theme.fg
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: Theme.fontSecondary
+                                            font.pixelSize: Theme.px(Theme.fontSecondary)
                                             font.weight: Font.DemiBold
                                         }
                                         Text {
@@ -598,7 +643,7 @@ FloatingWindow {
                                             elide: Text.ElideRight
                                             color: Theme.fgA(0.7)
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: 10
+                                            font.pixelSize: Theme.px(10)
                                         }
                                     }
                                     MouseArea {
@@ -618,13 +663,15 @@ FloatingWindow {
     Component {
         id: yearView
         Flickable {
+            id: yf
             clip: true
             contentHeight: yg.implicitHeight + 20
+            // As many months per row as fit (a small month is 174 px wide), centred.
             GridLayout {
                 id: yg
-                x: 20
-                width: parent.width - 40
-                columns: 4
+                readonly property int fit: Math.max(1, Math.min(4, Math.floor((yf.width - 40 + columnSpacing) / (174 + columnSpacing))))
+                x: Math.max(20, (yf.width - implicitWidth) / 2)
+                columns: fit
                 rowSpacing: 18
                 columnSpacing: 24
                 Repeater {
@@ -692,22 +739,22 @@ FloatingWindow {
                     Rectangle { width: 16; height: 16; radius: 8; y: 2; x: allDay.checked ? 16 : 2; color: "white" }
                     MouseArea { id: allDay; property bool checked: false; anchors.fill: parent; onClicked: checked = !checked }
                 }
-                Text { textFormat: Text.PlainText; text: "All-day"; color: Theme.fg; font.family: Theme.fontFamily; font.pixelSize: Theme.fontBody }
+                Text { textFormat: Text.PlainText; text: "All-day"; color: Theme.fg; font.family: Theme.fontFamily; font.pixelSize: Theme.px(Theme.fontBody) }
             }
             GridLayout {
                 columns: 3
                 columnSpacing: 8
                 rowSpacing: 6
-                Text { textFormat: Text.PlainText; text: "Starts"; color: Theme.fgA(0.6); font.family: Theme.fontFamily; font.pixelSize: Theme.fontBody }
+                Text { textFormat: Text.PlainText; text: "Starts"; color: Theme.fgA(0.6); font.family: Theme.fontFamily; font.pixelSize: Theme.px(Theme.fontBody) }
                 Field { id: sDate; Layout.preferredWidth: 110; placeholder: "yyyy-mm-dd"; valid: !!root.parse(text) }
                 Field { id: sTime; Layout.preferredWidth: 70; visible: !allDay.checked; placeholder: "hh:mm"; valid: /^\d{1,2}:\d{2}$/.test(text) }
-                Text { textFormat: Text.PlainText; text: "Ends"; color: Theme.fgA(0.6); font.family: Theme.fontFamily; font.pixelSize: Theme.fontBody }
+                Text { textFormat: Text.PlainText; text: "Ends"; color: Theme.fgA(0.6); font.family: Theme.fontFamily; font.pixelSize: Theme.px(Theme.fontBody) }
                 Field { id: eDate; Layout.preferredWidth: 110; placeholder: "yyyy-mm-dd"; valid: !!root.parse(text) && pop.valid }
                 Field { id: eTime; Layout.preferredWidth: 70; visible: !allDay.checked; placeholder: "hh:mm"; valid: /^\d{1,2}:\d{2}$/.test(text) && pop.valid }
             }
             RowLayout {
                 spacing: 8
-                Text { textFormat: Text.PlainText; text: "Repeat"; color: Theme.fgA(0.6); font.family: Theme.fontFamily; font.pixelSize: Theme.fontBody }
+                Text { textFormat: Text.PlainText; text: "Repeat"; color: Theme.fgA(0.6); font.family: Theme.fontFamily; font.pixelSize: Theme.px(Theme.fontBody) }
                 Choice {
                     id: repeat
                     options: [{ "id": "", "label": "Never" }, { "id": "daily", "label": "Every Day" }, { "id": "weekly", "label": "Every Week" },

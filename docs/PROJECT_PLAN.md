@@ -70,6 +70,11 @@ to what users see and to internal names: commands, paths, files, settings keys, 
 and code identifiers. The only places that name Apple are the README (trademark disclaimer, note on the old
 name), the changelog, this plan, and the code for the migration (BR-9) and the personal option (BR-10).
 `scripts/name-check.sh` enforces this in CI. The ⌘ glyph is a Unicode symbol, not a trademark (see BR-5).
+One exception, decided on 2026-10-01: Network Identity (SEC-7) names the systems it makes the laptop look like,
+because a profile is useless if the user cannot tell what it imitates (nominative use, no logo or style). The
+names appear only in its profile files (`/usr/share/clave/netid/`), its helper, their test and its help page
+(`~/.local/share/clave/docs/network-identity.html`); System Settings,
+the menu bar and Control Center read the labels from `clave-netid status`, so the shell code names no product.
 
 - **BR-1 Project name.** The project is called **Clave** (Spanish for keystone). All names use the prefix
   `clave`: commands `clave-*`, directories `~/.config/clave`, `~/.local/share/clave`,
@@ -143,22 +148,21 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | Screenshot toolbar (SHELL-1) | Toolbar layout, floating thumbnail |
   | Displays pane (SHELL-2) | Pane layout, arrangement canvas |
   | Activity Monitor (SHELL-3) | Tabs, process list, Quit and Force Quit |
-  | Calendar and Contacts (APP-8) | Views, sidebar, event popover, contact cards |
-  | Notes (APP-9) | Folder sidebar, note list, editor |
+  | Calendar (APP-8) | Views, sidebar, event popover |
 
   Before v1.1.0 is published, check whether a close layout match is a trade-dress risk and record the
   result here.
 
   Review status (2026-09-27): **open, needs Andrew's review, and a lawyer's if in doubt.** This note makes
   no legal judgment. Items flagged for that review:
-  - The five surfaces in the table above. Each uses Clave's own icons (`home/.config/quickshell/Clave/icons`),
+  - The four surfaces in the table above (five until Notes and Contacts were removed, APP-13). Each uses Clave's own icons (`home/.config/quickshell/Clave/icons`),
     colors from the Clave theme and no artwork from the other company. The layouts are close by design.
   - GTK4 traffic-light window buttons on the left (APP-3), drawn in CSS with Clave's own colors.
-  - Four "Shown as" names in APP-1 are the same words as product names of the company Clave is modeled on:
-    Stickies, Voice Memos, Keychain, and Freeform (shown as "Freeform board"). The other names are generic
-    words. `scripts/name-check.sh` does not flag these four, because they are also ordinary words. Each
-    name is one entry in `clave-prefs` (`APP_NAMES`) and can be changed there without other changes.
-    Decision 2026-10-01: the four names stay. "App Store" (the menu and System Settings entry for Bazaar) is
+  - One "Shown as" name in APP-1 is the same word as a product name of the company Clave is modeled on:
+    Keychain. Stickies, Voice Memos and Freeform board left with their apps (APP-13, 2026-10-02). The other
+    names are generic words. `scripts/name-check.sh` does not flag Keychain, because it is also an ordinary
+    word. Each name is one entry in `clave-prefs` (`APP_NAMES`) and can be changed there without other
+    changes. Decision 2026-10-01: the name stays. "App Store" (the menu and System Settings entry for Bazaar) is
     a product name, not an ordinary word: it is now **Software**, and `scripts/name-check.sh` flags it.
   - The screenshot shortcuts are on Print, because Shift+Super+1..0 move windows between Spaces.
 - **BR-13 One logo, one icon set (added 2026-10-01).** Everything Clave ships shows one matching set:
@@ -178,6 +182,22 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   - **Names.** One name per feature, the same in menus, window titles, the Dock, the README and the site.
   - `tests/icons-test.sh` reads the apps from `clave-prefs`, the Dock pins and the window table, and fails on
     an app without an icon or an icon without an app. `scripts/name-check.sh` checks the names.
+- **BR-14 Nothing left of ML4W (added 2026-10-02).** After an install over ML4W, no file Clave uses comes
+  from ML4W, so `~/.mydotfiles` can be deleted without losing anything.
+  - **Shell.** Clave ships its own bash setup: `~/.local/share/clave/clave.bash` (Clave updates it) holds the
+    aliases for Clave's commands, the prompt (starship when the extras are installed) and the terminal logo.
+    `~/.bashrc` loads it and is user-owned. A linked `~/.bashrc` (ML4W's loader) is moved to
+    `~/.bashrc.bak-<date>`.
+  - **Links.** Every other link in `~` or `~/.config` that points into `~/.mydotfiles` becomes a real copy.
+  - **Leftovers.** Update removes the wallpaper portal that early versions shipped under the ML4W name.
+  - `tests/install-test.sh` fails if a link into `~/.mydotfiles` is left after install.
+- **BR-15 A standard README (added 2026-10-02, v1.1.4).** The README reads like an ordinary project README:
+  Features, Requirements, Installation, Keyboard shortcuts, Configuration, Security hardening, Updating,
+  Uninstalling, Troubleshooting, Contributing and License, with a table of contents and no collapsed sections.
+  - **Out:** taglines, the name story, the personal essay, and tips copied from `docs/NOTES.md` that are not
+    about Clave itself (calculator currency rates, VS Code `password-store`, SDDM backup files).
+  - **Kept:** the ML4W credit, which GPL-3.0 requires, and the note on installing over ML4W (BR-14).
+  - The release badge shows the release being published.
 
 ### 5.2 Security
 
@@ -259,6 +279,77 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   `~/.config/clave/allowed_signers` only adds keys. Root helpers never decode a picture the user chose, and
   USBGuard gives the user list and listen rights only (`IPCAllowedUsers=root`). See `.github/SECURITY.md`.
 
+- **SEC-7 Network Identity (added 2026-10-01).** On a shared network (campus, café), DHCP, the IP TTL, the TCP
+  SYN, ping replies and the captive portal's user agent tell everyone on the LAN that the laptop runs Linux.
+  Network Identity makes the laptop look like a common device instead: **Windows 11**, **macOS**, **iPhone**,
+  **Android** or **Linux** (the native look). A separate **Stealth** switch makes it answer as little as
+  possible. It is optional and off by default (FEAT-10).
+  - **Limits, said in the pane.** The access point always sees a device that transmits. 802.11 probe and
+    association fields and the radio's own signal look like Linux on an Intel radio in every profile; only a
+    kernel driver change could alter them. Windows is the believable profile on Intel hardware. The other
+    profiles fool DHCP fingerprinting, OS detection in routers and `nmap`, and captive portals, but not a
+    passive 802.11 classifier. Traffic inside a VPN tunnel is not affected.
+  - **What a profile sets.** One root-owned file per profile in `/usr/share/clave/netid/`. Values from the p0f
+    and satori fingerprint databases, checked on the wire before release:
+
+    | | Windows 11 | macOS | iPhone | Android | Linux |
+    |---|---|---|---|---|---|
+    | IP TTL | 128 | 64 | 64 | 64 | 64 |
+    | TCP timestamps | off | on | on | on | on |
+    | SYN options | mss,nop,ws,nop,nop,sok | mss,nop,ws,nop,nop,ts,sok,eol | as macOS | kernel order | kernel order |
+    | SYN window | kernel (64240) | 65535 | 65535 | kernel | kernel |
+    | DHCP option 55 | 1,3,6,15,31,33,43,44,46,47,119,121,249,252 | 1,121,3,6,15,108,114,119,252,95,44,46 | 1,121,3,6,15,108,114,119,252 | 1,3,6,15,26,28,51,58,59,43,114,108 | dhcpcd default |
+    | DHCP option 60 | MSFT 5.0 | none | none | android-dhcp-14 | none |
+    | DHCP hostname | DESKTOP-XXXXXXX, new each connect | MacBook-Pro | iPhone | none | none |
+    | Ping replies | no | yes | yes | yes | yes |
+    | Portal user agent | Firefox on Windows | Safari on macOS | Safari on iOS | Chrome on Android | Firefox on Linux |
+
+    In every profile while the feature is on: a random MAC address for each connection (no vendor prefix, which
+    would not match the Intel radio), the DHCP client id is that MAC, and leases are forgotten on disconnect.
+    **Stealth** adds: no ping or timestamp replies, all new inbound traffic dropped without a reply (instead
+    of the default reject), ARP answers only for the laptop's own address, and no DHCP hostname.
+  - **Root helper.** `/usr/local/bin/clave-netid apply PROFILE STEALTH`, `status` and `reset`, run through
+    pkexec (polkit action `org.clave.netid`, `auth_admin_keep`, the same as `clave-usb`, so a program running
+    as the user cannot turn Stealth off without the password). It accepts only the five profile names and
+    renders every file from the profile data; nothing the user types reaches a config file. State is in
+    `/etc/clave/netid/state`. `reset` removes every file it wrote and returns the laptop to the install
+    defaults. `clave-netid.service` applies the saved state at boot, before NetworkManager.
+  - **From the interface (2026-10-02).** The menu bar, Control Center and System Settings run
+    `~/.local/bin/clave-netid-set PROFILE STEALTH`, which runs the helper through pkexec and reports the
+    result in a notification: the new identity, "Not changed" with the reason (dialog closed, wrong
+    password, the helper's message), and any limit met on this computer. Before, the commands ran with no
+    feedback: a change takes several seconds (NetworkManager restart, reconnect), and with
+    `auth_admin_keep` there is no second password dialog, so a click looked like it did nothing. Also fixed:
+    Control Center closes before the password dialog opens (it is an overlay above every window, so the
+    dialog opened under it and could not be typed in); the helper takes a lock, so a second click waits for
+    the first instead of racing it; and `reset` clears the profile hostname from every saved connection,
+    not only the active ones (the dispatcher sets the next hostname when a connection goes down, so another
+    saved network would still have sent `DESKTOP-…` after reset).
+  - **Engines.** NetworkManager with `dhcp=dhcpcd` (dhcpcd's config sets options 55 and 60), sysctl for TTL,
+    timestamps and ARP, and two chains inside the existing `inet hardening` nftables table (`netid_in`,
+    `netid_out`; an accept in another table cannot undo a drop in this one). Two things need more:
+    - The DHCP TTL and the exact order of option 55. dhcpcd sends DHCP through a raw socket that bypasses
+      netfilter, always with TTL 64, and it sorts option 55 by number. An optional dhcpcd build with a small
+      patch (`scripts/extra/dhcpcd-netid/`) reads both from `/etc/clave/netid/dhcp`. Without that build the
+      pane says that the DHCP TTL stays 64 and the option order is dhcpcd's.
+    - The SYN option order. `clave-synshape` reorders the options of the laptop's own outgoing SYNs and sets
+      the SYN window. It never adds an option and never changes the MSS or window-scale value, so the
+      connection itself is unchanged. It is Python with only the standard library (netlink, no compiled
+      code), runs only when the profile needs it, as a `DynamicUser` with `CAP_NET_ADMIN` only, and the queue
+      rule uses `bypass`, so traffic flows unchanged if it stops. It sees IPv4 SYNs leaving through an
+      Ethernet-type interface (Wi-Fi or wired), not tunnel or VM traffic.
+  - **Answers to the section 3 questions.** (1) Yes: privacy on shared networks, which the user asked for.
+    (2) One optional service, `clave-synshape`, only for Windows, macOS and iPhone. (3) No listeners; the
+    service reads a netfilter queue, not a socket on the network. (4) A little: root-side code parses the
+    laptop's own outbound SYN headers only, bounded by the header length, with no other input. The helper
+    takes a fixed set of words. (5) No: SYNs only, one per new connection. (6) Yes, fully local. (7) The
+    simpler parts (TTL, DHCP, ping) use existing engines; only the SYN order needs new code. (8) Optional,
+    off by default.
+  - **Tests.** `tests/netid-unit.sh` (CI, no root) renders every profile into a scratch root and compares the
+    files, checks every rendered ruleset with `nft -c` when nft is present, and runs the SYN rewriter on saved
+    packets. On the laptop: a `tshark` capture of DHCP, SYNs and ICMP for each profile, `nmap -O` from a second
+    device, and `reset` restoring the files.
+
 ### 5.3 Performance and background work
 
 - **PERF-1 Background budget.** No listeners or services beyond what a normal Arch install needs, plus the
@@ -279,7 +370,9 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | `apparmor`, `auditd` | harden | Mandatory access control, audit log |
   | `arch-audit.timer` | harden | Daily CVE check |
   | `aidecheck.timer`, `aide-refresh.service` | harden | File integrity check, baseline refresh after upgrades |
-  | `geoclue` (D-Bus activated, v1.1.0) | apps | Location for Weather, Clock and Maps. Starts only when one of them asks and stops after; its network sources are off (APP-6) |
+  | `clave-netid.service` (oneshot, only while Network Identity is on) | harden | Loads the saved profile at boot (SEC-7) |
+  | `clave-synshape.service` (only for profiles that reorder SYN options) | harden | Reorders the options of the laptop's own outgoing SYNs (SEC-7) |
+  | `geoclue` (D-Bus activated, v1.1.0) | apps | Location for Clock. Starts only when it asks and stops after; its network sources are off (APP-6) |
 
   Listeners inside the shell, all event-driven, none polling:
 
@@ -297,7 +390,7 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | Activity Monitor's 2-second refresh (SHELL-3) | While Activity Monitor or Force Quit is open |
   | Calendar's reminder check (APP-8) | While Calendar is open |
   | `wf-recorder` and the menu bar's stop button (SHELL-1) | While recording |
-  | `qs -p` for Notes, Calendar and Contacts (APP-8, APP-9) | While the app is open |
+  | `qs -p` for Calendar (APP-8) | While the app is open |
   | `clave-displays lid` (SHELL-2) | Once, when the lid opens or closes |
 
   Removed in this check: two polling timers (Wi-Fi every 10 seconds, Trash every 5 seconds), and
@@ -417,26 +510,11 @@ Quickshell on top of open-source libraries (section 5.8).
   | Role | Shown as | Package | Toolkit | Notes |
   |---|---|---|---|---|
   | Calendar | Calendar | Clave app (APP-8) | QML | `gnome-calendar` rejected: evolution-data-server stays running |
-  | Contacts | Contacts | Clave app (APP-8) | QML | `gnome-contacts` rejected: evolution-data-server and gnome-online-accounts |
-  | Reminders | Reminders | `errands` | GTK4 | Local lists. CalDAV sync off by default |
-  | Notes | Notes | Clave app (APP-9) | QML | `iotas` rejected: it embeds WebKitGTK to show Markdown |
-  | Sticky notes | Stickies | `sticky` | GTK4 | |
   | Terminal | Terminal | `kitty` | OpenGL | Pinned in the Dock; `Super+Return` |
-  | Weather | Weather | `gnome-weather` | GTK4 | Online only while open (APP-6) |
   | Clock, alarms, timers | Clock | `gnome-clocks` | GTK4 | Depends on geoclue; no network location (APP-6) |
-  | Maps | Maps | `gnome-maps` | GTK4 | Online only while open (APP-6) |
-  | Photo library | Photos | `shotwell` | GTK3 | Loupe stays the default image viewer |
-  | E-books | Books | `foliate` | GTK4 | Embeds WebKitGTK, only while open. Accepted: EPUB needs a real layout engine |
-  | Podcasts | Podcasts | `gnome-podcasts` | GTK4 | Online only while open (APP-6) |
-  | Music | Music | `amberol` | GTK4 | `gnome-music` rejected: it needs the `localsearch` indexer (PERF-1) |
-  | Video | Videos | `showtime` | GTK4 | Decoders in APP-11. VLC stays in extras |
-  | Voice recording | Voice Memos | `gnome-sound-recorder` | GTK4 | |
+  | Video | Videos | `showtime` | GTK4 | Decoders in APP-11. The one media player: VLC left the extras on 2026-10-02 |
   | Camera | Camera | `snapshot` | GTK4 | Back from extras (SW-4) |
-  | Fonts | Fonts | `gnome-font-viewer` | GTK4 | |
-  | Chess | Chess | `gnome-chess`, `gnuchess` | GTK4 | GNU Chess is the computer opponent; without an engine, Chess only allows two human players. Stockfish is stronger but only in the AUR |
-  | Whiteboard | Freeform board | `rnote` | GTK4 | |
-  | Scanner | Scanner | `simple-scan` | GTK3 | SANE starts no service |
-  | Remote screen (client only) | Screen Sharing | `gnome-connections` | GTK4 | No listener |
+  | Help pages | (none) | `yelp` | GTK4 | Opens when an app's Help button or F1 is used (APP-12) |
   | System log | Console | `gnome-logs` | GTK4 | |
   | Hardware report | System Information | `hardinfo2` | GTK3 | Benchmark sync only when Synchronize is pressed (step 1) |
   | Disks | Disk Utility | `gnome-disk-utility` | GTK4 | Back from extras (SW-4) |
@@ -457,7 +535,9 @@ Quickshell on top of open-source libraries (section 5.8).
 
   | Removed from the lists | Replaced by |
   |---|---|
-  | `htop` (`packages/extras.txt`) | Activity Monitor (SHELL-3); `btop` stays in extras for the terminal |
+  | `htop`, `btop` (`packages/extras.txt`) | Activity Monitor (SHELL-3). One task manager: `btop` left the extras on 2026-10-02 |
+  | `vlc`, `vlc-plugin-ffmpeg` (`packages/extras.txt`) | Videos (APP-11). One media player (2026-10-02) |
+  | `errands`, `sticky`, `gnome-weather`, `gnome-podcasts`, `gnome-sound-recorder`, `rnote`, `python-vobject`, `gnome-font-viewer`, `font-manager`, `gnome-maps`, `foliate`, `amberol`, `simple-scan`, `shotwell`, `gnome-chess`, `gnuchess`, `gnome-connections`; Notes and Contacts (Clave apps) | Nothing (APP-13) |
   | `clave-screenshot`, the Print binds that call it | SHELL-1 |
   | `clave-displays`, `scripts/display-mode.sh`, `rofi/clave-display.rasi`, the Super+P menu | SHELL-2 |
   | `Clave/ForceQuit.qml` as a separate window | SHELL-3 (Force Quit stays as a dialog of the same component) |
@@ -476,7 +556,7 @@ Quickshell on top of open-source libraries (section 5.8).
   icon can be changed in `~/.config/clave/settings.json`:
 
   ```json
-  "icons": { "org.gnome.Weather": "~/Pictures/icons/weather.png" }
+  "icons": { "org.gnome.Snapshot": "~/Pictures/icons/camera.png" }
   ```
 
   `clave-prefs` writes the override `.desktop` file with that `Icon=`. It accepts only local PNG and SVG
@@ -486,45 +566,50 @@ Quickshell on top of open-source libraries (section 5.8).
   `clave-prefs icon reset ID` goes back to the theme icon. System Settings > Appearance has an App Icons
   row for both.
 
-- **APP-5 Default apps.** The installer sets the MIME defaults: Calendar for `text/calendar`, Contacts for
-  `text/vcard`, Videos for video types, Music for audio types, Books for EPUB, and Maps for `geo:` links.
+- **APP-5 Default apps.** The installer sets the MIME defaults: Calendar for `text/calendar`, Videos for
+  video types. Audio types, EPUB and `geo:` links have no default since Music, Books and Maps left
+  (APP-13).
 
-- **APP-6 Offline defaults (SEC-3).** Only Weather, Maps and Podcasts use the network, because their
-  data exists only online (forecasts, map tiles, feeds). They connect only while open, and OpenSnitch asks
-  before each one's first connection (hardening layer). Without the hardening layer they connect when
-  opened. Every other app makes no network calls. Nothing syncs in the background.
+- **APP-6 Offline defaults (SEC-3).** Maps and Books were the apps that needed online data; both left
+  in APP-13. OpenSnitch asks before any app's first connection (hardening layer). Nothing syncs in the
+  background.
   - geoclue: the network location sources (Wi-Fi, cell) are off in
-    `/etc/geoclue/conf.d/90-clave.conf`. Weather, Clock and Maps ask the user for a city instead.
-  - Reminders: CalDAV sync stays off. Calendar, Contacts and Notes (APP-8, APP-9) have no sync at all.
-  - Weather and Podcasts: no refresh while closed. Check whether either one has a background mode; turn
-    it off if it does.
+    `/etc/geoclue/conf.d/90-clave.conf`. Clock asks the user for a city instead.
+  - Calendar (APP-8) has no sync at all.
+  - The OpenSnitch question (added 2026-10-02). It denies after 30 seconds without an answer. It opened as
+    an ordinary window on whichever Space OpenSnitch chose, so it could sit unseen behind the app that
+    asked: Maps showed no map and Books said "Load failed" with no question in sight. A window rule
+    (`hypr/clave/rules.lua`, title `OpenSnitch v…`) floats it in the middle and pins it to every Space.
 
 - **APP-7 Background cost (PERF-1).** The app set adds no service that stays running. One dependency is
-  D-Bus activated: `geoclue`, pulled in by Weather, Clock and Maps. It starts only when one of them asks for
+  D-Bus activated: `geoclue`, pulled in by Clock. It starts only when Clock asks for
   the location, and with its network sources off (APP-6) it has nothing to look up online. Record it in
   PERF-2 after the clean-VM check.
 
-- **APP-8 Calendar and Contacts.** Clave apps drawn in Quickshell (section 5.8).
-  - Each one runs as its own process (`clave-app calendar`, `clave-app contacts`, which run
-    `qs -n -p ~/.config/quickshell/clave-NAME.qml`). `qs -c` does not work: Quickshell ignores
+- **APP-8 Calendar.** A Clave app drawn in Quickshell (section 5.8). Contacts was the second one until
+  2026-10-02 (APP-13).
+  - It runs as its own process (`clave-app calendar`, which runs
+    `qs -n -p ~/.config/quickshell/clave-calendar.qml`). `qs -c` does not work: Quickshell ignores
     subfolders of a config that has a `shell.qml`. It starts when opened and exits when its window closes, so a crash cannot take the shell down. No new runtime:
     Quickshell and Python are already required.
-  - Data is plain files: one `.ics` file per calendar in `~/.local/share/clave/calendars/`, and one `.vcf`
-    file per contact in `~/.local/share/clave/contacts/`. Importing a file means copying it there. Other apps
-    and backups can read them.
+  - Data is plain files: one `.ics` file per calendar in `~/.local/share/clave/calendars/`. Importing a
+    file means copying it there. Other apps and backups can read them.
   - Open-source libraries read and write the files: `python-icalendar` (recurrence through
-    `python-dateutil`) and `python-vobject`. Clave code never parses the formats itself. The QML calls
-    `clave-pim`, which reads and writes the files with these libraries and prints JSON.
-  - Views: Calendar has day, week, month and year views, a sidebar with calendars and a mini month, and
-    event details in a popover. Contacts has a list with an index and a card view. Both use the 1:1
-    layout (BR-11).
+    `python-dateutil`). Clave code never parses the format itself. The QML calls `clave-pim`, which reads
+    and writes the files with these libraries and prints JSON. An error is one line on stderr, which the
+    app shows; a file that cannot be read never shows a Python traceback (fixed 2026-10-02: importing an
+    empty or broken `.ics` file did).
+  - Views: day, week, month and year views, a sidebar with calendars and a mini month, and event details
+    in a popover, in the 1:1 layout (BR-11). Day and week put each day's heading over its column, with
+    today's date in a red circle, and an all-day row under the headings. The year view shows as many
+    months per row as fit the window (fixed 2026-10-02: the headings were bunched at the left and the
+    year view cut off its last column).
   - Reminders from events: a notification appears only if the event starts while Calendar is open. There
     is no alarm service (PERF-1). The Clock app is for alarms.
   - No sync, no accounts, no network.
 
-- **APP-9 Notes.** A Clave app like APP-8 (`clave-app notes`). Notes are Markdown files in
-  `~/Documents/Notes`, one folder per folder in the sidebar. Formatting shows in a QML `TextEdit` (Qt's
-  Markdown reader and writer, `TextDocument`), with no web engine. Search looks only inside that folder.
+- **APP-9 Notes.** Removed on 2026-10-02 (APP-13). Notes already written stay in `~/Documents/Notes` as
+  Markdown files that any text editor opens.
 
 - **APP-10 Helper launchers stay out of Apps (added 2026-09-28).** Apps, Search and the Dock show only
   apps a user opens on purpose: the APP-1 set, the Clave apps and the apps of SW-3. A package in the
@@ -569,8 +654,43 @@ Quickshell on top of open-source libraries (section 5.8).
   `gstreamer` packages it pulls in have parsers and demuxers but no H.264, H.265, VP9 or AV1 decoder. Without
   one, common files do not play. `packages/apps.txt` adds `gst-libav` (FFmpeg decoders, already a dependency)
   and `gst-plugin-va` (hardware decoding through VA-API, which Mesa and `intel-media-driver` provide). Both are
-  small and start no service (APP-7). VLC in extras gets `vlc-plugin-ffmpeg` for the same reason. An update
-  offers the new packages like any new standard app (SW-4).
+  small and start no service (APP-7). An update offers the new packages like any new standard app (SW-4).
+
+- **APP-12 Help pages (added 2026-10-02).** The Help button and F1 of the GNOME apps open `yelp`, which
+  was not installed, so Help did nothing (Screen Sharing, since removed, was the one noticed). `packages/apps.txt` adds
+  `yelp`. It runs only while a help page is open and starts no service (APP-7). It uses WebKitGTK.
+
+- **APP-13 App review (decision 2026-10-02).** Each app has to be as good as the common alternatives, or it
+  goes. Removed: Stickies (`sticky`), Voice Memos (`gnome-sound-recorder`), Weather (`gnome-weather`),
+  Podcasts (`gnome-podcasts`, its search did not work and better apps exist), Freeform board (`rnote`, a
+  cramped layout that does not scale with the window), Reminders (`errands`, a task menu of buttons that do
+  nothing), and the Clave apps Notes (no way to delete a folder) and Contacts (a layout that did not hold
+  up), and Fonts (`font-manager`, which had replaced `gnome-font-viewer` earlier the same day). Also
+  removed, because Clave is for people in security and computer science: Maps (`gnome-maps`), Books
+  (`foliate`), Music (`amberol`) and Scanner (`simple-scan`). Photos (`shotwell`) went
+  too: Image Viewer (`loupe`) is the one image app. Chess (`gnome-chess`, `gnuchess`) and Screen
+  Sharing (`gnome-connections`) went as well.
+  - An update removes Clave's own files of Notes and Contacts (`remove_orphans`) and the name overrides
+    of the removed packages. It never uninstalls a package: it names each one once with the
+    `sudo pacman -Rs` line (`REPLACED_PACKAGES`, APP-2). User data stays: `~/Documents/Notes` and
+    `~/.local/share/clave/contacts`.
+  - Kept, as Clave's own apps: Calendar (APP-8) and the shell tools of section 5.8. Kept and checked: Backups
+    (`timeshift`, see APP-15).
+
+- **APP-14 Calculator size (added 2026-10-02).** `rules.lua` opened Calculator at a fixed 400 px. Below
+  700 px, Calculator 50 folds the Advanced, Financial and Programming keys into swipe pages, so all four
+  modes looked like Basic. The rule now sets no size; Calculator keeps the size it saved, and the installer
+  starts it at 720 by 560 once (only while the saved size is the default 360).
+
+- **APP-15 Backups on this computer (added 2026-10-02).** Facts for the review, no change yet:
+  - BTRFS is greyed out because `/` is ext4; Timeshift's BTRFS mode needs a BTRFS root with `@` subvolumes.
+    RSYNC is the mode that works here.
+  - Closing the window before a backup device is chosen asks "Select another device?" (Yes opens the setup
+    wizard and keeps the window open; No closes it). That is Timeshift's own check, not a Clave error.
+  - Timeshift runs as root through pkexec, so it draws through XWayland. Its menu is a popup that GTK 3
+    places itself, and with `xwayland.force_zero_scaling` on a scaled screen it can land past the screen
+    edge. Open question: run it on Wayland (needs the user's Wayland socket passed to a root process) or
+    replace it with a backup app that runs as the user. See section 14.
 
 ### 5.8 Clave apps: open-source engines, Clave interface
 
@@ -639,6 +759,7 @@ capture now run in upstream programs; resources are used only while open; everyt
 | FEAT-7 | Modifier key glyph (BR-5) | Required | ⌘ | Keyboard > Super key symbol (done) |
 | FEAT-8 | Editing shortcuts on Super (Super+C, X, V, Z, Shift+Z) sent to the app as Ctrl shortcuts | Optional | Off | Keyboard > Editing shortcuts on the Super key (done) |
 | FEAT-9 | Calculator in Search, fully local (OFF-1): no exchange-rate downloads | Required | On | Search > Calculator, Ctrl+Tab (done) |
+| FEAT-10 | Network Identity: look like Windows 11, macOS, iPhone, Android or Linux on the network, plus Stealth (SEC-7) | Optional | Off | Privacy & Security > Network Identity; Wi-Fi menu; Control Center |
 
 Notes on the features:
 
@@ -656,6 +777,14 @@ Notes on the features:
   inside the app list (rofi's combined mode drops them). `clave-qalc` runs qalc with exchange-rate updates
   off, so conversions use only rates already on disk. Enter copies the result. History is not kept.
 - **FEAT-7.** The choices are ⌘ and ❖. The Windows logo is a Microsoft trademark, so it is not offered.
+- **FEAT-10.** The section has the profile choice, the Stealth switch and a row that opens a local help page
+  (`~/.local/share/clave/docs/network-identity.html`, opened with `xdg-open`, no network): what each setting
+  changes, the files it writes, where the code is, its limits and how to check it. That row names a limit only
+  when one applies on this computer (no patched dhcpcd, or the SYN rewriter failed its self-test).
+  A section in Privacy & Security, not its own pane: it is a privacy setting, and the pane already
+  holds the firewall-adjacent settings. The Wi-Fi menu in the menu bar lists the profiles with a check mark.
+  Control Center has a row: the circle turns Stealth on and off, the text shows the profile and opens the
+  pane. Changing the profile reconnects Wi-Fi once, so the next DHCP request carries the new identity.
 - **FEAT-5.** The setting already exists and is on by default. When it is off, the hyprbars plugin is
   unloaded. Separately, a fixed list in `plugins.lua` (`no-bar-csd` rule) hides the bar for apps that draw
   their own. See ISSUE-1.
@@ -718,6 +847,28 @@ simple. The user supplies all files that the project cannot ship.
   Hyprland only for the trackpad, and appearance changes did not reach GTK and Qt apps. Fixed: every group
   that the Hyprland config reads reloads Hyprland, and `appearance mode` and `appearance accent` go through
   `clave-prefs` as the window does.
+- **ISSUE-11 Clave windows lost their traffic lights (v1.1.4).** The "App shows two sets of buttons?" picker
+  offered `org.quickshell`, the class of every Clave window, and allowed duplicates. Adding it took the buttons
+  off System Settings, Calendar and Activity Monitor. Fixed: `org.quickshell` is never on the list (picker,
+  `ClaveSettings.noBarApps`, `plugins.lua`), and the list holds each class once. GTK apps without a header bar
+  (pavucontrol, blueman, nm-connection-editor, nwg-look, virt-manager) left the built-in list: they draw no
+  buttons on Hyprland.
+- **ISSUE-12 Title bars stayed dark in Light mode (v1.1.4).** `plugins.lua` had one bar color. Fixed:
+  `setAppearance` writes `dark_mode` to `hypr.lua` and reloads Hyprland; the bar, text and inactive button
+  colors follow it.
+- **ISSUE-13 Text size changed nothing visible (v1.1.4).** It set only the GTK text scale. Fixed: it is also
+  saved as `appearance.textScale`, and Clave's windows size their text with `Theme.px()`. The menu bar, Dock
+  and panels keep fixed sizes, as their layouts do.
+- **ISSUE-14 No choice of notification sound (v1.1.4).** Fixed: `sound.notification`, chosen in Notifications
+  and played by `clave-sound --notification`, which swaync runs. It ignores the switch for interface sounds.
+- **ISSUE-15 USB accessories were read-only (v1.1.4).** Allowed devices had no button and an info row only
+  repeated the count. Fixed: one list with Allow or Block for each device (`clave-usb`); input devices and hubs
+  cannot be blocked from it.
+- **ISSUE-16 Control Center halves did not line up (v1.1.4).** The connectivity module grew 46 px per row
+  past three while the right column stayed 158 px. Fixed: the module is as tall as its rows (at least 158 px)
+  and the right column stretches to match.
+- **DOC-1 User Guide (v1.1.4).** A local page, `~/.local/share/clave/docs/guide.html`, explains every part of
+  Clave for users, like the Network Identity page. System Settings > General > User Guide opens it.
 
 APP-10 (helper launchers hidden from Apps) and the SW-5 package audit are built for v1.1.2. v1.1.2 is
 tagged without the check of every pane on the live machine and in the desktop VM; that check moves to the
@@ -801,6 +952,7 @@ Each phase ends when its exit criteria are met.
 | 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. (built; waiting on the dock check and the BR-11 review) |
 | 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. (done in the VM: `tests/vm-encrypt.py` passes for GRUB, systemd-boot, Limine and the interrupted run) |
 | 8 | Upstream compatibility (COMP-5 to COMP-9): see the steps below | A test change to a watched package opens an `upstream-break` issue. `clave-doctor` shows all three results on the live machine and the clean VM. Actions use stays under 300 minutes a month. (steps 1 to 5 built; the issue check waits for the merge to main) |
+| 9 | Network Identity (SEC-7, FEAT-10) | `tests/netid-unit.sh` passes in CI. On the laptop, each profile passes the wire check, and `reset` restores the files. |
 
 Phase 4 must finish before the public release. Phase 6 comes after v1.0.0, so it does not block that release.
 Phase 7 is security work and does not depend on phase 6: start it first. The status check and the warnings
@@ -928,6 +1080,12 @@ Still open:
 
 - **Per-set display layouts.** Does losing them (SHELL-2) matter? Check on the dock with the two Dell
   screens; it is on the release checklist for the next tag.
+- **Backups (APP-15).** Keep Timeshift (system snapshots, runs as root through XWayland) or replace it
+  with an app that backs up the user's files and runs as the user, closer to what this kind of desktop
+  offers. Decide before the next tag.
+- **Minimize in GTK apps.** The yellow button of libadwaita apps is greyed out: GTK enables it only when
+  the compositor says it can minimize, and Hyprland does not. Clave minimizes with the Dock's genie
+  (`qs ipc call minimize`), which GTK does not know about.
 
 Resolved on 2026-10-01:
 

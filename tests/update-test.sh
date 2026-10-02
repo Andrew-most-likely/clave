@@ -39,7 +39,7 @@ for f in .local/bin/clave-screenshot .config/hypr/scripts/display-mode.sh .confi
     [ ! -e "$home/$f" ] || fail "replaced file left behind: $f"
 done
 for f in .config/quickshell/Clave/ActivityMonitor.qml .config/quickshell/Clave/Screenshot.qml \
-         .config/quickshell/clave-notes.qml .config/quickshell/ClaveApps/CalendarApp.qml \
+         .config/quickshell/ClaveApps/CalendarApp.qml \
          .local/bin/clave-pim .local/bin/clave-encrypt .config/gtk-4.0/clave.css \
          .local/share/applications/clave-activity-monitor.desktop; do
     [ -e "$home/$f" ] || fail "new file missing: $f"

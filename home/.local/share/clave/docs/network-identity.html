@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network Identity</title>
+<!-- Clave help page for Network Identity (SEC-7). Local file, no network. -->
+<style>
+  :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7; --card: #f5f5f7; --accent: #0a66d9; --code: #f0f0f3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1c1c1e; --fg: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c; --card: #2c2c2e; --accent: #4da3ff; --code: #2c2c2e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 40px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 24px 0 6px; }
+  p, li { max-width: 72ch; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  a { color: var(--accent); }
+  code { font: 13px/1.4 ui-monospace, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font: 13px/1.5 ui-monospace, monospace; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 14px; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .note { background: var(--card); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  nav { background: var(--card); border-radius: 8px; padding: 10px 14px; margin: 16px 0 8px; }
+  nav a { margin-right: 14px; display: inline-block; }
+</style>
+</head>
+<body>
+<main>
+<h1>Network Identity</h1>
+<p class="lead">System Settings &gt; Privacy &amp; Security &gt; Network Identity. Requirement SEC-7 and FEAT-10 in
+<code>docs/PROJECT_PLAN.md</code>.</p>
+
+<nav>
+  <a href="#look-like">Look like</a><a href="#stealth">Stealth</a><a href="#status">Status</a>
+  <a href="#limits">What it cannot change</a><a href="#files">Files and code</a><a href="#check">Check it</a><a href="#undo">Turn it off</a>
+</nav>
+
+<p>Every device on a shared network (campus, café, hotel) can see a few things about this computer before any
+VPN starts: the DHCP request it sends to get an address, the time-to-live (TTL) of its packets, how it opens TCP
+connections, and whether it answers ping. Together these say "Linux". Network Identity changes them so the
+computer looks like another common device, or, with Stealth, answers as little as possible.</p>
+
+<h2 id="look-like">Look like</h2>
+<p>Choosing a profile runs <code>pkexec /usr/local/bin/clave-netid apply PROFILE STEALTH</code>. It asks for your
+password (polkit action <code>org.clave.netid</code>, then 5 minutes without asking again), writes the files
+below, loads the firewall rules and reconnects Wi-Fi and wired connections once, so the next DHCP request carries the
+new identity. <b>Off</b> runs <code>clave-netid reset</code>.</p>
+
+<table>
+  <tr><th>What changes</th><th>Windows 11</th><th>macOS</th><th>iPhone</th><th>Android</th><th>Linux</th><th>Where</th></tr>
+  <tr><td>IP TTL of every packet</td><td>128</td><td>64</td><td>64</td><td>64</td><td>64</td><td>sysctl <code>net.ipv4.ip_default_ttl</code></td></tr>
+  <tr><td>TCP timestamps</td><td>off</td><td>on</td><td>on</td><td>on</td><td>on</td><td>sysctl <code>net.ipv4.tcp_timestamps</code></td></tr>
+  <tr><td>Order of TCP SYN options</td><td>mss,nop,ws,nop,nop,sok</td><td>mss,nop,ws,nop,nop,ts,sok,eol</td><td>as macOS</td><td>kernel</td><td>kernel</td><td><code>clave-synshape</code></td></tr>
+  <tr><td>SYN window</td><td>kernel (64240)</td><td>65535</td><td>65535</td><td>kernel</td><td>kernel</td><td><code>clave-synshape</code></td></tr>
+  <tr><td>DHCP option 55 (request list)</td><td>1,3,6,15,31,33,43,44,46,47,<br>119,121,249,252</td><td>1,121,3,6,15,108,<br>114,119,252,95,44,46</td><td>1,121,3,6,15,108,<br>114,119,252</td><td>1,3,6,15,26,28,51,<br>58,59,43,114,108</td><td>dhcpcd's own</td><td><code>/etc/dhcpcd.conf</code>, <code>/etc/clave/netid/dhcp</code></td></tr>
+  <tr><td>DHCP option 60 (vendor class)</td><td>MSFT 5.0</td><td>none</td><td>none</td><td>android-dhcp-14</td><td>none</td><td><code>/etc/dhcpcd.conf</code></td></tr>
+  <tr><td>DHCP hostname</td><td>DESKTOP-XXXXXXX, new each connect</td><td>MacBook-Pro</td><td>iPhone</td><td>none</td><td>none</td><td>dispatcher <code>20-clave-netid</code></td></tr>
+  <tr><td>Reply to ping</td><td>no</td><td>yes</td><td>yes</td><td>yes</td><td>yes</td><td>nftables chain <code>netid_in</code></td></tr>
+  <tr><td>Closed ports</td><td>no answer</td><td>TCP RST, ICMP unreachable</td><td>same</td><td>same</td><td>same</td><td>nftables chain <code>netid_closed</code></td></tr>
+  <tr><td>Captive portal user agent</td><td>Firefox on Windows</td><td>Safari on macOS</td><td>Safari on iOS</td><td>Chrome on Android</td><td>Firefox on Linux</td><td><code>/etc/clave/netid/portal</code></td></tr>
+</table>
+
+<p>In every profile: a new random MAC address for each connection, the DHCP client id is that MAC (never a stable
+DUID), NetworkManager uses dhcpcd, and DHCP leases are forgotten on connect and disconnect, so two connections
+cannot be linked by a requested old address.</p>
+
+<p class="note">Why these values: they come from the p0f TCP fingerprint database, the satori DHCP fingerprint database
+and captures of real devices. Option 108 asks for "IPv6-only preferred"; it is sent in the request list but
+dhcpcd is told to ignore it, because IPv6 is off on the local network.</p>
+
+<h2 id="stealth">Stealth</h2>
+<p>Works with any profile (with <b>Off</b> it uses the Linux profile). It adds, on top of the profile:</p>
+<ul>
+  <li>Nothing new from the network gets an answer: ping, timestamp requests, connection attempts and mDNS are
+  dropped without a reply. Only DHCP replies and error messages for this computer's own connections pass
+  (nftables chain <code>netid_in</code>).</li>
+  <li>ARP is answered only for this computer's own address on the interface that asked
+  (<code>arp_ignore=1</code>, <code>arp_announce=2</code>).</li>
+  <li>No DHCP hostname is sent.</li>
+</ul>
+<p>Side effect: printers and other devices that find this computer through mDNS stop seeing it. Connections this
+computer opens itself work as usual.</p>
+
+<h2 id="status">Status</h2>
+<p>The row under the switches says when a part of the profile cannot be applied on this computer:</p>
+<h3>DHCP order and TTL</h3>
+<p>dhcpcd sends DHCP through a raw packet socket, which bypasses the firewall, so the TTL of DHCP packets and the
+order of option 55 can only come from dhcpcd itself. Stock dhcpcd always uses TTL 64 and sorts option 55 by number.
+An optional dhcpcd build reads both from <code>/etc/clave/netid/dhcp</code>; without it the options are right but
+their order and the DHCP TTL are not. Build instructions: <code>scripts/extra/dhcpcd-netid/README.md</code>
+in the Clave repo. <code>clave-netid status</code> shows <code>dhcp_patch=yes</code> when the build is installed.</p>
+<h3>TCP option order</h3>
+<p>Linux sends its own SYN option order whatever the TTL. <code>clave-synshape</code> reads the computer's own
+outgoing IPv4 SYNs from netfilter queue 7071 and reorders their options. It never adds an option and never changes
+a value (MSS, window scale, timestamps), so the connection is what the kernel set up. Before it is switched on,
+<code>clave-netid</code> runs a connection between two scratch network namespaces through it; if the kernel drops
+the rewritten packet, the rewriter stays off and the order stays Linux's (<code>rewriter=failed</code>). The rule
+uses <code>bypass</code>: if the service stops, SYNs go out unchanged. Profiles that use the kernel order
+(Android, Linux) start no service.</p>
+
+<h2 id="limits">What it cannot change</h2>
+<ul>
+  <li>The access point always sees a device that transmits. Network Identity changes what the device looks like, not
+  whether it is there.</li>
+  <li>Wi-Fi probe and association frames are built by the <code>iwlwifi</code> driver and the kernel's 802.11 stack
+  and look like Linux on an Intel card in every profile. The radio's own signal characteristics cannot be changed in
+  software. Windows is the most believable profile, because Intel Wi-Fi cards are common in Windows laptops.</li>
+  <li>Traffic inside a VPN tunnel is not affected; the profile matters for what leaves outside it (DHCP, ARP, the
+  captive portal login, ping replies).</li>
+  <li>A website can still tell what browser and system you use from the browser itself. The profile's user agent is
+  only written to <code>/etc/clave/netid/portal</code>, for a captive portal login script to use; Clave does not
+  change your normal browser.</li>
+</ul>
+
+<h2 id="files">Files and code</h2>
+<table>
+  <tr><th>Part</th><th>Installed at</th><th>In the Clave repo</th></tr>
+  <tr><td>Root helper</td><td><code>/usr/local/bin/clave-netid</code></td><td><code>system/harden/usr/local/bin/clave-netid</code></td></tr>
+  <tr><td>Profile data</td><td><code>/usr/share/clave/netid/*.conf</code></td><td><code>system/harden/usr/share/clave/netid/</code></td></tr>
+  <tr><td>SYN rewriter</td><td><code>/usr/local/bin/clave-synshape</code>, <code>clave-synshape.service</code></td><td><code>system/harden/usr/local/bin/clave-synshape</code>, <code>system/harden/etc/systemd/system/</code></td></tr>
+  <tr><td>Boot</td><td><code>clave-netid.service</code></td><td><code>system/harden/etc/systemd/system/clave-netid.service</code></td></tr>
+  <tr><td>Hostname and leases</td><td><code>/etc/NetworkManager/dispatcher.d/20-clave-netid</code></td><td><code>system/harden/etc/NetworkManager/dispatcher.d/</code></td></tr>
+  <tr><td>Password prompt</td><td><code>/usr/share/polkit-1/actions/org.clave.netid.policy</code></td><td><code>system/harden/usr/share/polkit-1/actions/</code></td></tr>
+  <tr><td>Firewall hooks</td><td><code>/etc/nftables.conf</code> (chains <code>netid_in</code>, <code>netid_closed</code>, <code>netid_out</code>)</td><td><code>system/harden/etc/nftables.conf</code></td></tr>
+  <tr><td>Settings, menu bar, Control Center</td><td><code>~/.config/quickshell/Clave/</code></td><td><code>home/.config/quickshell/Clave/SettingsWindow.qml</code>, <code>MenuBar.qml</code>, <code>ControlCenter.qml</code></td></tr>
+  <tr><td>Optional dhcpcd patch</td><td>—</td><td><code>scripts/extra/dhcpcd-netid/</code></td></tr>
+  <tr><td>Tests</td><td>—</td><td><code>tests/netid-unit.sh</code></td></tr>
+</table>
+
+<h3>Written while a profile is on</h3>
+<table>
+  <tr><th>File</th><th>Content</th></tr>
+  <tr><td><code>/etc/clave/netid/state</code></td><td>The profile and Stealth. Read by the UI, the boot service and the dispatcher.</td></tr>
+  <tr><td><code>/etc/dhcpcd.conf</code></td><td>Rendered from the profile. The file from before the first change is kept in <code>/etc/clave/netid/backup/</code>.</td></tr>
+  <tr><td><code>/etc/sysctl.d/99-zz-clave-netid.conf</code></td><td>TTL, timestamps, and the Stealth ARP settings. Named to load after <code>99-hardening.conf</code>.</td></tr>
+  <tr><td><code>/etc/NetworkManager/conf.d/60-clave-netid.conf</code></td><td>dhcpcd as DHCP client, random MAC, client id from the MAC.</td></tr>
+  <tr><td><code>/etc/clave/netid/nft.rules</code></td><td>The rules loaded into the three firewall chains.</td></tr>
+  <tr><td><code>/etc/clave/netid/syn</code></td><td>SYN option order and window for <code>clave-synshape</code>.</td></tr>
+  <tr><td><code>/etc/clave/netid/synshape-test</code></td><td>Result of the rewriter self-test for the running kernel.</td></tr>
+  <tr><td><code>/etc/clave/netid/dhcp</code></td><td>DHCP TTL and option 55 order, for the patched dhcpcd.</td></tr>
+  <tr><td><code>/etc/clave/netid/portal</code></td><td>User agent for the captive portal browser.</td></tr>
+</table>
+
+<h2 id="check">Check it</h2>
+<p>What is set now, without root:</p>
+<pre><code>clave-netid status</code></pre>
+<p>What leaves the computer: start this, then reconnect Wi-Fi from the menu bar. DHCP shows its TTL, option 55 and
+option 60; a SYN shows up only for traffic outside the VPN, such as the captive portal.</p>
+<pre><code>sudo tshark -i wlo1 -c 6 -f 'udp port 67 or tcp[tcpflags] &amp; tcp-syn != 0' \
+  -T fields -e ip.ttl -e dhcp.option.request_list_item -e dhcp.option.vendor_class_id -e tcp.options</code></pre>
+<p>From a second device on the same network: <code>ping</code> this computer (Windows and Stealth: no reply), or
+<code>nmap -O -Pn ADDRESS</code> for an OS guess. Run the rewriter self-test again with
+<code>sudo clave-netid selftest</code>.</p>
+
+<h2 id="undo">Turn it off</h2>
+<p>Choose <b>Off</b> in Settings, or from a terminal:</p>
+<pre><code>sudo clave-netid reset</code></pre>
+<p>It restores <code>/etc/dhcpcd.conf</code>, removes every file listed above, empties the firewall chains, stops the
+rewriter and restarts NetworkManager. If only the rewriter is suspect: <code>sudo systemctl stop clave-synshape</code>
+(connections go out unchanged). More in <code>docs/RECOVERY.md</code>.</p>
+</main>
+</body>
+</html>

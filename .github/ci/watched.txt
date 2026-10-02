@@ -41,4 +41,3 @@ repo slurp
 repo wf-recorder
 repo satty
 repo python-icalendar
-repo python-vobject

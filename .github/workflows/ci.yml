@@ -26,6 +26,7 @@ jobs:
           mapfile -t files < <(
             { ls *.sh lib/*.sh scripts/*.sh tests/*.sh .github/ci/*.sh
               grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash' home/.local/bin home/.local/share/clave home/.config/hypr/scripts home/.config/quickshell
+              grep -rlE '^#!/usr/bin/env bash|^#!/bin/bash|^#!/bin/sh' system/*/usr/local/bin system/*/etc/NetworkManager/dispatcher.d
             } 2>/dev/null | sort -u)
           shellcheck -S warning -x "${files[@]}"
 
@@ -53,7 +54,7 @@ jobs:
 
       - name: Python
         run: |
-          mapfile -t py < <(grep -rlE '^#!/usr/bin/env python3' home/.local/bin tests; echo home/.local/share/clave/wallpaper-portal.py)
+          mapfile -t py < <(grep -rlE '^#!/usr/bin/env python3' home/.local/bin tests system/*/usr/local/bin; echo home/.local/share/clave/wallpaper-portal.py)
           for f in "${py[@]}"; do python -c 'import sys, py_compile; py_compile.compile(sys.argv[1], doraise=True)' "$f"; done
 
   install:
@@ -61,7 +62,7 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Install tools
-        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil openssh librsvg
+        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-dateutil openssh librsvg
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -84,6 +85,9 @@ jobs:
 
       - name: Disk Encryption config writers (SEC-5)
         run: su tester -c 'bash /home/tester/repo/tests/encrypt-unit.sh'
+
+      - name: Network Identity renderers and SYN rewriter (SEC-7)
+        run: su tester -c 'bash /home/tester/repo/tests/netid-unit.sh'
 
       - name: Displays, app names and icons, Calendar and Contacts files
         run: |

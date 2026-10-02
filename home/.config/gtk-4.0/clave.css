@@ -5,38 +5,62 @@
  * and sit on the left (gtk-decoration-layout in settings.ini). The accent
  * color comes from gsettings accent-color, which System Settings sets. */
 
-/* Traffic lights: 12 px dots, the symbol shows on hover. */
-windowcontrols button {
+/* Traffic lights: 12 px dots 8 px apart, like the hyprbars buttons; the
+ * symbol shows on hover. WhiteSur draws its own pictures on
+ * "headerbar windowcontrols button.close" (and :hover, :backdrop, ...), and
+ * some apps (Camera) put the buttons outside a header bar, over an .osd panel
+ * that makes every button a grey square. The repeated :not(.clave) only lifts
+ * these selectors above every WhiteSur rule, so they win in all of those places.
+ * Some header bars (Camera) stretch the buttons to their full height, and
+ * GTK CSS has no max-height, so each dot is a centred circle gradient: 12 px
+ * whatever the button's height. Symbol size: about half the dot, as on the
+ * hyprbars buttons. */
+windowcontrols:not(.clave):not(.clave) {
+    border-spacing: 8px;
+}
+windowcontrols button:not(.clave):not(.clave):not(.clave):not(.clave) {
     min-width: 12px;
     min-height: 12px;
     padding: 0;
-    margin: 0 4px;
+    margin: 0;
+    border: none;
     border-radius: 999px;
     box-shadow: none;
+    outline: none;
+    background-color: transparent;
     background-image: none;
+    color: transparent;
 }
-windowcontrols button > image {
+windowcontrols button:not(.clave):not(.clave):not(.clave):not(.clave) > image {
     min-width: 12px;
     min-height: 12px;
     padding: 0;
+    margin: 0;
     border-radius: 999px;
-    -gtk-icon-size: 8px;
+    -gtk-icon-size: 10px;
+    -gtk-icon-style: symbolic;
     color: transparent;
     background: none;
     box-shadow: none;
 }
-windowcontrols button.close    { background-color: #ff5f57; }
-windowcontrols button.minimize { background-color: #febc2e; }
-windowcontrols button.maximize { background-color: #28c840; }
-windowcontrols:hover button.close > image    { color: #4d0000; }
-windowcontrols:hover button.minimize > image { color: #5a3e00; }
-windowcontrols:hover button.maximize > image { color: #004d00; }
-windowcontrols button:active { filter: brightness(0.85); }
+windowcontrols button.close:not(.clave):not(.clave):not(.clave) {
+    background-image: radial-gradient(circle 6px at center, #ff5f57 5.4px, transparent 6px);
+}
+windowcontrols button.minimize:not(.clave):not(.clave):not(.clave) {
+    background-image: radial-gradient(circle 6px at center, #febc2e 5.4px, transparent 6px);
+}
+windowcontrols button.maximize:not(.clave):not(.clave):not(.clave) {
+    background-image: radial-gradient(circle 6px at center, #28c840 5.4px, transparent 6px);
+}
+windowcontrols:hover button.close:not(.clave):not(.clave):not(.clave) > image    { color: #4d0000; }
+windowcontrols:hover button.minimize:not(.clave):not(.clave):not(.clave) > image { color: #5a3e00; }
+windowcontrols:hover button.maximize:not(.clave):not(.clave):not(.clave) > image { color: #004d00; }
+windowcontrols button:active:not(.clave):not(.clave):not(.clave) { filter: brightness(0.85); }
 /* Inactive windows: grey dots, like the hyprbars inactive_button_color. */
-window:backdrop windowcontrols button.close,
-window:backdrop windowcontrols button.minimize,
-window:backdrop windowcontrols button.maximize {
-    background-color: alpha(currentColor, 0.19);
+window:backdrop windowcontrols button.close:not(.clave):not(.clave):not(.clave),
+window:backdrop windowcontrols button.minimize:not(.clave):not(.clave):not(.clave),
+window:backdrop windowcontrols button.maximize:not(.clave):not(.clave):not(.clave) {
+    background-image: radial-gradient(circle 6px at center, alpha(currentColor, 0.19) 5.4px, transparent 6px);
 }
 
 /* Header bars: flat, and a little taller like the shell's title bars. */
