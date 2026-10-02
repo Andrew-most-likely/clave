@@ -221,7 +221,15 @@ if has desktop; then
         sed -i '/^#\[multilib\]$/{s/^#//;n;s/^#//}' /etc/pacman.conf
     fi
     systemctl daemon-reload
-    systemctl enable $now cups.socket avahi-daemon.service bluetooth.service paccache.timer
+    # A unit the admin masked (for example avahi, to stop announcing the
+    # hostname on the network) stays masked: skip it instead of failing.
+    for unit in cups.socket avahi-daemon.service bluetooth.service paccache.timer; do
+        if [ "$(systemctl is-enabled "$unit" 2>/dev/null)" = masked ]; then
+            echo "  $unit is masked; left as it is"
+        else
+            systemctl enable $now "$unit"
+        fi
+    done
     systemctl restart systemd-resolved.service 2>/dev/null || true
     systemctl restart systemd-journald.service
 fi
