@@ -9,8 +9,8 @@ cd "$(dirname "$0")/.."
 pattern='\b(Mac|MacBook|iMac|macOS|MacOS|macos|Apple|apple|Cupertino|Sonoma|Sequoia)\b|Mission Control|Spotlight|Launchpad|Night Shift|Finder|App Store|San Francisco|SF (Pro|Mono)'
 allowed='^(docs/PROJECT_PLAN\.md|README\.md|docs/CHANGELOG\.md|lib/migrate\.sh|lib/personal\.sh|packages/personal-aur\.txt|tests/migrate-test\.sh|scripts/name-check\.sh|docs/NOTES\.md):'
 # SEC-7 exception (5.1): Network Identity names the systems it imitates, only in
-# its profile data, its helper and their test. The shell reads the labels from the helper.
-allowed_netid='^(system/harden/usr/share/clave/netid/[a-z]+\.conf|system/harden/usr/local/bin/clave-netid|tests/netid-unit\.sh):|^scripts/manifest-system\.txt:[0-9]+:harden +/usr/share/clave/netid/'
+# its profile data, its helper, their test and its help page. The shell reads the labels from the helper.
+allowed_netid='^(system/harden/usr/share/clave/netid/[a-z]+\.conf|system/harden/usr/local/bin/clave-netid|tests/netid-unit\.sh|home/\.local/share/clave/docs/network-identity\.html):|^scripts/manifest-system\.txt:[0-9]+:harden +/usr/share/clave/netid/'
 # xargs exits non-zero when a batch has no match, so the result is read from
 # the output: with pipefail, an "if pipeline" test would never fire.
 hits=$(git ls-files -co --exclude-standard -z | xargs -0 grep -nIE "$pattern" -- 2>/dev/null | grep -vE "$allowed" | grep -vE "$allowed_netid" || true)

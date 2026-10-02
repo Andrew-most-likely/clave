@@ -1082,31 +1082,26 @@ Scope {
             if (root.st.netid_profile !== undefined) {
                 const prof = root.st.netid_profile
                 const on = prof !== "off"
-                const rw = root.st.netid_rewriter
-                let rows = [
+                // Only what does not work as the profile says is worth a line here; the page has the rest.
+                let limits = []
+                if (on && root.st.netid_dhcp_patch !== "yes") limits.push("DHCP order and TTL stay dhcpcd's")
+                if (on && root.st.netid_rewriter === "failed") limits.push("TCP option order stays Linux's")
+                secs.push({ "title": "Network Identity", "rows": [
                     { "type": "choice", "label": "Look like", "options": root.netidProfiles,
                       "sub": root.netidBusy ? "Applying and reconnecting…"
-                           : "How this computer appears to other devices on the local network. Reconnects once",
+                           : "Sets DHCP, packet TTL, TCP options and ping replies to match this system. Reconnects once",
                       "get": () => root.st.netid_profile || "off",
                       "set": v => root.netidSet(v, root.st.netid_stealth === "1") },
                     { "type": "switch", "label": "Stealth",
-                      "sub": "No answer to ping or to anything new from the network. Printer discovery stops",
+                      "sub": "Drops ping and every new incoming connection; answers ARP only for this computer",
                       "get": () => root.st.netid_stealth === "1",
-                      "set": v => root.netidSet(on ? prof : "linux", v) }
-                ]
-                if (on) rows.push(
-                    { "type": "info", "label": "DHCP",
-                      "sub": root.st.netid_dhcp_patch === "yes" ? "Request list in the profile's order, packet TTL from the profile"
-                           : "Options set; their order and the packet TTL stay dhcpcd's (needs the optional dhcpcd build)",
-                      "value": root.st.netid_dhcp_patch === "yes" ? "Full" : "Partial" },
-                    { "type": "info", "label": "TCP connection start",
-                      "sub": rw === "failed" ? "This kernel drops rewritten packets, so the option order stays Linux's"
-                           : rw === "off" ? "The profile uses the kernel's own order" : "Option order rewritten for the profile",
-                      "value": rw === "active" ? "Rewritten" : rw === "off" ? "Kernel" : rw === "failed" ? "Unavailable" : "Off" })
-                rows.push({ "type": "info", "label": "What it cannot change",
-                    "sub": "The Wi-Fi radio's own frames still look like Linux on an Intel card. Traffic inside a VPN is not affected",
-                    "value": "" })
-                secs.push({ "title": "Network Identity", "rows": rows })
+                      "set": v => root.netidSet(on ? prof : "linux", v) },
+                    { "type": "button", "label": "How Network Identity works",
+                      "sub": limits.length ? "On this computer: " + limits.join("; ")
+                           : "What each setting changes, the files it writes, its limits and how to check it",
+                      "text": "Open…",
+                      "action": () => root.run(["xdg-open", root.home + "/.local/share/clave/docs/network-identity.html"]) }
+                ]})
             }
             secs.push({ "title": "Firewall", "rows": [
                 { "type": "info", "label": "Network firewall (nftables)",

@@ -72,7 +72,8 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
 `scripts/name-check.sh` enforces this in CI. The ⌘ glyph is a Unicode symbol, not a trademark (see BR-5).
 One exception, decided on 2026-10-01: Network Identity (SEC-7) names the systems it makes the laptop look like,
 because a profile is useless if the user cannot tell what it imitates (nominative use, no logo or style). The
-names appear only in its profile files (`/usr/share/clave/netid/`), its helper and their test; System Settings,
+names appear only in its profile files (`/usr/share/clave/netid/`), its helper, their test and its help page
+(`~/.local/share/clave/docs/network-identity.html`); System Settings,
 the menu bar and Control Center read the labels from `clave-netid status`, so the shell code names no product.
 
 - **BR-1 Project name.** The project is called **Clave** (Spanish for keystone). All names use the prefix
@@ -723,7 +724,11 @@ Notes on the features:
   inside the app list (rofi's combined mode drops them). `clave-qalc` runs qalc with exchange-rate updates
   off, so conversions use only rates already on disk. Enter copies the result. History is not kept.
 - **FEAT-7.** The choices are ⌘ and ❖. The Windows logo is a Microsoft trademark, so it is not offered.
-- **FEAT-10.** A section in Privacy & Security, not its own pane: it is a privacy setting, and the pane already
+- **FEAT-10.** The section has the profile choice, the Stealth switch and a row that opens a local help page
+  (`~/.local/share/clave/docs/network-identity.html`, opened with `xdg-open`, no network): what each setting
+  changes, the files it writes, where the code is, its limits and how to check it. That row names a limit only
+  when one applies on this computer (no patched dhcpcd, or the SYN rewriter failed its self-test).
+  A section in Privacy & Security, not its own pane: it is a privacy setting, and the pane already
   holds the firewall-adjacent settings. The Wi-Fi menu in the menu bar lists the profiles with a check mark.
   Control Center has a row: the circle turns Stealth on and off, the text shows the profile and opens the
   pane. Changing the profile reconnects Wi-Fi once, so the next DHCP request carries the new identity.
