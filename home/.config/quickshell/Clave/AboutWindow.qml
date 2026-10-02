@@ -79,7 +79,7 @@ Scope {
                     text: root.info.model || "Computer"
                     color: Theme.fg
                     font.family: "Inter Display"
-                    font.pixelSize: 22
+                    font.pixelSize: Theme.px(22)
                     font.weight: Font.Bold
                 }
                 Text {
@@ -88,7 +88,7 @@ Scope {
                     text: root.info.host || ""
                     color: Theme.fgA(0.55)
                     font.family: "Inter"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
 
                 Item { Layout.preferredHeight: 14 }
@@ -111,7 +111,7 @@ Scope {
                             text: modelData[0]
                             color: Theme.fg
                             font.family: "Inter"
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                             font.weight: Font.DemiBold
                             Layout.preferredWidth: 70
                             horizontalAlignment: Text.AlignRight
@@ -121,7 +121,7 @@ Scope {
                             text: modelData[1] || "…"
                             color: Theme.fgA(0.7)
                             font.family: "Inter"
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -142,7 +142,7 @@ Scope {
                         text: "More Info…"
                         color: Theme.fg
                         font.family: "Inter"
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.px(13)
                     }
                     MouseArea {
                         id: moreMouse

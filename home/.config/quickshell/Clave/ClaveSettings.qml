@@ -34,7 +34,7 @@ Singleton {
         "mouse":      { "speed": 0, "acceleration": true, "naturalScroll": false, "leftHanded": false },
         "keyboard":   { "repeatRate": 25, "repeatDelay": 600, "layout": "us", "capsLock": "",
                         "superGlyph": "command", "superEditing": false },
-        "sound":      { "uiSounds": true },
+        "sound":      { "uiSounds": true, "notification": "message-new-instant" },
         "appearance": { "mode": "dark", "accent": "blue" },
         "display":    { "nightLightTemp": 4500 },
         // "wallpaper" (blurred) or "picture" (clave-prefs lockscreen).
@@ -100,13 +100,15 @@ Singleton {
             Quickshell.execDetached([root.home + "/.local/bin/clave-clipboard", "restart"])
     }
 
-    // Light or dark for the whole desktop: the shell (Theme reads the setting)
-    // and GTK/Qt apps (clave-prefs).
+    // Light or dark for the whole desktop: the shell (Theme reads the setting),
+    // GTK/Qt apps (clave-prefs) and the title bars (hypr.lua, then a reload).
     function setAppearance(mode: string): void {
         if (mode !== "light" && mode !== "dark")
             return
         root.set("appearance", "mode", mode)
+        root.writeHypr()
         Quickshell.execDetached([root.home + "/.local/bin/clave-prefs", "appearance", "mode", mode])
+        Quickshell.execDetached(["sh", "-c", "sleep 0.3; hyprctl reload"])
     }
 
     function setAccent(name: string): void {
@@ -135,10 +137,15 @@ Singleton {
     }
 
     // Window classes that get no traffic lights because they draw their own
-    // (ISSUE-1). Only plain class names reach the Hyprland config.
+    // (ISSUE-1). Only plain class names reach the Hyprland config, each once.
+    // Clave's own windows (org.quickshell) never draw their own buttons, so
+    // they are never on the list: it would take the buttons off System
+    // Settings, Calendar and every other Clave window.
     function noBarApps(): var {
         const list = root.get("windows", "noBarApps")
-        return Array.isArray(list) ? list.filter(c => /^[A-Za-z0-9._-]+$/.test(c)) : []
+        return Array.isArray(list)
+            ? [...new Set(list.filter(c => /^[A-Za-z0-9._-]+$/.test(c) && c !== "org.quickshell"))]
+            : []
     }
 
     function writeHypr(): void {
@@ -149,6 +156,7 @@ Singleton {
             + "    tap_to_click   = " + b(root.get("trackpad", "tapToClick")) + ",\n"
             + "    natural_scroll = " + b(root.get("trackpad", "naturalScroll")) + ",\n"
             + "    traffic_lights = " + b(root.get("windows", "trafficLights")) + ",\n"
+            + "    dark_mode      = " + b(root.get("appearance", "mode") !== "light") + ",\n"
             + "    mouse_speed    = " + Number(root.get("mouse", "speed")) + ",\n"
             + "    mouse_accel    = " + b(root.get("mouse", "acceleration")) + ",\n"
             + "    mouse_natural  = " + b(root.get("mouse", "naturalScroll")) + ",\n"

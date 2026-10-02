@@ -630,8 +630,8 @@ PanelWindow {
     // ==========================================
     // BAR ITEM
     // ==========================================
-    // A menu-bar title: text or icon with a rounded highlight while hovered or
-    // while its menu is open. Titles with a menuId open that menu on click and,
+    // A menu-bar title: text or icon with a rounded highlight while its menu is
+    // open. Hovering alone draws nothing. Titles with a menuId open that menu on click and,
     // take over from another open menu on hover.
     component BarItem: Rectangle {
         id: bi
@@ -652,9 +652,7 @@ PanelWindow {
         implicitWidth: Math.max(row.implicitWidth + 16, 26)
         implicitHeight: 24
         radius: Theme.radiusRow
-        color: bi.pressed ? Theme.fgA(0.22)
-             : ma.containsMouse && root.openMenu === "" ? Theme.fgA(0.12)
-             : "transparent"
+        color: bi.pressed ? Theme.fgA(0.22) : "transparent"
 
         RowLayout {
             id: row
@@ -757,7 +755,7 @@ PanelWindow {
     }
 
     // ==========================================
-    // RIGHT: tray, battery, wifi, volume, search, control center, clock
+    // RIGHT: tray, battery, wifi, volume, control center, clock (Search: Super+Space)
     // ==========================================
     RowLayout {
         id: rightRow
@@ -910,13 +908,6 @@ PanelWindow {
                 sink.audio.muted = false
                 sink.audio.volume = Math.max(0, Math.min(1, sink.audio.volume + (wheel.angleDelta.y > 0 ? 0.05 : -0.05)))
             }
-        }
-
-        // Search
-        BarItem {
-            icon: "icons/search.svg"
-            iconSize: 15
-            onClicked: root.run([root.home + "/.local/bin/clave-search"])
         }
 
         // Control Center (ControlCenter.qml)

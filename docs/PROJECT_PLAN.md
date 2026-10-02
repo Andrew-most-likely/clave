@@ -182,6 +182,22 @@ the menu bar and Control Center read the labels from `clave-netid status`, so th
   - **Names.** One name per feature, the same in menus, window titles, the Dock, the README and the site.
   - `tests/icons-test.sh` reads the apps from `clave-prefs`, the Dock pins and the window table, and fails on
     an app without an icon or an icon without an app. `scripts/name-check.sh` checks the names.
+- **BR-14 Nothing left of ML4W (added 2026-10-02).** After an install over ML4W, no file Clave uses comes
+  from ML4W, so `~/.mydotfiles` can be deleted without losing anything.
+  - **Shell.** Clave ships its own bash setup: `~/.local/share/clave/clave.bash` (Clave updates it) holds the
+    aliases for Clave's commands, the prompt (starship when the extras are installed) and the terminal logo.
+    `~/.bashrc` loads it and is user-owned. A linked `~/.bashrc` (ML4W's loader) is moved to
+    `~/.bashrc.bak-<date>`.
+  - **Links.** Every other link in `~` or `~/.config` that points into `~/.mydotfiles` becomes a real copy.
+  - **Leftovers.** Update removes the wallpaper portal that early versions shipped under the ML4W name.
+  - `tests/install-test.sh` fails if a link into `~/.mydotfiles` is left after install.
+- **BR-15 A standard README (added 2026-10-02, v1.1.4).** The README reads like an ordinary project README:
+  Features, Requirements, Installation, Keyboard shortcuts, Configuration, Security hardening, Updating,
+  Uninstalling, Troubleshooting, Contributing and License, with a table of contents and no collapsed sections.
+  - **Out:** taglines, the name story, the personal essay, and tips copied from `docs/NOTES.md` that are not
+    about Clave itself (calculator currency rates, VS Code `password-store`, SDDM backup files).
+  - **Kept:** the ML4W credit, which GPL-3.0 requires, and the note on installing over ML4W (BR-14).
+  - The release badge shows the release being published.
 
 ### 5.2 Security
 
@@ -356,7 +372,7 @@ the menu bar and Control Center read the labels from `clave-netid status`, so th
   | `aidecheck.timer`, `aide-refresh.service` | harden | File integrity check, baseline refresh after upgrades |
   | `clave-netid.service` (oneshot, only while Network Identity is on) | harden | Loads the saved profile at boot (SEC-7) |
   | `clave-synshape.service` (only for profiles that reorder SYN options) | harden | Reorders the options of the laptop's own outgoing SYNs (SEC-7) |
-  | `geoclue` (D-Bus activated, v1.1.0) | apps | Location for Clock and Maps. Starts only when one of them asks and stops after; its network sources are off (APP-6) |
+  | `geoclue` (D-Bus activated, v1.1.0) | apps | Location for Clock. Starts only when it asks and stops after; its network sources are off (APP-6) |
 
   Listeners inside the shell, all event-driven, none polling:
 
@@ -496,17 +512,9 @@ Quickshell on top of open-source libraries (section 5.8).
   | Calendar | Calendar | Clave app (APP-8) | QML | `gnome-calendar` rejected: evolution-data-server stays running |
   | Terminal | Terminal | `kitty` | OpenGL | Pinned in the Dock; `Super+Return` |
   | Clock, alarms, timers | Clock | `gnome-clocks` | GTK4 | Depends on geoclue; no network location (APP-6) |
-  | Maps | Maps | `gnome-maps` | GTK4 | Online only while open (APP-6) |
-  | Photo library | Photos | `shotwell` | GTK3 | Loupe stays the default image viewer |
-  | E-books | Books | `foliate` | GTK4 | Embeds WebKitGTK, only while open. Accepted: EPUB needs a real layout engine |
-  | Music | Music | `amberol` | GTK4 | `gnome-music` rejected: it needs the `localsearch` indexer (PERF-1) |
-  | Video | Videos | `showtime` | GTK4 | Decoders in APP-11. VLC stays in extras |
+  | Video | Videos | `showtime` | GTK4 | Decoders in APP-11. The one media player: VLC left the extras on 2026-10-02 |
   | Camera | Camera | `snapshot` | GTK4 | Back from extras (SW-4) |
-  | Fonts | Fonts | `font-manager` | GTK4 | Lists every style of a family by name (APP-13). `gnome-font-viewer` showed each named instance of a variable font with the family name only |
   | Help pages | (none) | `yelp` | GTK4 | Opens when an app's Help button or F1 is used (APP-12) |
-  | Chess | Chess | `gnome-chess`, `gnuchess` | GTK4 | GNU Chess is the computer opponent; without an engine, Chess only allows two human players. Stockfish is stronger but only in the AUR |
-  | Scanner | Scanner | `simple-scan` | GTK3 | SANE starts no service |
-  | Remote screen (client only) | Screen Sharing | `gnome-connections` | GTK4 | No listener |
   | System log | Console | `gnome-logs` | GTK4 | |
   | Hardware report | System Information | `hardinfo2` | GTK3 | Benchmark sync only when Synchronize is pressed (step 1) |
   | Disks | Disk Utility | `gnome-disk-utility` | GTK4 | Back from extras (SW-4) |
@@ -528,8 +536,8 @@ Quickshell on top of open-source libraries (section 5.8).
   | Removed from the lists | Replaced by |
   |---|---|
   | `htop`, `btop` (`packages/extras.txt`) | Activity Monitor (SHELL-3). One task manager: `btop` left the extras on 2026-10-02 |
-  | `gnome-font-viewer` | `font-manager` (APP-13) |
-  | `errands`, `sticky`, `gnome-weather`, `gnome-podcasts`, `gnome-sound-recorder`, `rnote`, `python-vobject`; Notes and Contacts (Clave apps) | Nothing (APP-13) |
+  | `vlc`, `vlc-plugin-ffmpeg` (`packages/extras.txt`) | Videos (APP-11). One media player (2026-10-02) |
+  | `errands`, `sticky`, `gnome-weather`, `gnome-podcasts`, `gnome-sound-recorder`, `rnote`, `python-vobject`, `gnome-font-viewer`, `font-manager`, `gnome-maps`, `foliate`, `amberol`, `simple-scan`, `shotwell`, `gnome-chess`, `gnuchess`, `gnome-connections`; Notes and Contacts (Clave apps) | Nothing (APP-13) |
   | `clave-screenshot`, the Print binds that call it | SHELL-1 |
   | `clave-displays`, `scripts/display-mode.sh`, `rofi/clave-display.rasi`, the Super+P menu | SHELL-2 |
   | `Clave/ForceQuit.qml` as a separate window | SHELL-3 (Force Quit stays as a dialog of the same component) |
@@ -548,7 +556,7 @@ Quickshell on top of open-source libraries (section 5.8).
   icon can be changed in `~/.config/clave/settings.json`:
 
   ```json
-  "icons": { "org.gnome.Maps": "~/Pictures/icons/maps.png" }
+  "icons": { "org.gnome.Snapshot": "~/Pictures/icons/camera.png" }
   ```
 
   `clave-prefs` writes the override `.desktop` file with that `Icon=`. It accepts only local PNG and SVG
@@ -559,14 +567,14 @@ Quickshell on top of open-source libraries (section 5.8).
   row for both.
 
 - **APP-5 Default apps.** The installer sets the MIME defaults: Calendar for `text/calendar`, Videos for
-  video types, Music for audio types, Books for EPUB, and Maps for `geo:` links.
+  video types. Audio types, EPUB and `geo:` links have no default since Music, Books and Maps left
+  (APP-13).
 
-- **APP-6 Offline defaults (SEC-3).** Maps uses the network for map tiles, and Books for its online
-  catalogs, because that data exists only online. Both connect only while open, and OpenSnitch asks
-  before each one's first connection (hardening layer). Without the hardening layer they connect when
-  opened. Every other app makes no network calls. Nothing syncs in the background.
+- **APP-6 Offline defaults (SEC-3).** Maps and Books were the apps that needed online data; both left
+  in APP-13. OpenSnitch asks before any app's first connection (hardening layer). Nothing syncs in the
+  background.
   - geoclue: the network location sources (Wi-Fi, cell) are off in
-    `/etc/geoclue/conf.d/90-clave.conf`. Clock and Maps ask the user for a city instead.
+    `/etc/geoclue/conf.d/90-clave.conf`. Clock asks the user for a city instead.
   - Calendar (APP-8) has no sync at all.
   - The OpenSnitch question (added 2026-10-02). It denies after 30 seconds without an answer. It opened as
     an ordinary window on whichever Space OpenSnitch chose, so it could sit unseen behind the app that
@@ -574,7 +582,7 @@ Quickshell on top of open-source libraries (section 5.8).
     (`hypr/clave/rules.lua`, title `OpenSnitch v…`) floats it in the middle and pins it to every Space.
 
 - **APP-7 Background cost (PERF-1).** The app set adds no service that stays running. One dependency is
-  D-Bus activated: `geoclue`, pulled in by Clock and Maps. It starts only when one of them asks for
+  D-Bus activated: `geoclue`, pulled in by Clock. It starts only when Clock asks for
   the location, and with its network sources off (APP-6) it has nothing to look up online. Record it in
   PERF-2 after the clean-VM check.
 
@@ -646,21 +654,22 @@ Quickshell on top of open-source libraries (section 5.8).
   `gstreamer` packages it pulls in have parsers and demuxers but no H.264, H.265, VP9 or AV1 decoder. Without
   one, common files do not play. `packages/apps.txt` adds `gst-libav` (FFmpeg decoders, already a dependency)
   and `gst-plugin-va` (hardware decoding through VA-API, which Mesa and `intel-media-driver` provide). Both are
-  small and start no service (APP-7). VLC in extras gets `vlc-plugin-ffmpeg` for the same reason. An update
-  offers the new packages like any new standard app (SW-4).
+  small and start no service (APP-7). An update offers the new packages like any new standard app (SW-4).
 
 - **APP-12 Help pages (added 2026-10-02).** The Help button and F1 of the GNOME apps open `yelp`, which
-  was not installed, so Help did nothing (Screen Sharing was the one noticed). `packages/apps.txt` adds
-  `yelp`. It runs only while a help page is open and starts no service (APP-7). It uses WebKitGTK, which
-  Books already pulls in.
+  was not installed, so Help did nothing (Screen Sharing, since removed, was the one noticed). `packages/apps.txt` adds
+  `yelp`. It runs only while a help page is open and starts no service (APP-7). It uses WebKitGTK.
 
 - **APP-13 App review (decision 2026-10-02).** Each app has to be as good as the common alternatives, or it
   goes. Removed: Stickies (`sticky`), Voice Memos (`gnome-sound-recorder`), Weather (`gnome-weather`),
   Podcasts (`gnome-podcasts`, its search did not work and better apps exist), Freeform board (`rnote`, a
   cramped layout that does not scale with the window), Reminders (`errands`, a task menu of buttons that do
   nothing), and the Clave apps Notes (no way to delete a folder) and Contacts (a layout that did not hold
-  up). Changed: Fonts is `font-manager` instead of `gnome-font-viewer`, which showed every named style of
-  a variable font (SF Pro Black, SF Pro Light, ...) with the family name only, each preview looking alike.
+  up), and Fonts (`font-manager`, which had replaced `gnome-font-viewer` earlier the same day). Also
+  removed, because Clave is for people in security and computer science: Maps (`gnome-maps`), Books
+  (`foliate`), Music (`amberol`) and Scanner (`simple-scan`). Photos (`shotwell`) went
+  too: Image Viewer (`loupe`) is the one image app. Chess (`gnome-chess`, `gnuchess`) and Screen
+  Sharing (`gnome-connections`) went as well.
   - An update removes Clave's own files of Notes and Contacts (`remove_orphans`) and the name overrides
     of the removed packages. It never uninstalls a package: it names each one once with the
     `sudo pacman -Rs` line (`REPLACED_PACKAGES`, APP-2). User data stays: `~/Documents/Notes` and
@@ -838,6 +847,28 @@ simple. The user supplies all files that the project cannot ship.
   Hyprland only for the trackpad, and appearance changes did not reach GTK and Qt apps. Fixed: every group
   that the Hyprland config reads reloads Hyprland, and `appearance mode` and `appearance accent` go through
   `clave-prefs` as the window does.
+- **ISSUE-11 Clave windows lost their traffic lights (v1.1.4).** The "App shows two sets of buttons?" picker
+  offered `org.quickshell`, the class of every Clave window, and allowed duplicates. Adding it took the buttons
+  off System Settings, Calendar and Activity Monitor. Fixed: `org.quickshell` is never on the list (picker,
+  `ClaveSettings.noBarApps`, `plugins.lua`), and the list holds each class once. GTK apps without a header bar
+  (pavucontrol, blueman, nm-connection-editor, nwg-look, virt-manager) left the built-in list: they draw no
+  buttons on Hyprland.
+- **ISSUE-12 Title bars stayed dark in Light mode (v1.1.4).** `plugins.lua` had one bar color. Fixed:
+  `setAppearance` writes `dark_mode` to `hypr.lua` and reloads Hyprland; the bar, text and inactive button
+  colors follow it.
+- **ISSUE-13 Text size changed nothing visible (v1.1.4).** It set only the GTK text scale. Fixed: it is also
+  saved as `appearance.textScale`, and Clave's windows size their text with `Theme.px()`. The menu bar, Dock
+  and panels keep fixed sizes, as their layouts do.
+- **ISSUE-14 No choice of notification sound (v1.1.4).** Fixed: `sound.notification`, chosen in Notifications
+  and played by `clave-sound --notification`, which swaync runs. It ignores the switch for interface sounds.
+- **ISSUE-15 USB accessories were read-only (v1.1.4).** Allowed devices had no button and an info row only
+  repeated the count. Fixed: one list with Allow or Block for each device (`clave-usb`); input devices and hubs
+  cannot be blocked from it.
+- **ISSUE-16 Control Center halves did not line up (v1.1.4).** The connectivity module grew 46 px per row
+  past three while the right column stayed 158 px. Fixed: the module is as tall as its rows (at least 158 px)
+  and the right column stretches to match.
+- **DOC-1 User Guide (v1.1.4).** A local page, `~/.local/share/clave/docs/guide.html`, explains every part of
+  Clave for users, like the Network Identity page. System Settings > General > User Guide opens it.
 
 APP-10 (helper launchers hidden from Apps) and the SW-5 package audit are built for v1.1.2. v1.1.2 is
 tagged without the check of every pane on the live machine and in the desktop VM; that check moves to the

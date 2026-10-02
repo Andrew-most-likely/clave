@@ -2,7 +2,19 @@
 # Plays one event sound, e.g. `clave-sound bell`. Uses the sounds built with
 # clave-sounds-build when there are any, otherwise the freedesktop theme.
 # Turned off in System Settings > Sound ("Play user interface sound effects").
-[ -e "$HOME/.config/clave/mute-ui-sounds" ] && exit 0
+#
+# `clave-sound --notification [NAME]` plays the notification sound chosen in
+# System Settings > Notifications (sound.notification in settings.json), or
+# NAME as a preview. "none" plays nothing. It does not follow the switch for
+# user interface sounds.
+if [ "${1:-}" = --notification ]; then
+    s=${2:-$(jq -r '.sound.notification // empty' "$HOME/.config/clave/settings.json" 2>/dev/null)}
+    [[ "$s" =~ ^[a-z0-9-]+$ ]] || s=message-new-instant
+    [ "$s" = none ] && exit 0
+    set -- "$s"
+elif [ -e "$HOME/.config/clave/mute-ui-sounds" ]; then
+    exit 0
+fi
 f="$HOME/.local/share/sounds/clave/stereo/$1.oga"
 if [ ! -f "$f" ]; then
     # The freedesktop theme names the login sound differently.

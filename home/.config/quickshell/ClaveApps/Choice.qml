@@ -39,9 +39,9 @@ Item {
                 elide: Text.ElideRight
                 color: Theme.fg
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.px(Theme.fontBody)
             }
-            Text { text: "▾"; color: Theme.fgA(0.6); font.pixelSize: 11 }
+            Text { text: "▾"; color: Theme.fgA(0.6); font.pixelSize: Theme.px(11) }
         }
         MouseArea { id: m; anchors.fill: parent; onClicked: c.open = !c.open }
     }
@@ -75,7 +75,7 @@ Item {
                             text: modelData.id === c.value ? "✓" : ""
                             Layout.preferredWidth: 12
                             color: om.containsMouse ? Theme.onAccent : Theme.fg
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.px(Theme.fontBody)
                         }
                         Rectangle {
                             visible: !!modelData.color
@@ -88,7 +88,7 @@ Item {
                             text: modelData.label
                             color: om.containsMouse ? Theme.onAccent : Theme.fg
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.px(Theme.fontBody)
                         }
                     }
                     MouseArea {

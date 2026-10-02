@@ -59,7 +59,7 @@ if [ -f "$STATE/moved-aside" ]; then
                 mv "$other" "$path"
                 echo "  restored $path" ;;
             unlinked)
-                [ -d "$other" ] || continue
+                [ -e "$other" ] || continue
                 rm -rf "$path"
                 ln -s "$other" "$path"
                 echo "  relinked $path -> $other" ;;

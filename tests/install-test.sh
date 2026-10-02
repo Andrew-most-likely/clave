@@ -18,6 +18,15 @@ echo 'old' > "$ml4w/hypr/hyprland.lua"
 echo 'old' > "$ml4w/rofi/config.rasi"
 ln -s "$ml4w/hypr" "$home/.config/hypr"
 ln -s "$ml4w/rofi" "$home/.config/rofi"
+# Links Clave does not ship a replacement for, and ML4W's ~/.bashrc loader
+# (a relative link, as ML4W makes it).
+mkdir -p "$ml4w/fish"
+echo 'old' > "$ml4w/fish/config.fish"
+echo 'old' > "$ml4w/.bashrc"
+echo 'old' > "$ml4w/flags.conf"
+ln -s "$ml4w/fish" "$home/.config/fish"
+ln -s "$ml4w/flags.conf" "$home/.config/flags.conf"
+ln -s .mydotfiles/cfg/.bashrc "$home/.bashrc"
 
 run() { env -i HOME="$home" PATH="$PATH" USER="$(id -un)" TERM=dumb "$@"; }
 
@@ -30,10 +39,14 @@ for f in .config/hypr/hyprland.lua .config/hypr/clave/binds.lua .config/hypr/cus
          .config/quickshell/shell.qml .local/bin/clave-wallpaper .local/share/applications/clave-apps.desktop; do
     [ -f "$home/$f" ] || fail "missing ~/$f"
 done
-[ -L "$home/.config/hypr.bak-$(date +%F)" ] || fail "old hypr link was not moved aside"
+[ -e "$home/.config/hypr.bak-$(date +%F)" ] || fail "old hypr link was not moved aside"
 grep -q 'scale = 2' "$home/.config/hypr/monitors.lua" || fail "monitors.lua was not carried over"
 [ -d "$home/.config/rofi" ] && [ ! -L "$home/.config/rofi" ] || fail "rofi link was not turned into a directory"
 [ "$(cat "$ml4w/rofi/config.rasi")" = old ] || fail "installer wrote into the linked ML4W tree"
+grep -q clave.bash "$home/.bashrc" || fail "Clave's ~/.bashrc was not installed"
+[ -f "$home/.local/share/clave/clave.bash" ] || fail "missing ~/.local/share/clave/clave.bash"
+! find "$home" -path "$home/.mydotfiles" -prune -o -lname '*mydotfiles*' -print | grep . \
+    || fail "links into ~/.mydotfiles left behind"
 ! grep -rl '__HOME__\|__REPO__\|__GITHUB_REPO__' "$home/.config" "$home/.local" 2>/dev/null | grep -v '\.bak-' \
     || fail "placeholders left unfilled"
 [ -s "$state/installed-files" ] || fail "no install record"
@@ -59,6 +72,9 @@ echo "==> uninstall"
 run "$repo/uninstall.sh"
 [ "$(readlink "$home/.config/hypr")" = "$ml4w/hypr" ] || fail "hypr link not restored"
 [ "$(readlink "$home/.config/rofi")" = "$ml4w/rofi" ] || fail "rofi link not restored"
+[ "$(readlink "$home/.config/fish")" = "$ml4w/fish" ] || fail "fish link not restored"
+[ "$(readlink "$home/.config/flags.conf")" = "$ml4w/flags.conf" ] || fail "flags.conf link not restored"
+[ "$(readlink -f "$home/.bashrc")" = "$ml4w/.bashrc" ] || fail ".bashrc link not restored"
 [ ! -e "$home/.local/bin/clave-wallpaper" ] || fail "installed file left behind"
 
 echo "PASS"

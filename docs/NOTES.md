@@ -291,3 +291,46 @@
 - Keep it cheap: use the GitHub Pro minutes, no paid services.
 
  the drawn in apple in the console some times breaks when leaving claude and continues to draw the apple on top of the text in the console window
+ ## 18\. Review Notes (2026-10-02)
+
+ ### Layout and theme bugs
+
+- **Control Center is not symmetrical.** In the menu opened from the button next to the calendar, the padding that was there before the Security button was added was never removed, so the boxes no longer line up.
+- **Traffic-light bar ignores light theme.** The title bar with the traffic lights stays dark after switching to the light theme.
+- **Text size setting does nothing.** Changing the text size in System Settings has no visible effect.
+
+ ### Missing traffic lights
+
+These windows have no traffic lights:
+
+- System Settings itself
+- Calendar
+- Some system windows, for example volume control
+
+ ### Duplicate window entries
+
+- **Kitty shows up twice.** The window list in the Dock's menu shows two bars for one Kitty window. Check this together with the double traffic-light fix in the Dock, which may be the cause.
+
+ ### Menu bar
+
+- **Remove the Search icon** from the top bar.
+
+ ### System Settings
+
+- **Notification sounds.** The Notifications page has no way to choose the notification sounds.
+- **USB accessories and allowed accessories are read-only.** The lists only show devices and take up space. Add a way to add, remove or change the allowed devices, or replace the list with something useful.
+
+ ### Branding check before release
+
+- **Apple-branded icon.** The personal build may still contain an Apple-branded icon. Make sure no Apple icon ships in the public (prod) build (BR-6, BR-13).
+
+ ### Documentation
+
+- **Local user guide for the whole pack.** Users should be able to read documentation for all of Clave offline on their own machine, the same way as the Network Identity (network profiles) documentation.
+
+ ### Release direction (open question)
+
+- After comparing with other Hyprland setups, it is undecided whether to ship:
+  - a **visual-only release** (the desktop, without the hardening layer), or
+  - a **full release** with the security and hardening layer.
+- One possible middle ground: ship the visual release by default and offer hardening as a separate opt-in (for example a separate `clave-harden` package if Clave goes to the AUR).

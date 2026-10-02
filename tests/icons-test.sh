@@ -24,11 +24,9 @@ else fail "icons out of date: run scripts/make-icons.py"; fi
 # default Dock pin must be here, every name here must have an icon, and every
 # icon must belong to an entry here (BR-12, BR-13).
 declare -A want=(
-    [gnome-clocks]="org.gnome.clocks" [gnome-maps]="org.gnome.Maps" [shotwell]="org.gnome.Shotwell shotwell"
-    [foliate]="com.github.johnfactotum.Foliate" [amberol]="io.bassi.Amberol"
+    [gnome-clocks]="org.gnome.clocks"
     [showtime]="org.gnome.Showtime" [snapshot]="org.gnome.Snapshot"
-    [font-manager]="com.github.FontManager.FontManager" [gnome-chess]="org.gnome.Chess"
-    [simple-scan]="org.gnome.SimpleScan" [gnome-connections]="org.gnome.Connections" [gnome-logs]="org.gnome.Logs"
+    [gnome-logs]="org.gnome.Logs"
     [hardinfo2]="hardinfo2" [gnome-disk-utility]="org.gnome.DiskUtility gnome-disks"
     [seahorse]="org.gnome.seahorse.Application seahorse" [timeshift]="timeshift"
     [nautilus]="org.gnome.Nautilus system-file-manager" [gnome-text-editor]="org.gnome.TextEditor"
@@ -36,7 +34,7 @@ declare -A want=(
     [evince]="org.gnome.Evince org.gnome.Evince-symbolic" [papers]="org.gnome.Papers"
     [kitty]="kitty utilities-terminal" [file-roller]="org.gnome.FileRoller file-roller"
     [bazaar]="io.github.kolunmi.Bazaar"
-    [clave-apps]="clave-apps" [clave-activity-monitor]="utilities-system-monitor org.gnome.SystemMonitor"
+    [clave-apps]="clave-apps" [clave-screenshot]="clave-screenshot" [clave-activity-monitor]="utilities-system-monitor org.gnome.SystemMonitor"
     [clave-calendar]="x-office-calendar"
     [clave-settings]="preferences-system" [clave-about]="clave-logo" [clave-update]="system-software-update software-update-available"
     [quickshell]="org.quickshell"

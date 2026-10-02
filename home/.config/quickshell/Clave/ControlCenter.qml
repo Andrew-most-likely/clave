@@ -367,11 +367,15 @@ PanelWindow {
 
                 Module {
                     Layout.preferredWidth: 153
-                    // Three rows fit; each one more (Ethernet with a VPN, Network Identity) adds 46.
-                    Layout.preferredHeight: 20 + 46 * Math.max(3, 2 + (root.hasEthernet ? 1 : 0)
-                        + (root.hasVpn ? 1 : 0) + (root.netidProfile !== "" ? 1 : 0))
+                    // As tall as its rows, and at least as tall as the right column
+                    // (two 74 px modules), which stretches to match: both halves
+                    // always end on the same line.
+                    Layout.preferredHeight: Math.max(158, rows.implicitHeight + 22)
                     ColumnLayout {
-                        anchors.fill: parent
+                        id: rows
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 11
                         spacing: 8
 
@@ -462,17 +466,18 @@ PanelWindow {
                                 Quickshell.execDetached(["qs", "ipc", "call", "settings", "open", "security"])
                             }
                         }
-                        Item { Layout.fillHeight: true }
                     }
                 }
 
                 ColumnLayout {
                     spacing: 10
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
 
                     // Focus
                     Module {
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
                         Layout.preferredHeight: 74
                         RowLayout {
                             anchors.fill: parent
@@ -499,10 +504,12 @@ PanelWindow {
                     RowLayout {
                         spacing: 10
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
 
                         // Night Light
                         Module {
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
                             Layout.preferredHeight: 74
                             ColumnLayout {
                                 anchors.centerIn: parent
@@ -529,6 +536,7 @@ PanelWindow {
                         // Screen Mirroring
                         Module {
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
                             Layout.preferredHeight: 74
                             ColumnLayout {
                                 anchors.centerIn: parent

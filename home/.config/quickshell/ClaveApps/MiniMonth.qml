@@ -30,7 +30,7 @@ ColumnLayout {
         text: Qt.locale().standaloneMonthName(mm.month, Locale.LongFormat)
         color: Theme.red
         font.family: Theme.fontFamily
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: Theme.px(Theme.fontBody)
         font.weight: Font.DemiBold
         MouseArea { anchors.fill: parent; onClicked: mm.clickedTitle() }
     }
@@ -48,7 +48,7 @@ ColumnLayout {
                 text: Qt.locale().standaloneDayName((mm.firstDay + index) % 7, Locale.NarrowFormat)
                 color: Theme.fgA(0.45)
                 font.family: Theme.fontFamily
-                font.pixelSize: 10
+                font.pixelSize: Theme.px(10)
             }
         }
         Repeater {
@@ -68,7 +68,7 @@ ColumnLayout {
                     text: `${modelData.getDate()}`
                     color: parent.today ? "white" : parent.inMonth ? Theme.fg : Theme.fgA(0.3)
                     font.family: Theme.fontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.px(11)
                     font.weight: parent.today ? Font.Bold : Font.Normal
                 }
                 Rectangle {

@@ -131,6 +131,8 @@ remove_old_home_paths() {
         .local/share/icons/hicolor/scalable/apps/macos-launchpad.svg
         .local/share/xdg-desktop-portal/portals/macos.portal
         .local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.macos.service
+        .local/share/xdg-desktop-portal/portals/ml4w.portal
+        .local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.ml4w.service
     )
     for pair in "${OLD_COMMANDS[@]}"; do
         paths+=(".local/bin/${pair%%:*}")

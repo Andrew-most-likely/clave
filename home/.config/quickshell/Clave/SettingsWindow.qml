@@ -516,12 +516,14 @@ Scope {
 
     // Apps that get no traffic lights (ISSUE-1): saved, then Hyprland reloads.
     function setNoBarApps(list: var): void {
-        ClaveSettings.set("windows", "noBarApps", list)
+        ClaveSettings.set("windows", "noBarApps", [...new Set(list)])
         hyprReload.restart()
     }
+    // Open apps that could be added: one entry per app, not per window, and
+    // never Clave's own windows (see ClaveSettings.noBarApps).
     function openAppClasses(): var {
         return [...new Set(ToplevelManager.toplevels.values.map(t => t.appId)
-            .filter(c => /^[A-Za-z0-9._-]+$/.test(c)))].sort()
+            .filter(c => /^[A-Za-z0-9._-]+$/.test(c) && c !== "org.quickshell"))].sort()
     }
 
     function setTrafficLights(on: bool): void {
@@ -774,6 +776,9 @@ Scope {
             { "title": "", "rows": [
                 { "type": "button", "label": "Keyboard Shortcuts", "text": "Show…",
                   "action": () => root.run([root.home + "/.local/bin/clave-keybinds"]) },
+                { "type": "button", "label": "User Guide", "sub": "How every part of Clave works. A local page, no internet",
+                  "text": "Open…",
+                  "action": () => root.run(["xdg-open", root.home + "/.local/share/clave/docs/guide.html"]) },
                 { "type": "button", "label": "Advanced (Hyprland custom.lua)", "text": "Edit…",
                   "action": () => root.run(["xdg-open", root.home + "/.config/hypr/custom.lua"]) }
             ]}
@@ -998,7 +1003,8 @@ Scope {
                               { "id": 1.15, "label": "Large" }, { "id": 1.3, "label": "Larger" },
                               { "id": 1.5, "label": "Largest" }],
                   "get": () => (root.pd.appearance || {}).textScale || 1,
-                  "set": v => root.change([root.prefs, "appearance", "text-scale", `${v}`], "appearance") }
+                  "set": v => { ClaveSettings.set("appearance", "textScale", v)
+                                root.change([root.prefs, "appearance", "text-scale", `${v}`], "appearance") } }
             ]},
             { "title": "", "rows": [
                 { "type": "info", "label": "Qt apps", "value": "Pick up a change when reopened" }
@@ -1021,7 +1027,24 @@ Scope {
                     { "type": "choice", "label": "Show banners for",
                       "options": [3, 4, 5, 8, 10, 15].map(t => ({ "id": t, "label": t + " seconds" })),
                       "get": () => (root.pd.notify || {}).timeout || 4,
-                      "set": v => root.change([root.prefs, "notify", "timeout", `${v}`], "notify") }
+                      "set": v => root.change([root.prefs, "notify", "timeout", `${v}`], "notify") },
+                    // Sounds of the freedesktop theme, or the user's own of the same
+                    // name (clave-sounds-build). Choosing one plays it.
+                    { "type": "choice", "label": "Notification sound",
+                      "options": [
+                          { "id": "message-new-instant", "label": "Message" },
+                          { "id": "message", "label": "Chime" },
+                          { "id": "bell", "label": "Bell" },
+                          { "id": "complete", "label": "Complete" },
+                          { "id": "dialog-information", "label": "Note" },
+                          { "id": "window-attention", "label": "Attention" },
+                          { "id": "phone-incoming-call", "label": "Ring" },
+                          { "id": "none", "label": "None" }],
+                      "get": () => ClaveSettings.get("sound", "notification"),
+                      "set": v => {
+                          ClaveSettings.set("sound", "notification", v)
+                          Quickshell.execDetached([root.home + "/.local/bin/clave-sound", "--notification", v])
+                      } }
                 ]},
                 { "title": "Application Notifications", "rows": root.apps.map(e => ({
                     "type": "switch", "label": e.name,
@@ -1033,10 +1056,18 @@ Scope {
             const devs = root.pd.usb || []
             const blocked = devs.filter(d => d.state !== "allow")
             const allowed = devs.filter(d => d.state === "allow")
-            const devRow = d => ({ "type": d.state === "allow" ? "info" : "button", "label": d.name,
-                "sub": d.kind + " · " + d.vid + " · port " + d.port,
-                "value": "Allowed", "text": "Allow",
-                "action": () => root.change(["pkexec", "/usr/local/bin/clave-usb", "allow", `${d.id}`], "usb") })
+            // Each device can be allowed or blocked; clave-usb saves the choice for
+            // the next time it is plugged in. Keyboards, mice and hubs cannot be
+            // blocked here: blocking the only keyboard locks you out.
+            const lockout = d => d.kind === "Input device" || d.kind === "Hub"
+            const devRow = d => {
+                const on = d.state === "allow"
+                const base = { "label": d.name, "sub": d.kind + " · " + d.vid + " · port " + d.port }
+                if (on && lockout(d))
+                    return Object.assign(base, { "type": "info", "value": "Allowed" })
+                return Object.assign(base, { "type": "button", "text": on ? "Block" : "Allow",
+                    "action": () => root.change(["pkexec", "/usr/local/bin/clave-usb", on ? "block" : "allow", `${d.id}`], "usb") })
+            }
             const sw = (g, k, label, sub) => ({ "type": "switch", "label": label, "sub": sub,
                 "get": () => ClaveSettings.get(g, k) === true, "set": on => ClaveSettings.set(g, k, on) })
             let secs = [
@@ -1057,13 +1088,15 @@ Scope {
                     sw("features", "screenRecording", "Screen recording", "Record buttons in the screenshot toolbar (Print)")
                 ]}
             ]
-            if (devs.length || root.st.usbguard === "active")
+            // One list: blocked devices first. New devices stay blocked until
+            // allowed here (USBGuard).
+            if (devs.length)
+                secs.push({ "title": "USB accessories",
+                            "rows": blocked.concat(allowed).map(devRow) })
+            else if (root.st.usbguard === "active")
                 secs.push({ "title": "USB accessories", "rows": [
-                    { "type": "info", "label": "USB accessories", "sub": "New devices stay blocked until you allow them here (USBGuard)",
-                      "value": blocked.length ? blocked.length + " blocked" : "None blocked" }
+                    { "type": "info", "label": "No USB accessories", "sub": "New devices stay blocked until you allow them here" }
                 ]})
-            if (blocked.length) secs.push({ "title": "Blocked accessories", "rows": blocked.map(devRow) })
-            if (allowed.length) secs.push({ "title": "Allowed accessories", "rows": allowed.map(devRow) })
             const enc = root.st.encrypt || ""
             secs.push({ "title": "Disk Encryption", "rows": [
                 { "type": "info", "label": "Disk Encryption",
@@ -1294,7 +1327,7 @@ Scope {
                     text: mb.text
                     color: Theme.fg
                     font.family: Theme.fontFamily
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.px(13)
                 }
                 MouseArea { id: mbMouse; anchors.fill: parent; onClicked: mb.clicked() }
             }
@@ -1342,7 +1375,7 @@ Scope {
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: Theme.fg
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: Theme.px(13)
                                 clip: true
                                 onTextChanged: root.search = text
                                 Component.onCompleted: text = root.search
@@ -1416,7 +1449,7 @@ Scope {
                                                     text: modelData.glyph
                                                     color: "#ffffff"
                                                     font.family: "Symbols Nerd Font"
-                                                    font.pixelSize: 12
+                                                    font.pixelSize: Theme.px(12)
                                                 }
                                             }
                                             Text {
@@ -1425,7 +1458,7 @@ Scope {
                                                 text: modelData.label
                                                 color: Theme.fg
                                                 font.family: Theme.fontFamily
-                                                font.pixelSize: 13
+                                                font.pixelSize: Theme.px(13)
                                                 elide: Text.ElideRight
                                             }
                                         }
@@ -1454,7 +1487,7 @@ Scope {
                                                     text: modelData
                                                     color: paneItem.selected ? Qt.rgba(1, 1, 1, 0.85) : Theme.fgA(0.6)
                                                     font.family: Theme.fontFamily
-                                                    font.pixelSize: 11
+                                                    font.pixelSize: Theme.px(11)
                                                     elide: Text.ElideRight
                                                     MouseArea {
                                                         anchors.fill: parent
@@ -1475,7 +1508,7 @@ Scope {
                                     text: "No results for \u201c" + root.search.trim() + "\u201d"
                                     color: Theme.fgA(0.5)
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 12
+                                    font.pixelSize: Theme.px(12)
                                 }
                             }
                         }
@@ -1514,7 +1547,7 @@ Scope {
                             text: root.paneTitle
                             color: Theme.fg
                             font.family: Theme.displayFamily
-                            font.pixelSize: 20
+                            font.pixelSize: Theme.px(20)
                             font.weight: Font.Bold
                             Layout.bottomMargin: 8
                         }
@@ -1534,7 +1567,7 @@ Scope {
                                     text: section.modelData.title
                                     color: Theme.fgA(0.85)
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 13
+                                    font.pixelSize: Theme.px(13)
                                     font.weight: Font.DemiBold
                                     Layout.leftMargin: 4
                                 }
@@ -1606,7 +1639,7 @@ Scope {
                                                         text: rowItem.r.label || ""
                                                         color: Theme.fg
                                                         font.family: Theme.fontFamily
-                                                        font.pixelSize: 13
+                                                        font.pixelSize: Theme.px(13)
                                                         elide: Text.ElideRight
                                                     }
                                                     Text {
@@ -1616,7 +1649,7 @@ Scope {
                                                         text: rowItem.r.sub || ""
                                                         color: Theme.fgA(0.5)
                                                         font.family: Theme.fontFamily
-                                                        font.pixelSize: 11
+                                                        font.pixelSize: Theme.px(11)
                                                         elide: Text.ElideRight
                                                     }
                                                 }
@@ -1681,10 +1714,10 @@ Scope {
                                                     id: infoComp
                                                     Text {
                                                         textFormat: Text.PlainText
-                                                        text: rowItem.r.value
+                                                        text: rowItem.r.value ?? ""
                                                         color: Theme.fgA(0.55)
                                                         font.family: Theme.fontFamily
-                                                        font.pixelSize: 13
+                                                        font.pixelSize: Theme.px(13)
                                                     }
                                                 }
                                                 Component {
@@ -1714,7 +1747,7 @@ Scope {
                                                             text: choiceBtn.currentLabel
                                                             color: Theme.fg
                                                             font.family: Theme.fontFamily
-                                                            font.pixelSize: 13
+                                                            font.pixelSize: Theme.px(13)
                                                         }
                                                         Text {
                                                             textFormat: Text.PlainText
@@ -1830,7 +1863,7 @@ Scope {
                                                                     text: root.displayName(screenRect.modelData)
                                                                     color: Theme.fgA(0.8)
                                                                     font.family: Theme.fontFamily
-                                                                    font.pixelSize: 10
+                                                                    font.pixelSize: Theme.px(10)
                                                                     elide: Text.ElideRight
                                                                 }
                                                             }
@@ -1870,7 +1903,7 @@ Scope {
                                                             : "Select a display to change its settings"
                                                         color: Theme.fgA(0.5)
                                                         font.family: Theme.fontFamily
-                                                        font.pixelSize: 11
+                                                        font.pixelSize: Theme.px(11)
                                                     }
                                                     PushButton {
                                                         anchors.right: parent.right
@@ -1924,7 +1957,7 @@ Scope {
                                                                 text: modelData.split("/").pop().replace(/\.[^.]+$/, "").replace(/[-_]/g, " ")
                                                                 color: Theme.fgA(0.7)
                                                                 font.family: Theme.fontFamily
-                                                                font.pixelSize: 11
+                                                                font.pixelSize: Theme.px(11)
                                                                 elide: Text.ElideRight
                                                                 horizontalAlignment: Text.AlignHCenter
                                                             }
@@ -1966,7 +1999,7 @@ Scope {
                             text: "Keep these display settings?"
                             color: Theme.fg
                             font.family: Theme.fontFamily
-                            font.pixelSize: 14
+                            font.pixelSize: Theme.px(14)
                             font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter
                         }
@@ -1976,7 +2009,7 @@ Scope {
                             text: "Reverting to previous display settings in " + root.revertLeft + " seconds."
                             color: Theme.fgA(0.7)
                             font.family: Theme.fontFamily
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                             wrapMode: Text.WordWrap
                             horizontalAlignment: Text.AlignHCenter
                         }
@@ -1997,7 +2030,7 @@ Scope {
                                     text: "Keep changes"
                                     color: Theme.onAccent
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 13
+                                    font.pixelSize: Theme.px(13)
                                 }
                                 MouseArea { id: keepMouse; anchors.fill: parent; onClicked: root.keepDisplay() }
                             }
@@ -2048,7 +2081,7 @@ Scope {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: parent.isCurrent ? "✓" : ""
                                     color: optMouse.containsMouse ? Theme.onAccent : Theme.fg
-                                    font.pixelSize: 12
+                                    font.pixelSize: Theme.px(12)
                                 }
                                 Text {
                                     textFormat: Text.PlainText
@@ -2057,7 +2090,7 @@ Scope {
                                     text: modelData.label
                                     color: optMouse.containsMouse ? Theme.onAccent : Theme.fg
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 13
+                                    font.pixelSize: Theme.px(13)
                                 }
                                 MouseArea {
                                     id: optMouse

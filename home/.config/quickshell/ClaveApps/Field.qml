@@ -8,7 +8,7 @@ Rectangle {
     property string placeholder: ""
     property bool valid: true
     property alias input: input
-    property int pixelSize: Theme.fontBody
+    property int pixelSize: Theme.px(Theme.fontBody)
     property bool multiline: false
     signal edited()
 
