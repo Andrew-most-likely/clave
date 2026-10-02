@@ -44,6 +44,17 @@ connects out; if you missed the question, the app stays blocked.
 - The inbound firewall is the nftables table `inet hardening`. List it with
   `sudo nft list table inet hardening`.
 
+## Network Identity
+
+Network Identity (Privacy & Security) changes DHCP, the firewall's answers and how TCP connections start.
+If the network stops working after you chose a profile or turned on Stealth:
+
+- `sudo clave-netid reset` turns it off: it restores `/etc/dhcpcd.conf`, removes every file it wrote, empties
+  its firewall chains, stops the SYN rewriter and restarts NetworkManager.
+- To check only the SYN rewriter: `sudo systemctl stop clave-synshape`. Its firewall rule uses `bypass`, so
+  connections go out unchanged while it is stopped. `sudo clave-netid selftest` tests it again.
+- Stealth drops everything new from the network, printer discovery included. Turn it off in Control Center.
+
 ## An app fails to start (AppArmor)
 
 Look for denials: `sudo journalctl -k | grep -i apparmor | tail`. Put the profile that blocks the app in

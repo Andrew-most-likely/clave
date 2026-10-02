@@ -1,0 +1,16 @@
+#!/bin/sh
+# Network Identity (SEC-7). Does nothing while the feature is off. Otherwise:
+# forget DHCP leases on connect and disconnect, so the next connection (new
+# random MAC) cannot be linked to this one by a requested old address, and
+# give the connection a fresh DHCP hostname for the profile (DESKTOP-XXXXXXX
+# is new each time, so two MACs never share a name).
+[ -f /etc/clave/netid/state ] || exit 0
+iface="$1" action="$2"
+case "$action" in up|down) ;; *) exit 0 ;; esac
+case "$iface" in wg*|tun*|lo|virbr*|"") exit 0 ;; esac
+rm -f /var/lib/NetworkManager/internal-*-"$iface".lease \
+      /var/lib/NetworkManager/dhclient-*-"$iface".lease \
+      /var/lib/dhcpcd/"$iface".lease /var/lib/dhcpcd/"$iface"-*.lease
+[ -n "$CONNECTION_UUID" ] || exit 0
+/usr/local/bin/clave-netid hostname "$CONNECTION_UUID" 2>/dev/null
+exit 0

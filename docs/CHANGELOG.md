@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Network Identity (SEC-7, FEAT-10).** On a shared network the laptop can look like Windows 11, macOS, an
+  iPhone, an Android phone or Linux, and a Stealth switch makes it answer nothing new. Choose it in System
+  Settings > Privacy & Security, in the Wi-Fi menu, or turn Stealth on in Control Center. It sets the DHCP
+  request, the IP TTL, TCP timestamps, ping replies, the answer on closed ports and the DHCP hostname, and a
+  small service reorders the options of the laptop's own TCP SYNs. That service starts only after a test shows
+  the kernel passes rewritten packets. Off by default; `sudo clave-netid reset` turns it off from a terminal.
 - **Videos plays common files (APP-11).** The standard apps add `gst-libav` and `gst-plugin-va`, so Videos
   decodes H.264, H.265, VP9 and AV1, in hardware where the GPU supports it. Before, those files did not play.
   VLC in extras gets `vlc-plugin-ffmpeg`. `clave-update` offers the new packages.

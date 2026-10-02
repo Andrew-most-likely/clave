@@ -261,6 +261,11 @@ if has harden; then
     # The daemon reads its config and access files only at start; an update
     # that changed them (IPCAllowedUsers) applies now.
     systemctl try-restart usbguard.service
+    # Network Identity (SEC-7) on: load the new firewall file, then its rules again.
+    if [ -f /etc/clave/netid/state ]; then
+        systemctl reload-or-restart nftables.service
+        /usr/local/bin/clave-netid boot || true
+    fi
     augenrules --load >/dev/null 2>&1 || true
     /usr/local/sbin/strip-suid
     if [ ! -f /var/lib/aide/aide.db.gz ]; then

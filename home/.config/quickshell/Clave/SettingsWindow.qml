@@ -137,6 +137,8 @@ Scope {
             "echo \"nftables=$(systemctl is-active nftables)\"; echo \"opensnitch=$(systemctl is-active opensnitchd)\";" +
             "echo \"usbguard=$(systemctl is-active usbguard)\";" +
             "echo \"encrypt=$(~/.local/bin/clave-encrypt status 2>/dev/null)\";" +
+            // Network Identity (SEC-7): only on a hardened install, read without root.
+            "[ -x /usr/local/bin/clave-netid ] && /usr/local/bin/clave-netid status 2>/dev/null | sed 's/^/netid_/';" +
             "busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager" +
             " HandleLidSwitch HandleLidSwitchExternalPower HandleLidSwitchDocked 2>/dev/null" +
             " | awk '{ gsub(/\"/, \"\", $2); print \"lid_\" NR \"=\" $2 }'"]
@@ -165,6 +167,27 @@ Scope {
     }
 
     function run(cmd: var): void { Quickshell.execDetached(cmd) }
+
+    // Network Identity (SEC-7, FEAT-10). clave-netid asks for the password
+    // through pkexec and reconnects the network, which takes a few seconds;
+    // the pane reads the state again when it is done.
+    readonly property string netidTool: "/usr/local/bin/clave-netid"
+    // [{ id, label }] from "clave-netid status" (profiles=off:Off;windows:Windows 11;...).
+    readonly property var netidProfiles: (root.st.netid_profiles || "").split(";").filter(x => x.indexOf(":") > 0)
+        .map(x => ({ "id": x.slice(0, x.indexOf(":")), "label": x.slice(x.indexOf(":") + 1) }))
+    property bool netidBusy: false
+    function netidSet(profile: string, stealth: bool): void {
+        if (root.netidBusy) return
+        root.netidBusy = true
+        root.refreshPane()
+        netidProc.command = profile === "off" ? ["pkexec", root.netidTool, "reset"]
+            : ["pkexec", root.netidTool, "apply", profile, stealth ? "1" : "0"]
+        netidProc.running = true
+    }
+    Process {
+        id: netidProc
+        onExited: { root.netidBusy = false; statusProc.running = false; statusProc.running = true }
+    }
 
     // ==========================================
     // DISPLAYS (arrangement, orientation, resolution, scale)
@@ -1056,6 +1079,35 @@ Scope {
                   "action": () => root.run(["kitty", "--title", "Disk Encryption", "-e",
                       root.home + "/.local/bin/clave-encrypt", "setup"]) }
             ]})
+            if (root.st.netid_profile !== undefined) {
+                const prof = root.st.netid_profile
+                const on = prof !== "off"
+                const rw = root.st.netid_rewriter
+                let rows = [
+                    { "type": "choice", "label": "Look like", "options": root.netidProfiles,
+                      "sub": root.netidBusy ? "Applying and reconnecting…"
+                           : "How this computer appears to other devices on the local network. Reconnects once",
+                      "get": () => root.st.netid_profile || "off",
+                      "set": v => root.netidSet(v, root.st.netid_stealth === "1") },
+                    { "type": "switch", "label": "Stealth",
+                      "sub": "No answer to ping or to anything new from the network. Printer discovery stops",
+                      "get": () => root.st.netid_stealth === "1",
+                      "set": v => root.netidSet(on ? prof : "linux", v) }
+                ]
+                if (on) rows.push(
+                    { "type": "info", "label": "DHCP",
+                      "sub": root.st.netid_dhcp_patch === "yes" ? "Request list in the profile's order, packet TTL from the profile"
+                           : "Options set; their order and the packet TTL stay dhcpcd's (needs the optional dhcpcd build)",
+                      "value": root.st.netid_dhcp_patch === "yes" ? "Full" : "Partial" },
+                    { "type": "info", "label": "TCP connection start",
+                      "sub": rw === "failed" ? "This kernel drops rewritten packets, so the option order stays Linux's"
+                           : rw === "off" ? "The profile uses the kernel's own order" : "Option order rewritten for the profile",
+                      "value": rw === "active" ? "Rewritten" : rw === "off" ? "Kernel" : rw === "failed" ? "Unavailable" : "Off" })
+                rows.push({ "type": "info", "label": "What it cannot change",
+                    "sub": "The Wi-Fi radio's own frames still look like Linux on an Intel card. Traffic inside a VPN is not affected",
+                    "value": "" })
+                secs.push({ "title": "Network Identity", "rows": rows })
+            }
             secs.push({ "title": "Firewall", "rows": [
                 { "type": "info", "label": "Network firewall (nftables)",
                   "value": root.st.nftables === "active" ? "On" : "Off" },

@@ -478,6 +478,18 @@ PanelWindow {
                              "action": () => root.run(["nmcli", "device", "wifi", "connect", ssid]) })
                 }
             }
+            if (root.netidProfile !== "") {
+                m.push({ "type": "sep" })
+                m.push({ "type": "header", "label": "Network Identity" })
+                for (const pair of root.netidList.filter(x => x.indexOf(":") > 0)) {
+                    const pid = pair.slice(0, pair.indexOf(":"))
+                    m.push({ "label": pair.slice(pair.indexOf(":") + 1), "checked": root.netidProfile === pid,
+                             "action": () => root.netidApply(pid, root.netidStealth) })
+                }
+                m.push({ "type": "toggle", "label": "Stealth", "get": () => root.netidStealth,
+                         "set": on => { root.netidStealth = on
+                             root.netidApply(root.netidProfile === "off" ? "linux" : root.netidProfile, on) } })
+            }
             m.push({ "type": "sep" })
             m.push({ "label": "Wi-Fi Settings…", "action": () => root.run(["nm-connection-editor"]) })
             return m
@@ -558,6 +570,14 @@ PanelWindow {
     }
 
     property var wifiNetworks: []
+    // Network Identity (SEC-7): "" when clave-netid is not installed.
+    property string netidProfile: ""
+    property bool netidStealth: false
+    property var netidList: []   // "id:label" pairs from clave-netid status
+    function netidApply(profile: string, stealth: bool): void {
+        root.run(profile === "off" ? ["pkexec", "/usr/local/bin/clave-netid", "reset"]
+            : ["pkexec", "/usr/local/bin/clave-netid", "apply", profile, stealth ? "1" : "0"])
+    }
     // Lock for secured networks, then signal bars (strongest shown first).
     function wifiHint(n: var): string {
         const bars = n.signal >= 67 ? "▂▄▆" : n.signal >= 34 ? "▂▄" : "▂"
@@ -565,14 +585,20 @@ PanelWindow {
     }
     Process {
         id: wifiScan
-        command: ["bash", "-c", "nmcli -t radio wifi; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list --rescan no 2>/dev/null"]
+        // The Network Identity lines (SEC-7) come last, read without root.
+        command: ["bash", "-c", "nmcli -t radio wifi; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list --rescan no 2>/dev/null;"
+            + " [ -x /usr/local/bin/clave-netid ] && /usr/local/bin/clave-netid status | sed -n 's/^\\(profile\\|stealth\\|profiles\\)=/netid_\\1 /p'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = this.text.trim().split("\n")
                 root.wifiEnabled = lines.length > 0 && lines[0].trim() === "enabled"
                 let seen = ({})
                 let nets = []
+                root.netidProfile = ""
                 for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].startsWith("netid_profile ")) { root.netidProfile = lines[i].slice(14).trim(); continue }
+                    if (lines[i].startsWith("netid_stealth ")) { root.netidStealth = lines[i].slice(14).trim() === "1"; continue }
+                    if (lines[i].startsWith("netid_profiles ")) { root.netidList = lines[i].slice(15).trim().split(";"); continue }
                     // IN-USE:SSID:SECURITY:SIGNAL, with ":" inside the SSID escaped as "\:"
                     const parts = lines[i].replace(/\\:/g, "\u0001").split(":")
                     if (parts.length < 3)

@@ -213,6 +213,8 @@ LUKS2 or encrypting this install in place. See [docs/ENCRYPTION.md](docs/ENCRYPT
 - sysctl lockdown, AppArmor (`apparmor.d`) and auditd
 - An nftables firewall that drops all inbound traffic by default, with OpenSnitch for outbound traffic
 - USBGuard, faillock, a stricter sudo configuration, `umask 027` at login, and a `noexec` `/tmp`
+- Network Identity, off by default: on a shared network, look like another common device, or answer nothing
+  (Stealth). System Settings > Privacy & Security
 - An AIDE baseline and daily `arch-audit` CVE checks
 
 </details>

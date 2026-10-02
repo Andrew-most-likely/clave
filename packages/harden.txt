@@ -2,3 +2,5 @@
 linux-hardened
 apparmor audit arch-audit
 nftables opensnitch usbguard
+# Network Identity (SEC-7): DHCP client the profiles shape
+dhcpcd

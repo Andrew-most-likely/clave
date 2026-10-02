@@ -70,6 +70,10 @@ to what users see and to internal names: commands, paths, files, settings keys, 
 and code identifiers. The only places that name Apple are the README (trademark disclaimer, note on the old
 name), the changelog, this plan, and the code for the migration (BR-9) and the personal option (BR-10).
 `scripts/name-check.sh` enforces this in CI. The ⌘ glyph is a Unicode symbol, not a trademark (see BR-5).
+One exception, decided on 2026-10-01: Network Identity (SEC-7) names the systems it makes the laptop look like,
+because a profile is useless if the user cannot tell what it imitates (nominative use, no logo or style). The
+names appear only in its profile files (`/usr/share/clave/netid/`), its helper and their test; System Settings,
+the menu bar and Control Center read the labels from `clave-netid status`, so the shell code names no product.
 
 - **BR-1 Project name.** The project is called **Clave** (Spanish for keystone). All names use the prefix
   `clave`: commands `clave-*`, directories `~/.config/clave`, `~/.local/share/clave`,
@@ -259,6 +263,66 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   `~/.config/clave/allowed_signers` only adds keys. Root helpers never decode a picture the user chose, and
   USBGuard gives the user list and listen rights only (`IPCAllowedUsers=root`). See `.github/SECURITY.md`.
 
+- **SEC-7 Network Identity (added 2026-10-01).** On a shared network (campus, café), DHCP, the IP TTL, the TCP
+  SYN, ping replies and the captive portal's user agent tell everyone on the LAN that the laptop runs Linux.
+  Network Identity makes the laptop look like a common device instead: **Windows 11**, **macOS**, **iPhone**,
+  **Android** or **Linux** (the native look). A separate **Stealth** switch makes it answer as little as
+  possible. It is optional and off by default (FEAT-10).
+  - **Limits, said in the pane.** The access point always sees a device that transmits. 802.11 probe and
+    association fields and the radio's own signal look like Linux on an Intel radio in every profile; only a
+    kernel driver change could alter them. Windows is the believable profile on Intel hardware. The other
+    profiles fool DHCP fingerprinting, OS detection in routers and `nmap`, and captive portals, but not a
+    passive 802.11 classifier. Traffic inside a VPN tunnel is not affected.
+  - **What a profile sets.** One root-owned file per profile in `/usr/share/clave/netid/`. Values from the p0f
+    and satori fingerprint databases, checked on the wire before release:
+
+    | | Windows 11 | macOS | iPhone | Android | Linux |
+    |---|---|---|---|---|---|
+    | IP TTL | 128 | 64 | 64 | 64 | 64 |
+    | TCP timestamps | off | on | on | on | on |
+    | SYN options | mss,nop,ws,nop,nop,sok | mss,nop,ws,nop,nop,ts,sok,eol | as macOS | kernel order | kernel order |
+    | SYN window | kernel (64240) | 65535 | 65535 | kernel | kernel |
+    | DHCP option 55 | 1,3,6,15,31,33,43,44,46,47,119,121,249,252 | 1,121,3,6,15,108,114,119,252,95,44,46 | 1,121,3,6,15,108,114,119,252 | 1,3,6,15,26,28,51,58,59,43,114,108 | dhcpcd default |
+    | DHCP option 60 | MSFT 5.0 | none | none | android-dhcp-14 | none |
+    | DHCP hostname | DESKTOP-XXXXXXX, new each connect | MacBook-Pro | iPhone | none | none |
+    | Ping replies | no | yes | yes | yes | yes |
+    | Portal user agent | Firefox on Windows | Safari on macOS | Safari on iOS | Chrome on Android | Firefox on Linux |
+
+    In every profile while the feature is on: a random MAC address for each connection (no vendor prefix, which
+    would not match the Intel radio), the DHCP client id is that MAC, and leases are forgotten on disconnect.
+    **Stealth** adds: no ping or timestamp replies, all new inbound traffic dropped without a reply (instead
+    of the default reject), ARP answers only for the laptop's own address, and no DHCP hostname.
+  - **Root helper.** `/usr/local/bin/clave-netid apply PROFILE STEALTH`, `status` and `reset`, run through
+    pkexec (polkit action `org.clave.netid`, `auth_admin_keep`, the same as `clave-usb`, so a program running
+    as the user cannot turn Stealth off without the password). It accepts only the five profile names and
+    renders every file from the profile data; nothing the user types reaches a config file. State is in
+    `/etc/clave/netid/state`. `reset` removes every file it wrote and returns the laptop to the install
+    defaults. `clave-netid.service` applies the saved state at boot, before NetworkManager.
+  - **Engines.** NetworkManager with `dhcp=dhcpcd` (dhcpcd's config sets options 55 and 60), sysctl for TTL,
+    timestamps and ARP, and two chains inside the existing `inet hardening` nftables table (`netid_in`,
+    `netid_out`; an accept in another table cannot undo a drop in this one). Two things need more:
+    - The DHCP TTL and the exact order of option 55. dhcpcd sends DHCP through a raw socket that bypasses
+      netfilter, always with TTL 64, and it sorts option 55 by number. An optional dhcpcd build with a small
+      patch (`scripts/extra/dhcpcd-netid/`) reads both from `/etc/clave/netid/dhcp`. Without that build the
+      pane says that the DHCP TTL stays 64 and the option order is dhcpcd's.
+    - The SYN option order. `clave-synshape` reorders the options of the laptop's own outgoing SYNs and sets
+      the SYN window. It never adds an option and never changes the MSS or window-scale value, so the
+      connection itself is unchanged. It is Python with only the standard library (netlink, no compiled
+      code), runs only when the profile needs it, as a `DynamicUser` with `CAP_NET_ADMIN` only, and the queue
+      rule uses `bypass`, so traffic flows unchanged if it stops. It sees IPv4 SYNs leaving through an
+      Ethernet-type interface (Wi-Fi or wired), not tunnel or VM traffic.
+  - **Answers to the section 3 questions.** (1) Yes: privacy on shared networks, which the user asked for.
+    (2) One optional service, `clave-synshape`, only for Windows, macOS and iPhone. (3) No listeners; the
+    service reads a netfilter queue, not a socket on the network. (4) A little: root-side code parses the
+    laptop's own outbound SYN headers only, bounded by the header length, with no other input. The helper
+    takes a fixed set of words. (5) No: SYNs only, one per new connection. (6) Yes, fully local. (7) The
+    simpler parts (TTL, DHCP, ping) use existing engines; only the SYN order needs new code. (8) Optional,
+    off by default.
+  - **Tests.** `tests/netid-unit.sh` (CI, no root) renders every profile into a scratch root and compares the
+    files, checks every rendered ruleset with `nft -c` when nft is present, and runs the SYN rewriter on saved
+    packets. On the laptop: a `tshark` capture of DHCP, SYNs and ICMP for each profile, `nmap -O` from a second
+    device, and `reset` restoring the files.
+
 ### 5.3 Performance and background work
 
 - **PERF-1 Background budget.** No listeners or services beyond what a normal Arch install needs, plus the
@@ -279,6 +343,8 @@ name), the changelog, this plan, and the code for the migration (BR-9) and the p
   | `apparmor`, `auditd` | harden | Mandatory access control, audit log |
   | `arch-audit.timer` | harden | Daily CVE check |
   | `aidecheck.timer`, `aide-refresh.service` | harden | File integrity check, baseline refresh after upgrades |
+  | `clave-netid.service` (oneshot, only while Network Identity is on) | harden | Loads the saved profile at boot (SEC-7) |
+  | `clave-synshape.service` (only for profiles that reorder SYN options) | harden | Reorders the options of the laptop's own outgoing SYNs (SEC-7) |
   | `geoclue` (D-Bus activated, v1.1.0) | apps | Location for Weather, Clock and Maps. Starts only when one of them asks and stops after; its network sources are off (APP-6) |
 
   Listeners inside the shell, all event-driven, none polling:
@@ -639,6 +705,7 @@ capture now run in upstream programs; resources are used only while open; everyt
 | FEAT-7 | Modifier key glyph (BR-5) | Required | ⌘ | Keyboard > Super key symbol (done) |
 | FEAT-8 | Editing shortcuts on Super (Super+C, X, V, Z, Shift+Z) sent to the app as Ctrl shortcuts | Optional | Off | Keyboard > Editing shortcuts on the Super key (done) |
 | FEAT-9 | Calculator in Search, fully local (OFF-1): no exchange-rate downloads | Required | On | Search > Calculator, Ctrl+Tab (done) |
+| FEAT-10 | Network Identity: look like Windows 11, macOS, iPhone, Android or Linux on the network, plus Stealth (SEC-7) | Optional | Off | Privacy & Security > Network Identity; Wi-Fi menu; Control Center |
 
 Notes on the features:
 
@@ -656,6 +723,10 @@ Notes on the features:
   inside the app list (rofi's combined mode drops them). `clave-qalc` runs qalc with exchange-rate updates
   off, so conversions use only rates already on disk. Enter copies the result. History is not kept.
 - **FEAT-7.** The choices are ⌘ and ❖. The Windows logo is a Microsoft trademark, so it is not offered.
+- **FEAT-10.** A section in Privacy & Security, not its own pane: it is a privacy setting, and the pane already
+  holds the firewall-adjacent settings. The Wi-Fi menu in the menu bar lists the profiles with a check mark.
+  Control Center has a row: the circle turns Stealth on and off, the text shows the profile and opens the
+  pane. Changing the profile reconnects Wi-Fi once, so the next DHCP request carries the new identity.
 - **FEAT-5.** The setting already exists and is on by default. When it is off, the hyprbars plugin is
   unloaded. Separately, a fixed list in `plugins.lua` (`no-bar-csd` rule) hides the bar for apps that draw
   their own. See ISSUE-1.
@@ -801,6 +872,7 @@ Each phase ends when its exit criteria are met.
 | 6 | Standard apps and shell tools (v1.1.0): see the steps below | All APP and SHELL requirements met on the clean VM. Inventory updated (APP-7). BR-11 review recorded. (built; waiting on the dock check and the BR-11 review) |
 | 7 | Disk encryption (SEC-5) | Status and warnings work. The VM tests pass for every supported boot loader, including the interrupted run. RECOVERY.md and ENCRYPTION.md are written. (done in the VM: `tests/vm-encrypt.py` passes for GRUB, systemd-boot, Limine and the interrupted run) |
 | 8 | Upstream compatibility (COMP-5 to COMP-9): see the steps below | A test change to a watched package opens an `upstream-break` issue. `clave-doctor` shows all three results on the live machine and the clean VM. Actions use stays under 300 minutes a month. (steps 1 to 5 built; the issue check waits for the merge to main) |
+| 9 | Network Identity (SEC-7, FEAT-10) | `tests/netid-unit.sh` passes in CI. On the laptop, each profile passes the wire check, and `reset` restores the files. |
 
 Phase 4 must finish before the public release. Phase 6 comes after v1.0.0, so it does not block that release.
 Phase 7 is security work and does not depend on phase 6: start it first. The status check and the warnings

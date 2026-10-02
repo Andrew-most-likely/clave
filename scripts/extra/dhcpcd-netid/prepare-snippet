@@ -1,0 +1,71 @@
+  # Clave Network Identity (SEC-7), optional dhcpcd patch: the DHCP packet TTL
+  # and the exact order of option 55 come from /etc/clave/netid/dhcp, which
+  # clave-netid writes. Without that file dhcpcd behaves as stock. Insert this
+  # into prepare() of Arch's dhcpcd PKGBUILD (see README in this folder); the
+  # build fails if upstream moved one of the patched lines.
+  _c=$pkgname-$pkgver/src/dhcp.c
+  sed -i 's/^\tip->ip_ttl = IPDEFTTL;$/\t{ extern int clave_netid_ttl; ip->ip_ttl = (uint8_t)clave_netid_ttl; }/' "$_c"
+  sed -i '/^\t\t\*n_params = (uint8_t)(p - n_params - 1);$/a\
+\t\t{\
+\t\t\textern uint8_t clave_netid_prl[]; extern size_t clave_netid_prl_len;\
+\t\t\tif (clave_netid_prl_len != 0) {\
+\t\t\t\tsize_t ci;\
+\t\t\t\tp = n_params + 1;\
+\t\t\t\tfor (ci = 0; ci < clave_netid_prl_len; ci++) {\
+\t\t\t\t\tAREA_FIT(1);\
+\t\t\t\t\t*p++ = clave_netid_prl[ci];\
+\t\t\t\t}\
+\t\t\t\t*n_params = (uint8_t)clave_netid_prl_len;\
+\t\t\t}\
+\t\t}' "$_c"
+  cat >> "$_c" <<'EOF'
+
+/* Clave Network Identity: read once before main(), so before privilege
+ * separation chroots or sandboxes any process. A missing or bad file keeps
+ * the stock TTL (64) and dhcpcd's own option 55. */
+#ifndef CLAVE_NETID_DHCP
+#define CLAVE_NETID_DHCP "/etc/clave/netid/dhcp"
+#endif
+int clave_netid_ttl = IPDEFTTL;
+uint8_t clave_netid_prl[64];
+size_t clave_netid_prl_len;
+
+__attribute__((constructor)) static void
+clave_netid_load(void)
+{
+	char line[512], *s, *end;
+	size_t n;
+	long v;
+	FILE *f = fopen(CLAVE_NETID_DHCP, "re");
+
+	if (f == NULL)
+		return;
+	while (fgets(line, sizeof(line), f) != NULL) {
+		if (strncmp(line, "ttl=", 4) == 0) {
+			v = strtol(line + 4, NULL, 10);
+			if (v >= 1 && v <= 255)
+				clave_netid_ttl = (int)v;
+		} else if (strncmp(line, "prl=", 4) == 0) {
+			s = line + 4;
+			n = 0;
+			while (*s != '\0' && *s != '\n') {
+				v = strtol(s, &end, 10);
+				if (end == s || v < 1 || v > 254 ||
+				    n == sizeof(clave_netid_prl)) {
+					n = 0;
+					break;
+				}
+				clave_netid_prl[n++] = (uint8_t)v;
+				s = end;
+				if (*s == ',')
+					s++;
+			}
+			clave_netid_prl_len = n;
+		}
+	}
+	fclose(f);
+}
+EOF
+  grep -q 'ip->ip_ttl = (uint8_t)clave_netid_ttl;' "$_c" &&
+    grep -q '\*n_params = (uint8_t)clave_netid_prl_len;' "$_c" ||
+    { echo "dhcpcd Network Identity patch did not apply" >&2; return 1; }

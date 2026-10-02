@@ -1,0 +1,362 @@
+#!/bin/bash
+# Network Identity (SEC-7, FEAT-10): make the laptop look like Windows 11,
+# macOS, an iPhone, an Android phone or Linux on the local network, with an
+# optional Stealth mode. Installed as /usr/local/bin/clave-netid; System
+# Settings runs it through pkexec (polkit action org.clave.netid,
+# auth_admin_keep). Every file it writes is rendered from the profile files in
+# /usr/share/clave/netid; nothing the caller passes reaches a file except the
+# allowlisted profile name.
+#
+#   clave-netid apply PROFILE STEALTH   PROFILE: windows macos iphone android linux; STEALTH: 0 or 1
+#   clave-netid status                  key=value lines, for System Settings (no root needed)
+#   clave-netid reset                   remove everything this tool wrote
+#   clave-netid boot                    re-apply the saved state (clave-netid.service)
+#   clave-netid selftest                check again that this kernel passes rewritten SYNs
+#   clave-netid hostname UUID           set the DHCP hostname of a connection (dispatcher)
+#
+# Tests set CLAVE_NETID_ROOT to a scratch folder: files are written under it and
+# nothing is applied to the running system.
+set -eu
+root=${CLAVE_NETID_ROOT:-}
+profiles=${CLAVE_NETID_PROFILES:-$root/usr/share/clave/netid}
+dir=$root/etc/clave/netid
+state=$dir/state
+dhcpcd_conf=$root/etc/dhcpcd.conf
+sysctl_conf=$root/etc/sysctl.d/99-zz-clave-netid.conf   # after 99-hardening.conf, which sets tcp_timestamps
+nm_conf=$root/etc/NetworkManager/conf.d/60-clave-netid.conf
+dhcpcd_bin=${CLAVE_NETID_DHCPCD:-/usr/bin/dhcpcd}
+queue=7071
+
+live() { [ -z "$root" ]; }
+die() { echo "clave-netid: $*" >&2; exit 2; }
+
+valid_profile() { case "$1" in windows|macos|iphone|android|linux) return 0 ;; esac; return 1; }
+
+# get KEY FILE: one value from a key=value file (profile or state)
+get() { sed -n "s/^$1=//p" "$2" | head -n1; }
+
+# DHCP option number -> dhcpcd option name (dhcpcd-definitions.conf). Options
+# dhcpcd has no name for (95) or must not act on (108, IPv6-only mode while
+# IPv6 is off on the LAN) go on the wire only through the patched build.
+optname() {
+    case "$1" in
+        1) echo subnet_mask ;; 3) echo routers ;; 6) echo domain_name_servers ;;
+        15) echo domain_name ;; 26) echo interface_mtu ;; 28) echo broadcast_address ;;
+        31) echo router_discovery ;; 33) echo static_routes ;; 43) echo vendor_encapsulated_options ;;
+        44) echo netbios_name_servers ;; 46) echo netbios_node_type ;; 47) echo netbios_scope ;;
+        51) echo dhcp_lease_time ;; 58) echo dhcp_renewal_time ;; 59) echo dhcp_rebinding_time ;;
+        114) echo captive_portal_uri ;; 119) echo domain_search ;; 121) echo classless_static_routes ;;
+        249) echo ms_classless_static_routes ;; 252) echo wpad_url ;;
+    esac
+}
+
+render_dhcpcd() {  # render_dhcpcd PROFILE_FILE
+    local p=$1 prl vendor names="" n name
+    prl=$(get dhcp_prl "$p"); vendor=$(get dhcp_vendor "$p")
+    echo "# Written by clave-netid (Network Identity, profile $(get name "$p")). Changes here are replaced."
+    echo "# Client id is the MAC address, which is random for each connection; no DUID."
+    echo "clientid"
+    if [ -n "$vendor" ]; then echo "vendorclassid $vendor"; else echo "vendorclassid"; fi
+    echo "noipv4ll"
+    echo "noarp"
+    local no="rapid_commit, forcerenew_nonce_capable, ipv6_only_preferred"
+    [ "$(get dhcp_max_message_size "$p")" = 1 ] || no="$no, dhcp_max_message_size"
+    if [ -z "$prl" ]; then
+        echo "nooption $no"
+        echo "option domain_name_servers, domain_name, domain_search"
+        echo "option classless_static_routes, interface_mtu"
+    else
+        [[ ",$prl," == *,28,* ]] || no="$no, broadcast_address"
+        echo "nooption $no"
+        echo "# Option 55 as sent by the profile: $prl"
+        for n in ${prl//,/ }; do
+            name=$(optname "$n")
+            [ -n "$name" ] && names="$names${names:+, }$name"
+        done
+        echo "option $names"
+    fi
+    echo "require dhcp_server_identifier"
+}
+
+render_sysctl() {  # render_sysctl PROFILE_FILE STEALTH
+    echo "# Written by clave-netid (Network Identity). Removed by: clave-netid reset"
+    echo "net.ipv4.ip_default_ttl = $(get ttl "$1")"
+    echo "net.ipv4.tcp_timestamps = $(get timestamps "$1")"
+    if [ "$2" = 1 ]; then
+        echo "# Stealth: answer ARP only for our own address on the asking interface"
+        echo "net.ipv4.conf.all.arp_ignore = 1"
+        echo "net.ipv4.conf.all.arp_announce = 2"
+    fi
+}
+
+render_nm() {
+    cat <<'EOF'
+# Written by clave-netid (Network Identity). Removed by: clave-netid reset
+# dhcpcd sends the profile's DHCP options (/etc/dhcpcd.conf); a new random
+# MAC address and client id for each connection.
+[main]
+dhcp=dhcpcd
+
+[device]
+wifi.scan-rand-mac-address=yes
+
+[connection]
+wifi.cloned-mac-address=random
+ethernet.cloned-mac-address=random
+ipv4.dhcp-client-id=mac
+EOF
+}
+
+# The three chains exist, empty, in /etc/nftables.conf (table inet hardening):
+# netid_in early in input, netid_closed just before the final reject, netid_out
+# in output. This fills them.
+render_nft() {  # render_nft PROFILE_FILE STEALTH
+    local p=$1 st=$2 name in="add rule inet hardening netid_in" cl="inet hardening netid_closed"
+    name=$(get name "$p")
+    echo "flush chain inet hardening netid_in"
+    echo "flush chain inet hardening netid_closed"
+    echo "flush chain inet hardening netid_out"
+    if [ "$st" = 1 ]; then
+        echo "# Stealth: no answer to anything new"
+        echo "$in udp sport 67 udp dport 68 return"
+        echo "$in meta l4proto ipv6-icmp return"
+        echo "$in icmp type { destination-unreachable, time-exceeded, parameter-problem } return"
+        echo "$in drop"
+    elif [ "$(get ping "$p")" = 1 ]; then
+        echo "# Answer ping, like $name"
+        echo "$in icmp type echo-request limit rate 5/second accept"
+        echo "$in icmp type echo-request drop"
+    else
+        echo "# No ping replies, like $name"
+        echo "$in icmp type echo-request drop"
+    fi
+    echo "add rule $cl drop"
+    if [ "$(get closed "$p")" != drop ]; then
+        # nft 1.1 misreads anything that follows "reject with tcp reset" in a
+        # file, so that rule is inserted last, which puts it first in the chain.
+        echo "# Closed ports: TCP RST and ICMP port unreachable, like $name"
+        echo "insert rule $cl meta pkttype host meta l4proto udp limit rate 5/second reject"
+        echo "insert rule $cl meta pkttype host meta l4proto tcp limit rate 5/second reject with tcp reset"
+    else
+        echo "# Closed ports: no answer, like $name"
+    fi
+}
+
+render_syn() {
+    echo "order=$(get syn_order "$1")"
+    echo "window=$(get syn_window "$1")"
+}
+
+# Loaded only after clave-synshape started and passed syn_selftest.
+render_nft_syn() {
+    echo "# The laptop's own IPv4 SYNs on Wi-Fi or wired go to clave-synshape; bypass if it is not running"
+    echo "add rule inet hardening netid_out meta nfproto ipv4 tcp flags & (syn | ack) == syn meta oiftype ether oifname != \"virbr*\" queue num $queue bypass"
+}
+
+render_portal() {
+    echo "ua=$(get ua "$1")"
+    echo "platform=$(get ua_platform "$1")"
+    echo "oscpu=$(get ua_oscpu "$1")"
+}
+
+render_dhcp() {  # read by the patched dhcpcd (scripts/extra/dhcpcd-netid)
+    echo "ttl=$(get ttl "$1")"
+    echo "prl=$(get dhcp_prl "$1")"
+}
+
+# put DEST: write stdin to DEST; prints "changed" when the content differs
+put() {
+    local dest=$1 tmp
+    mkdir -p "$(dirname "$dest")"
+    tmp=$(mktemp "$dest.XXXXXX")
+    cat > "$tmp"
+    chmod 644 "$tmp"
+    if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f "$tmp"; return 0; fi
+    mv -f "$tmp" "$dest"
+    echo changed
+}
+
+firewall_ready() { live && nft list chain inet hardening netid_in >/dev/null 2>&1; }
+
+# syn_selftest: prints ok or fail. A changed packet handed back to the kernel
+# must still leave the machine; on a kernel where it does not, every SYN the
+# rewriter touches would be lost. So a connection between two scratch network
+# namespaces goes through clave-synshape first (queue without bypass). The
+# result is kept per kernel version.
+syn_selftest() {
+    local k cache=$dir/synshape-test a=clave-netid-a b=clave-netid-b q=$((queue + 1)) qp lp rc=1
+    k=$(uname -r)
+    if [ -f "$cache" ] && [ "$(get kernel "$cache")" = "$k" ]; then get result "$cache"; return 0; fi
+    ip netns del $a 2>/dev/null || true
+    ip netns del $b 2>/dev/null || true
+    if ip netns add $a && ip netns add $b &&
+        ip link add cnt0 netns $a type veth peer name cnt1 netns $b &&
+        ip -n $a addr add 192.0.2.1/30 dev cnt0 && ip -n $b addr add 192.0.2.2/30 dev cnt1 &&
+        ip -n $a link set lo up && ip -n $b link set lo up &&
+        ip -n $a link set cnt0 up && ip -n $b link set cnt1 up &&
+        printf 'table inet t {\n chain o {\n  type filter hook output priority 0\n  tcp flags & (syn | ack) == syn queue num %s\n }\n}\n' $q |
+            ip netns exec $a nft -f -; then
+        ip netns exec $b python3 -c 'import socket; s = socket.socket(); s.bind(("192.0.2.2", 9)); s.listen(); s.settimeout(6); s.accept()' 2>/dev/null &
+        lp=$!
+        ip netns exec $a /usr/local/bin/clave-synshape --queue $q --config "$dir/syn" >/dev/null 2>&1 &
+        qp=$!
+        sleep 1
+        ip netns exec $a python3 -c 'import socket; socket.create_connection(("192.0.2.2", 9), 3)' 2>/dev/null && rc=0
+        kill $qp $lp 2>/dev/null || true
+        wait $qp $lp 2>/dev/null || true
+    fi
+    ip netns del $a 2>/dev/null || true
+    ip netns del $b 2>/dev/null || true
+    local result=fail
+    [ $rc = 0 ] && result=ok
+    printf 'kernel=%s\nresult=%s\n' "$k" "$result" | put "$cache" >/dev/null
+    echo $result
+}
+
+apply_runtime() {  # apply_runtime STEALTH: the parts that do not survive a reboot
+    live || return 0
+    sysctl -q -p "$sysctl_conf" >/dev/null
+    if ! firewall_ready; then
+        echo "clave-netid: the firewall has no netid chains; ping, Stealth and SYN rules not applied" >&2
+        systemctl stop clave-synshape.service 2>/dev/null || true
+        return 0
+    fi
+    nft -f "$dir/nft.rules"
+    if [ -z "$(get order "$dir/syn")" ]; then
+        systemctl stop clave-synshape.service 2>/dev/null || true
+    elif [ "$(syn_selftest)" != ok ]; then
+        echo "clave-netid: this kernel drops packets the SYN rewriter changes; SYN order left as is" >&2
+        systemctl stop clave-synshape.service 2>/dev/null || true
+    elif systemctl restart clave-synshape.service; then
+        render_nft_syn | nft -f -
+    fi
+}
+
+active_connections() {  # UUIDs of active Wi-Fi and wired connections
+    nmcli -t -f UUID,TYPE connection show --active 2>/dev/null |
+        awk -F: '$2=="802-11-wireless" || $2=="802-3-ethernet" {print $1}'
+}
+
+set_hostname() {  # set_hostname UUID: per the saved profile and Stealth
+    local uuid=$1 style name
+    [[ "$uuid" =~ ^[0-9a-fA-F-]{36}$ ]] || die "bad connection id"
+    [ -f "$state" ] || return 0
+    style=$(get hostname "$profiles/$(get profile "$state").conf")
+    [ "$(get stealth "$state")" = 1 ] && style=none
+    case "$style" in
+        desktop) name="DESKTOP-$(tr -dc 'A-Z0-9' </dev/urandom | head -c 7)" ;;
+        macbook) name="MacBook-Pro" ;;
+        iphone)  name="iPhone" ;;
+        *) name="" ;;
+    esac
+    live || { echo "$name" > "$dir/hostname"; return 0; }
+    if [ -n "$name" ]; then
+        nmcli connection modify "$uuid" ipv4.dhcp-send-hostname yes ipv4.dhcp-hostname "$name"
+    else
+        nmcli connection modify "$uuid" ipv4.dhcp-send-hostname no ipv4.dhcp-hostname ""
+    fi
+}
+
+cmd_apply() {
+    local name=$1 st=$2 p first=0 nm_changed uuid
+    valid_profile "$name" || die "unknown profile: $name"
+    [[ "$st" =~ ^[01]$ ]] || die "stealth must be 0 or 1"
+    p=$profiles/$name.conf
+    [ -f "$p" ] || die "profile file missing: $p"
+    mkdir -p "$dir/backup"
+    chmod 755 "$dir"
+    if [ ! -f "$state" ]; then
+        first=1
+        # Keep what was there before the first apply, for reset.
+        if [ -f "$dhcpcd_conf" ]; then cp -a "$dhcpcd_conf" "$dir/backup/dhcpcd.conf"
+        else : > "$dir/backup/dhcpcd.conf.absent"; fi
+    fi
+    render_dhcpcd "$p" | put "$dhcpcd_conf" >/dev/null
+    render_sysctl "$p" "$st" | put "$sysctl_conf" >/dev/null
+    nm_changed=$(render_nm | put "$nm_conf")
+    render_nft "$p" "$st" | put "$dir/nft.rules" >/dev/null
+    render_syn "$p" | put "$dir/syn" >/dev/null
+    render_portal "$p" | put "$dir/portal" >/dev/null
+    render_dhcp "$p" | put "$dir/dhcp" >/dev/null
+    printf 'profile=%s\nstealth=%s\n' "$name" "$st" | put "$state" >/dev/null
+    live || { echo "applied $name stealth=$st (first=$first, scratch root)"; return 0; }
+
+    apply_runtime "$st"
+    systemctl enable -q clave-netid.service
+    # The new identity goes out with the next DHCP request: reconnect.
+    if [ -n "$nm_changed" ]; then
+        systemctl restart NetworkManager.service
+        sleep 2
+    fi
+    for uuid in $(active_connections); do
+        set_hostname "$uuid"
+        nmcli -w 20 connection up "$uuid" >/dev/null 2>&1 || true
+    done
+    echo "applied $name stealth=$st"
+}
+
+cmd_reset() {
+    local had_nm=0
+    [ -f "$nm_conf" ] && had_nm=1
+    if [ -f "$dir/backup/dhcpcd.conf" ]; then cp -a "$dir/backup/dhcpcd.conf" "$dhcpcd_conf"
+    elif [ -f "$dir/backup/dhcpcd.conf.absent" ]; then rm -f "$dhcpcd_conf"; fi
+    rm -f "$sysctl_conf" "$nm_conf"
+    if live; then
+        systemctl disable -q --now clave-synshape.service 2>/dev/null || true
+        systemctl disable -q clave-netid.service 2>/dev/null || true
+        if firewall_ready; then
+            nft -f - <<'EOF'
+flush chain inet hardening netid_in
+flush chain inet hardening netid_closed
+flush chain inet hardening netid_out
+EOF
+        fi
+        # Kernel defaults first, then every sysctl.d file again (99-hardening wins).
+        sysctl -q -w net.ipv4.ip_default_ttl=64 net.ipv4.tcp_timestamps=1 \
+            net.ipv4.conf.all.arp_ignore=0 net.ipv4.conf.all.arp_announce=0 >/dev/null
+        sysctl -q --system >/dev/null
+        for uuid in $(active_connections); do
+            nmcli connection modify "$uuid" ipv4.dhcp-send-hostname no ipv4.dhcp-hostname "" || true
+        done
+        [ "$had_nm" = 1 ] && systemctl restart NetworkManager.service
+    fi
+    rm -rf "$dir"
+    echo "reset: Network Identity is off"
+}
+
+cmd_status() {
+    local prof=off st=0 patch=no rewriter=off fw=no
+    if [ -f "$state" ]; then prof=$(get profile "$state"); st=$(get stealth "$state"); fi
+    grep -qa '/etc/clave/netid/dhcp' "$dhcpcd_bin" 2>/dev/null && patch=yes
+    grep -q 'netid_in' "$root/etc/nftables.conf" 2>/dev/null && fw=yes
+    if [ "$prof" != off ] && [ -n "$(get order "$dir/syn" 2>/dev/null)" ]; then
+        if [ "$(get result "$dir/synshape-test" 2>/dev/null)" = fail ]; then rewriter=failed
+        else rewriter=$(systemctl is-active clave-synshape.service 2>/dev/null || true); fi
+    fi
+    echo "profile=$prof"
+    echo "stealth=$st"
+    echo "dhcp_patch=$patch"
+    echo "firewall=$fw"
+    echo "rewriter=${rewriter:-inactive}"
+    # id:label pairs for the UI, from the profile files: the shell code names no product (5.1).
+    local list="off:Off" n
+    for n in windows macos iphone android linux; do
+        [ -f "$profiles/$n.conf" ] && list="$list;$n:$(get name "$profiles/$n.conf")"
+    done
+    echo "profiles=$list"
+}
+
+cmd_boot() {
+    [ -f "$state" ] || exit 0
+    apply_runtime "$(get stealth "$state")"
+}
+
+case "${1:-}" in
+    apply) [ $# -eq 3 ] || die "usage: clave-netid apply PROFILE 0|1"; cmd_apply "$2" "$3" ;;
+    status) cmd_status ;;
+    reset) cmd_reset ;;
+    boot) cmd_boot ;;
+    selftest) [ -f "$dir/syn" ] || die "apply a profile first"; rm -f "$dir/synshape-test"; syn_selftest ;;
+    hostname) [ $# -eq 2 ] || die "usage: clave-netid hostname UUID"; set_hostname "$2" ;;
+    *) echo "usage: clave-netid apply PROFILE 0|1 | status | reset | boot | selftest | hostname UUID" >&2; exit 2 ;;
+esac
