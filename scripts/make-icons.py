@@ -89,10 +89,6 @@ ICONS = {
                 ''.join(f'<circle cx="34" cy="{y}" r="5" fill="#fff"/>' for y in (40, 56, 72, 88))
                 + stroke("M48 40h48M48 56h34M48 72h44M48 88h26", 7),
                 ["org.gnome.Logs"]),
-    "contacts": ("#3cc7b0", "#1a9483",
-                 '<circle cx="64" cy="48" r="17" fill="#fff"/>'
-                 '<path fill="#fff" d="M30 98c0-19 15-30 34-30s34 11 34 30z"/>',
-                 ["x-office-address-book"]),
     "disks": ("#7d8fa3", "#4f6177",
               f'<rect x="26" y="46" width="76" height="38" rx="9" fill="{W}"/>'
               '<circle cx="88" cy="65" r="5" fill="BG"/>'
@@ -105,10 +101,7 @@ ICONS = {
                  ["org.gnome.Papers", "org.gnome.Evince", "org.gnome.Evince-symbolic"]),
     "fonts": ("#3e3e48", "#1c1c22",
               stroke("M38 96 64 32l26 64M48 76h32", 10),
-              ["org.gnome.font-viewer"]),
-    "whiteboard": ("#ffc94d", "#f29a1f",
-                   stroke("M30 88c8-30 22-44 30-28s6 30 16 26 14-30 22-48", 9),
-                   ["com.github.flxzt.rnote"]),
+              ["com.github.FontManager.FontManager"]),
     "images": ("#3fd0e8", "#1597b8",
                f'<rect x="26" y="34" width="76" height="60" rx="9" fill="{W}"/>'
                '<path fill="BG" d="M34 86l20-24 12 13 9-9 19 20z"/>'
@@ -127,12 +120,6 @@ ICONS = {
               '<rect x="52" y="44" width="8" height="46" fill="#fff"/><rect x="88" y="32" width="8" height="48" fill="#fff"/>'
               '<ellipse cx="46" cy="90" rx="13" ry="10" fill="#fff"/><ellipse cx="82" cy="80" rx="13" ry="10" fill="#fff"/>',
               ["io.bassi.Amberol"]),
-    "notes": ("#ff9f43", "#e87717",
-              f'<rect x="32" y="32" width="64" height="68" rx="9" fill="{W}"/>'
-              + ''.join(f'<rect x="{x}" y="24" width="7" height="18" rx="3.5" fill="#fff" stroke="BG" stroke-width="3"/>'
-                        for x in (44, 60, 76))
-              + '<path stroke="BG" stroke-width="5" stroke-linecap="round" d="M44 60h40M44 72h40M44 84h26"/>',
-              ["accessories-text-editor"]),
     "text": ("#5b7bb8", "#3a5790",
              f'<rect x="34" y="26" width="60" height="76" rx="9" fill="{W}"/>'
              '<path stroke="BG" stroke-width="5" stroke-linecap="round" d="M44 44h40M44 56h40M44 68h22"/>'
@@ -143,16 +130,6 @@ ICONS = {
                f'<rect x="40" y="46" width="64" height="50" rx="8" fill="{W}"/>'
                '<path fill="BG" d="M47 89l16-19 10 10 7-7 17 16z"/>',
                ["org.gnome.Shotwell", "shotwell"]),
-    "podcasts": ("#2f7fb5", "#1b5a87",
-                 '<rect x="52" y="26" width="24" height="46" rx="12" fill="#fff"/>'
-                 + stroke("M40 62a24 24 0 0 0 48 0M64 86v12M50 100h28", 7),
-                 ["org.gnome.Podcasts"]),
-    "reminders": ("#4cd3c2", "#23a393",
-                  '<rect x="28" y="34" width="24" height="24" rx="7" fill="#fff"/>'
-                  '<rect x="28" y="70" width="24" height="24" rx="7" fill="#fff"/>'
-                  '<path fill="none" stroke="BG" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M34 46l5 5 8-10"/>'
-                  + stroke("M62 46h38M62 82h38", 8),
-                  ["io.github.mrvladus.List"]),
     "scanner": ("#9aa1a9", "#6b737c",
                 f'<rect x="26" y="44" width="76" height="12" rx="6" fill="{W}" opacity=".75"/>'
                 f'<rect x="26" y="60" width="76" height="34" rx="9" fill="{W}"/>'
@@ -162,10 +139,6 @@ ICONS = {
                f'<rect x="26" y="30" width="76" height="54" rx="8" fill="none" stroke="{W}" stroke-width="7"/>'
                + stroke("M50 100h28M64 84v16M44 50h34l-8-7M84 64H50l8 7", 6),
                ["org.gnome.Connections"]),
-    "sticky": ("#b5d84a", "#88aa22",
-               f'<path fill="{W}" d="M36 30h56a6 6 0 0 1 6 6v42L76 100H36a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6z"/>'
-               '<path fill="BG" opacity=".45" d="M98 78H82a6 6 0 0 0-6 6v16z"/>',
-               ["sticky"]),
     "sysinfo": ("#3d8bfd", "#1f5fd0",
                 f'<circle cx="64" cy="64" r="36" fill="{W}"/>'
                 '<circle cx="64" cy="45" r="6" fill="BG"/><rect x="58" y="56" width="12" height="30" rx="5" fill="BG"/>',
@@ -174,14 +147,6 @@ ICONS = {
                f'<rect x="26" y="36" width="76" height="56" rx="11" fill="{W}"/>'
                '<path fill="BG" d="M56 50l24 14-24 14z"/>',
                ["org.gnome.Showtime"]),
-    "recorder": ("#ff4d6d", "#d91e45",
-                 f'<circle cx="64" cy="64" r="32" fill="none" stroke="{W}" stroke-width="7"/>'
-                 '<circle cx="64" cy="64" r="18" fill="#fff"/>',
-                 ["org.gnome.SoundRecorder"]),
-    "weather": ("#ffb13b", "#f07f17",
-                '<circle cx="78" cy="46" r="15" fill="#fff" opacity=".75"/>'
-                '<path fill="#fff" d="M42 94a15 15 0 0 1-1-30 22 22 0 0 1 42-6 17 17 0 0 1 3 36z"/>',
-                ["org.gnome.Weather"]),
     "store": ("#34c66b", "#1f9a4b",
               f'<path fill="{W}" d="M32 50h64l-6 46a6 6 0 0 1-6 5H44a6 6 0 0 1-6-5z"/>'
               + stroke("M50 56V44a14 14 0 0 1 28 0v12", 6),

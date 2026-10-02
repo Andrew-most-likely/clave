@@ -574,9 +574,12 @@ PanelWindow {
     property string netidProfile: ""
     property bool netidStealth: false
     property var netidList: []   // "id:label" pairs from clave-netid status
+    // clave-netid-set asks for the password and reports the result in a
+    // notification; the check mark moves at once and is read back next time.
     function netidApply(profile: string, stealth: bool): void {
-        root.run(profile === "off" ? ["pkexec", "/usr/local/bin/clave-netid", "reset"]
-            : ["pkexec", "/usr/local/bin/clave-netid", "apply", profile, stealth ? "1" : "0"])
+        root.netidProfile = profile
+        root.netidStealth = profile !== "off" && stealth
+        root.run([Quickshell.env("HOME") + "/.local/bin/clave-netid-set", profile, stealth ? "1" : "0"])
     }
     // Lock for secured networks, then signal bars (strongest shown first).
     function wifiHint(n: var): string {

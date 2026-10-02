@@ -450,7 +450,10 @@ PanelWindow {
                             on: root.netidStealth
                             onToggled: {
                                 root.netidStealth = !root.netidStealth
-                                root.run(["pkexec", "/usr/local/bin/clave-netid", "apply",
+                                // Control Center is an overlay above every window: close it,
+                                // or the password dialog opens underneath where it cannot be typed in.
+                                root.close()
+                                root.run([Quickshell.env("HOME") + "/.local/bin/clave-netid-set",
                                           root.netidProfile === "off" ? "linux" : root.netidProfile,
                                           root.netidStealth ? "1" : "0"])
                             }

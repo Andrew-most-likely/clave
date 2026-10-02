@@ -378,11 +378,10 @@ OVERRIDE_MARK = "X-Clave-Override"
 # Package -> the name the Dock, Apps and Search show (APP-1). Generic words
 # (BR-3, BR-11); the package's own desktop file is looked up with pacman.
 APP_NAMES = {
-    "errands": "Reminders", "sticky": "Stickies", "gnome-weather": "Weather",
     "gnome-clocks": "Clock", "gnome-maps": "Maps", "shotwell": "Photos",
-    "foliate": "Books", "gnome-podcasts": "Podcasts", "amberol": "Music",
-    "showtime": "Videos", "gnome-sound-recorder": "Voice Memos", "snapshot": "Camera",
-    "gnome-font-viewer": "Fonts", "gnome-chess": "Chess", "rnote": "Freeform board",
+    "foliate": "Books", "amberol": "Music",
+    "showtime": "Videos", "snapshot": "Camera",
+    "font-manager": "Fonts", "gnome-chess": "Chess",
     "simple-scan": "Scanner", "gnome-connections": "Screen Sharing", "gnome-logs": "Console",
     "hardinfo2": "System Information", "gnome-disk-utility": "Disk Utility",
     "seahorse": "Keychain", "timeshift": "Backups", "kitty": "Terminal",
@@ -397,6 +396,8 @@ HIDDEN = [
     "qt5ct", "qt6ct", "kvantummanager", "nwg-look", "rofi", "rofi-theme-selector",
     "avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap",
     "org.gnome.FileRoller", "nm-connection-editor",
+    # Fonts opens a font file in its viewer; the viewer is not an app on its own.
+    "com.github.FontManager.FontViewer",
 ]
 
 # Packages whose launchers stay visible without a new name (APP-10).
@@ -408,7 +409,6 @@ VIDEO = ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "vide
 AUDIO = ["audio/mpeg", "audio/flac", "audio/x-flac", "audio/ogg", "audio/x-vorbis+ogg", "audio/opus",
          "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav"]
 MIME_DEFAULTS = {"clave-calendar.desktop": ["text/calendar"],
-                 "clave-contacts.desktop": ["text/vcard", "text/x-vcard"],
                  "showtime": VIDEO, "amberol": AUDIO,
                  "foliate": ["application/epub+zip"], "gnome-maps": ["x-scheme-handler/geo"]}
 

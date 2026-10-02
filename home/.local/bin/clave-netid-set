@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Network Identity (SEC-7, FEAT-10) from the menu bar, Control Center and
+# System Settings. Runs the root helper through pkexec (it asks for the
+# password) and says how it went in a notification: applying a profile
+# reconnects the network and takes a few seconds, and without this a click
+# looked like it did nothing.
+#   clave-netid-set PROFILE STEALTH   PROFILE: off or a name from "clave-netid status"; STEALTH: 0 or 1
+set -uo pipefail
+tool=/usr/local/bin/clave-netid
+profile=${1:-} stealth=${2:-0}
+[[ "$profile" =~ ^[a-z0-9]+$ && "$stealth" =~ ^[01]$ ]] || { sed -n '7p' "$0" | cut -c3-; exit 2; }
+
+say() { notify-send -a "Network Identity" -i network-wireless "$@" 2>/dev/null || true; }
+[ -x "$tool" ] || { say "Network Identity is not installed" "It comes with the hardening layer."; exit 1; }
+
+# One change at a time from this user; the helper also locks on its side.
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/clave-netid-set.lock"
+flock -n 9 || { say "Still applying the last change" "Wait for it to finish, then try again."; exit 1; }
+
+# The profile names and labels come from the helper (it names the systems, 5.1).
+label=$("$tool" status 2>/dev/null | sed -n 's/^profiles=//p' | tr ';' '\n' | sed -n "s/^$profile://p")
+[ -n "$label" ] || { sed -n '7p' "$0" | cut -c3-; exit 2; }
+if [ "$profile" = off ]; then
+    out=$(pkexec "$tool" reset 2>&1)
+else
+    out=$(pkexec "$tool" apply "$profile" "$stealth" 2>&1)
+fi
+rc=$?
+# Limits the helper met on this computer (no firewall chains, SYN rewriter off).
+notes=$(grep '^clave-netid: ' <<<"$out" | sed 's/^clave-netid: //' | head -n 3)
+case "$rc" in
+    0)
+        if [ "$profile" = off ]; then say "Network Identity is off" "The network settings are back to the install defaults."
+        else say "Looks like $label$([ "$stealth" = 1 ] && echo ", Stealth on")" \
+            "Reconnected, so the next DHCP request carries the new identity.${notes:+
+$notes}"
+        fi ;;
+    126) say "Not changed" "The password dialog was closed." ; exit "$rc" ;;
+    127) say "Not changed" "Not authorized, or the password was wrong." ; exit "$rc" ;;
+    *) say -u critical "Not changed" "${notes:-$(tail -n 1 <<<"$out")}" ; exit "$rc" ;;
+esac

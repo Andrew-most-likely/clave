@@ -168,10 +168,9 @@ Scope {
 
     function run(cmd: var): void { Quickshell.execDetached(cmd) }
 
-    // Network Identity (SEC-7, FEAT-10). clave-netid asks for the password
-    // through pkexec and reconnects the network, which takes a few seconds;
-    // the pane reads the state again when it is done.
-    readonly property string netidTool: "/usr/local/bin/clave-netid"
+    // Network Identity (SEC-7, FEAT-10). clave-netid-set asks for the password
+    // through pkexec, reconnects the network (a few seconds) and reports the
+    // result in a notification; the pane reads the state again when it is done.
     // [{ id, label }] from "clave-netid status" (profiles=off:Off;windows:Windows 11;...).
     readonly property var netidProfiles: (root.st.netid_profiles || "").split(";").filter(x => x.indexOf(":") > 0)
         .map(x => ({ "id": x.slice(0, x.indexOf(":")), "label": x.slice(x.indexOf(":") + 1) }))
@@ -180,8 +179,7 @@ Scope {
         if (root.netidBusy) return
         root.netidBusy = true
         root.refreshPane()
-        netidProc.command = profile === "off" ? ["pkexec", root.netidTool, "reset"]
-            : ["pkexec", root.netidTool, "apply", profile, stealth ? "1" : "0"]
+        netidProc.command = [root.home + "/.local/bin/clave-netid-set", profile, stealth ? "1" : "0"]
         netidProc.running = true
     }
     Process {

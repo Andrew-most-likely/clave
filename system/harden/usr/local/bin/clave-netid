@@ -237,6 +237,11 @@ active_connections() {  # UUIDs of active Wi-Fi and wired connections
         awk -F: '$2=="802-11-wireless" || $2=="802-3-ethernet" {print $1}'
 }
 
+saved_connections() {  # UUIDs of every saved Wi-Fi and wired connection
+    nmcli -t -f UUID,TYPE connection show 2>/dev/null |
+        awk -F: '$2=="802-11-wireless" || $2=="802-3-ethernet" {print $1}'
+}
+
 set_hostname() {  # set_hostname UUID: per the saved profile and Stealth
     local uuid=$1 style name
     [[ "$uuid" =~ ^[0-9a-fA-F-]{36}$ ]] || die "bad connection id"
@@ -315,7 +320,10 @@ EOF
         sysctl -q -w net.ipv4.ip_default_ttl=64 net.ipv4.tcp_timestamps=1 \
             net.ipv4.conf.all.arp_ignore=0 net.ipv4.conf.all.arp_announce=0 >/dev/null
         sysctl -q --system >/dev/null
-        for uuid in $(active_connections); do
+        # The dispatcher gave each connection a profile hostname when it went
+        # down, so the next one would send it: clear them all, not only the
+        # active ones.
+        for uuid in $(saved_connections); do
             nmcli connection modify "$uuid" ipv4.dhcp-send-hostname no ipv4.dhcp-hostname "" || true
         done
         [ "$had_nm" = 1 ] && systemctl restart NetworkManager.service
@@ -350,6 +358,16 @@ cmd_boot() {
     [ -f "$state" ] || exit 0
     apply_runtime "$(get stealth "$state")"
 }
+
+# apply, reset and boot change the same files and restart NetworkManager: one
+# at a time, so a second click while the first still reconnects waits for it.
+case "${1:-}" in
+    apply|reset|boot)
+        if live; then
+            exec 9>/run/clave-netid.lock
+            flock -w 60 9 || die "another change is still being applied"
+        fi ;;
+esac
 
 case "${1:-}" in
     apply) [ $# -eq 3 ] || die "usage: clave-netid apply PROFILE 0|1"; cmd_apply "$2" "$3" ;;

@@ -73,7 +73,14 @@ if [ -d "$repo/.git" ]; then
     if [ "${pin:-}" = none ]; then
         failed+=(hyprbars)
     else
-        cp "$src"/*.cpp "$src"/*.hpp "$look/hyprbars/" && "$look/hyprbars/build.sh" || failed+=(hyprbars)
+        cp "$src"/*.cpp "$src"/*.hpp "$look/hyprbars/" || failed+=(hyprbars)
+        # The ×, − and + on the buttons: upstream draws them at 62% of the
+        # button size, about a third of the dot. 90% makes them about half the
+        # dot, like the GTK traffic lights (clave.css). Only this number changes.
+        sed -i 's/button\.size \* 0\.62 \* scale/button.size * 0.9 * scale/' "$look/hyprbars/barDeco.cpp"
+        grep -q 'button.size \* 0.9 \* scale' "$look/hyprbars/barDeco.cpp" \
+            || echo "hyprbars: the symbol size line changed upstream; symbols keep the upstream size"
+        [[ " ${failed[*]} " == *" hyprbars "* ]] || "$look/hyprbars/build.sh" || failed+=(hyprbars)
     fi
 else
     echo "Could not get hyprland-plugins (offline?)"

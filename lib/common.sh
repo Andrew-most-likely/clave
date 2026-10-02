@@ -328,14 +328,27 @@ recovery USB at hand."
 # Packages an earlier release installed and a Clave app now replaces
 # (APP-2). They are never removed here: the user may use them for other
 # things. The list is printed once per package.
-REPLACED_PACKAGES=("htop:Activity Monitor (Apps > Activity Monitor); btop stays in extras for the terminal")
+# Packages a release took out of the lists (APP-2): an update names each one
+# once and never removes it, because the user may use it.
+REPLACED_PACKAGES=(
+    "htop:Replaced by Activity Monitor (Apps > Activity Monitor)."
+    "btop:Replaced by Activity Monitor (Apps > Activity Monitor): one task manager."
+    "gnome-font-viewer:Replaced by Fonts (font-manager), which names every style of a font."
+    "errands:Reminders was removed (APP-13)."
+    "sticky:Stickies was removed (APP-13)."
+    "gnome-weather:Weather was removed (APP-13)."
+    "gnome-podcasts:Podcasts was removed (APP-13)."
+    "gnome-sound-recorder:Voice Memos was removed (APP-13)."
+    "rnote:Freeform board was removed (APP-13)."
+    "python-vobject:It read the files of Contacts, which was removed (APP-13)."
+)
 report_replaced_packages() {
     local entry pkg why seen="$STATE/replaced-reported"
     for entry in "${REPLACED_PACKAGES[@]}"; do
         pkg=${entry%%:*} why=${entry#*:}
         pacman -Qq "$pkg" >/dev/null 2>&1 || continue
         grep -qxF "$pkg" "$seen" 2>/dev/null && continue
-        echo "  $pkg is no longer part of Clave. Replaced by: $why"
+        echo "  $pkg is no longer part of Clave. $why"
         echo "    Remove it if you do not use it: sudo pacman -Rs $pkg"
         [ "$DRY" -eq 1 ] || echo "$pkg" >> "$seen"
     done

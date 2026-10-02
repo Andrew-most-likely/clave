@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Starts a Clave app (PROJECT_PLAN.md APP-8, APP-9), each in its own
+# Starts a Clave app (PROJECT_PLAN.md APP-8) in its own
 # Quickshell process that exits when its window closes.
-#   clave-app notes|calendar|contacts [FILE]
-# FILE (an .ics or .vcf opened from Files) is copied in first (clave-pim import).
+#   clave-app calendar [FILE]
+# FILE (an .ics opened from Files) is copied in first (clave-pim import).
 set -euo pipefail
 app=${1:-}
 case "$app" in
-    notes|calendar|contacts) ;;
+    calendar) ;;
     *) sed -n '4p' "$0" | cut -c3-; exit 1 ;;
 esac
-if [ -n "${2:-}" ] && [ "$app" != notes ]; then
+if [ -n "${2:-}" ]; then
     "$HOME/.local/bin/clave-pim" import "$2" >/dev/null \
-        || notify-send -a "${app^}" "Cannot import ${2##*/}" "Only .ics and .vcf files can be imported."
+        || notify-send -a "${app^}" "Cannot import ${2##*/}" "Only .ics calendar files can be imported."
 fi
 # -n: a second start while the app is open does nothing.
 exec qs -n -p "$HOME/.config/quickshell/clave-$app.qml"

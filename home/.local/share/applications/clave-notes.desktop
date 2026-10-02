@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Notes
-Comment=Write notes, kept as Markdown files in Documents/Notes
-Exec=__HOME__/.local/bin/clave-app notes
-Icon=accessories-text-editor
-Categories=Office;Utility;
-Keywords=note;markdown;memo;

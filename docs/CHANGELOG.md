@@ -8,6 +8,28 @@
   request, the IP TTL, TCP timestamps, ping replies, the answer on closed ports and the DHCP hostname, and a
   small service reorders the options of the laptop's own TCP SYNs. That service starts only after a test shows
   the kernel passes rewritten packets. Off by default; `sudo clave-netid reset` turns it off from a terminal.
+- **Network Identity says what it did.** Choosing a profile or Stealth now shows a notification with the result:
+  the new identity, or "Not changed" and why. Before, a click gave no sign for the several seconds the reconnect
+  takes, and looked like it did nothing. Stealth in Control Center closes Control Center first, so the password
+  dialog is not hidden under it. Two quick clicks no longer run two changes at once, and turning the feature off
+  clears the DHCP hostname from every saved network, not only the one in use.
+- **Fewer apps (APP-13).** Stickies, Voice Memos, Weather, Podcasts, Freeform board, Reminders, Notes and Contacts
+  are gone: each fell short of the common alternatives. An update removes Clave's own files for them and lists
+  the packages you can remove with `sudo pacman -Rs`; it removes none itself. Notes you wrote stay in
+  `~/Documents/Notes`. `btop` left the extras: Activity Monitor is the one task manager.
+- **Fonts names every style.** Fonts is now Font Manager, which lists each style of a family by name (SF Pro
+  Black, SF Pro Light, ...). The old app showed every style of a variable font as just the family name.
+- **Calendar.** In Day and Week, each heading sits over its own column, today's date is in a red circle, and
+  all-day events have their own row. The year view fits the window. Importing a file that is not a calendar
+  shows one line saying so, not a Python traceback.
+- **Calculator modes.** Advanced, Financial and Programming show their extra keys again. A window rule kept
+  Calculator 400 px wide, too narrow for those keys, so every mode looked like Basic.
+- **Traffic lights.** The window buttons of GTK 4 apps are round 12 px dots everywhere, also in Camera, where
+  they were grey squares. The ×, − and + are larger, on GTK apps and on Clave's own title bars.
+- **OpenSnitch asks where you can see it.** Its question about a new connection floats in the middle of every
+  Space. It could open behind the app that asked and deny after 30 seconds, so Maps showed no map and Books
+  could not load its catalogs.
+- **Help works.** `yelp` is installed, so Help buttons and F1 open the app's help.
 - **Videos plays common files (APP-11).** The standard apps add `gst-libav` and `gst-plugin-va`, so Videos
   decodes H.264, H.265, VP9 and AV1, in hardware where the GPU supports it. Before, those files did not play.
   VLC in extras gets `vlc-plugin-ffmpeg`. `clave-update` offers the new packages.

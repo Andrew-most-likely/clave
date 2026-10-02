@@ -24,11 +24,10 @@ else fail "icons out of date: run scripts/make-icons.py"; fi
 # default Dock pin must be here, every name here must have an icon, and every
 # icon must belong to an entry here (BR-12, BR-13).
 declare -A want=(
-    [errands]="io.github.mrvladus.List" [sticky]="sticky" [gnome-weather]="org.gnome.Weather"
     [gnome-clocks]="org.gnome.clocks" [gnome-maps]="org.gnome.Maps" [shotwell]="org.gnome.Shotwell shotwell"
-    [foliate]="com.github.johnfactotum.Foliate" [gnome-podcasts]="org.gnome.Podcasts" [amberol]="io.bassi.Amberol"
-    [showtime]="org.gnome.Showtime" [gnome-sound-recorder]="org.gnome.SoundRecorder" [snapshot]="org.gnome.Snapshot"
-    [gnome-font-viewer]="org.gnome.font-viewer" [gnome-chess]="org.gnome.Chess" [rnote]="com.github.flxzt.rnote"
+    [foliate]="com.github.johnfactotum.Foliate" [amberol]="io.bassi.Amberol"
+    [showtime]="org.gnome.Showtime" [snapshot]="org.gnome.Snapshot"
+    [font-manager]="com.github.FontManager.FontManager" [gnome-chess]="org.gnome.Chess"
     [simple-scan]="org.gnome.SimpleScan" [gnome-connections]="org.gnome.Connections" [gnome-logs]="org.gnome.Logs"
     [hardinfo2]="hardinfo2" [gnome-disk-utility]="org.gnome.DiskUtility gnome-disks"
     [seahorse]="org.gnome.seahorse.Application seahorse" [timeshift]="timeshift"
@@ -38,7 +37,7 @@ declare -A want=(
     [kitty]="kitty utilities-terminal" [file-roller]="org.gnome.FileRoller file-roller"
     [bazaar]="io.github.kolunmi.Bazaar"
     [clave-apps]="clave-apps" [clave-activity-monitor]="utilities-system-monitor org.gnome.SystemMonitor"
-    [clave-calendar]="x-office-calendar" [clave-contacts]="x-office-address-book" [clave-notes]="accessories-text-editor"
+    [clave-calendar]="x-office-calendar"
     [clave-settings]="preferences-system" [clave-about]="clave-logo" [clave-update]="system-software-update software-update-available"
     [quickshell]="org.quickshell"
 )

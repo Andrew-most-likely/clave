@@ -3,9 +3,8 @@
 # Tests for clave-pim (APP-8): calendars and events (repeats, one repeat
 # removed, all-day, moving between calendars), an imported .ics file as other
 # apps export them (time zones, RRULE, EXDATE, an overridden repeat), and
-# contacts (save, list, a .vcf with several contacts, delete). Scratch
-# XDG_DATA_HOME. Needs python-icalendar, python-vobject and python-dateutil;
-# PYTHON picks the interpreter (for a venv).
+# errors as one line, never a traceback. Scratch XDG_DATA_HOME. Needs
+# python-icalendar and python-dateutil; PYTHON picks the interpreter (for a venv).
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 tmp=$(mktemp -d)
@@ -17,8 +16,8 @@ check() { if eval "$1"; then ok "$2"; else fail "$2"; fi; }
 export XDG_DATA_HOME="$tmp/data" TZ=Europe/Madrid
 pim() { "${PYTHON:-python3}" "$repo/home/.local/bin/clave-pim" "$@"; }
 
-if ! "${PYTHON:-python3}" -c 'import icalendar, vobject, dateutil' 2>/dev/null; then
-    echo "skip: python-icalendar, python-vobject or python-dateutil not installed"; exit 0
+if ! "${PYTHON:-python3}" -c 'import icalendar, dateutil' 2>/dev/null; then
+    echo "skip: python-icalendar or python-dateutil not installed"; exit 0
 fi
 
 # --- calendars and events ----------------------------------------------
@@ -102,22 +101,19 @@ check '[ "$(echo "$fam" | jq -r ".[0].start")" = 2026-10-03T01:00:00 ]' "New Yor
 check '[ "$(echo "$fam" | jq -r "[.[] | select(.title==\"Family dinner (late)\")] | length")" = 1 ]' "overridden repeat shown once, changed"
 if pim import "$tmp/nothing.txt" 2>/dev/null; then fail "non-calendar file refused"; else ok "non-calendar file refused"; fi
 
-# --- contacts --------------------------------------------------------------
-cid=$(echo '{"given":"Ada","family":"Lovelace","org":"Analytical Engines","emails":[{"label":"work","value":"ada@example.com"}],"phones":[{"label":"cell","value":"+44 20 1234"}],"birthday":"1815-12-10","notes":"First program"}' \
-    | pim contact-save | jq -r .id)
-c=$(pim contacts)
-check '[ "$(echo "$c" | jq -r ".[0].name")" = "Ada Lovelace" ]' "contact saved"
-check '[ "$(echo "$c" | jq -r ".[0].emails[0].label")" = work ]' "email label kept"
-check '[ "$(echo "$c" | jq -r ".[0].birthday")" = 1815-12-10 ]' "birthday kept"
-echo "{\"id\":\"$cid\",\"given\":\"Ada\",\"family\":\"King\",\"emails\":[],\"phones\":[]}" | pim contact-save >/dev/null
-check '[ "$(pim contacts | jq -r ".[0].family")" = King ]' "contact changed in place"
-check '[ "$(ls "$XDG_DATA_HOME/clave/contacts" | wc -l)" = 1 ]' "still one file"
-printf 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Alan Turing\r\nN:Turing;Alan;;;\r\nEND:VCARD\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nFN:Grace Hopper\r\nN:Hopper;Grace;;;\r\nTEL;TYPE=WORK:555\r\nEND:VCARD\r\n' > "$tmp/people.vcf"
-pim import "$tmp/people.vcf" >/dev/null
-check '[ "$(pim contacts | jq length)" = 3 ]' "a file with two contacts imported"
-check '[ "$(pim contacts | jq -r ".[] | select(.name==\"Grace Hopper\") | .readOnly")" = true ]' "contacts in a shared file are read-only"
-pim contact-delete "$cid"
-check '[ "$(pim contacts | jq length)" = 2 ]' "contact deleted"
+# --- errors: one line the app can show, never a Python traceback -----------
+: > "$tmp/empty.ics"
+echo "not a calendar" > "$tmp/junk.ics"
+for f in empty junk; do
+    err=$(pim import "$tmp/$f.ics" 2>&1 >/dev/null || true)
+    check '[ -n "$err" ] && ! grep -q Traceback <<<"$err" && [ "$(wc -l <<<"$err")" = 1 ]' "unreadable $f.ics: one-line error"
+done
+err=$(echo '{bad' | pim event-save 2>&1 >/dev/null || true)
+check '! grep -q Traceback <<<"$err" && grep -q JSON <<<"$err"' "bad event data: one-line error"
+err=$(echo '{"calendar":"Calendar"}' | pim event-save 2>&1 >/dev/null || true)
+check '! grep -q Traceback <<<"$err" && grep -q start <<<"$err"' "missing field: one-line error"
+err=$(pim event-delete Nothing x 2>&1 >/dev/null || true)
+check '! grep -q Traceback <<<"$err" && [ -n "$err" ]' "unknown calendar: one-line error"
 
 echo
-if [ "$fails" -eq 0 ]; then echo "All calendar and contact tests passed."; else echo "$fails failed."; exit 1; fi
+if [ "$fails" -eq 0 ]; then echo "All calendar tests passed."; else echo "$fails failed."; exit 1; fi

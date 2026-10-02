@@ -1,6 +1,6 @@
 # Optional apps from the original machine (installed only with --extras)
 firefox steam vlc vlc-plugin-ffmpeg wireshark-qt libvirt qemu-full virt-manager edk2-ovmf dnsmasq
-neovim btop bat eza fzf ripgrep zoxide starship
+neovim bat eza fzf ripgrep zoxide starship
 # GNOME utilities that no Clave feature needs (SW-3)
 baobab
 # Office document fonts (metric-compatible Calibri and Cambria)

@@ -62,7 +62,7 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Install tools
-        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-vobject python-dateutil openssh librsvg
+        run: pacman -Syu --noconfirm --needed git jq python rsync diffutils findutils which hyprland imagemagick file python-icalendar python-dateutil openssh librsvg
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:

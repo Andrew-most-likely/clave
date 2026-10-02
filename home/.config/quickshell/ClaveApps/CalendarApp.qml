@@ -461,32 +461,76 @@ FloatingWindow {
             spacing: 0
             readonly property int days: root.view === "day" ? 1 : 7
             readonly property int hourH: 48
-            // All-day row
-            RowLayout {
+            // Day headings, then the all-day row. Placed with the same x
+            // arithmetic as the hour grid below, so each heading sits over its column.
+            Item {
+                id: heads
                 Layout.fillWidth: true
-                Layout.leftMargin: 56
-                spacing: 0
+                readonly property int allDayRows: {
+                    let n = 0
+                    for (let i = 0; i < tv.days; i++)
+                        n = Math.max(n, root.eventsOn(root.addDays(root.range[0], i)).filter(e => e.allDay).length)
+                    return n
+                }
+                implicitHeight: 24 + (heads.allDayRows > 0 ? heads.allDayRows * 19 + 4 : 0)
+                Text {
+                    visible: heads.allDayRows > 0
+                    textFormat: Text.PlainText
+                    x: 6
+                    y: 26
+                    text: "all-day"
+                    color: Theme.fgA(0.45)
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 10
+                }
                 Repeater {
                     model: tv.days
-                    ColumnLayout {
+                    Item {
                         id: head
                         required property int index
                         readonly property var day: root.addDays(root.range[0], index)
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 1
-                        spacing: 2
-                        Text {
-                            textFormat: Text.PlainText
-                            Layout.alignment: Qt.AlignHCenter
-                            text: Qt.formatDate(head.day, "ddd d")
-                            color: root.same(head.day, new Date()) ? Theme.red : Theme.fg
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBody
-                            font.weight: root.same(head.day, new Date()) ? Font.Bold : Font.Normal
+                        readonly property bool isToday: root.same(head.day, new Date())
+                        x: 56 + index * (heads.width - 56) / tv.days
+                        width: (heads.width - 56) / tv.days
+                        height: heads.height
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            y: 2
+                            spacing: 5
+                            Text {
+                                textFormat: Text.PlainText
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Qt.formatDate(head.day, "ddd")
+                                color: head.isToday ? Theme.red : Theme.fgA(0.7)
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontBody
+                            }
+                            // Today's date in a red circle, as in the month view.
+                            Rectangle {
+                                width: Math.max(22, dayNum.implicitWidth + 10); height: 20; radius: 10
+                                color: head.isToday ? Theme.red : "transparent"
+                                Text {
+                                    id: dayNum
+                                    textFormat: Text.PlainText
+                                    anchors.centerIn: parent
+                                    text: `${head.day.getDate()}`
+                                    color: head.isToday ? "white" : Theme.fg
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontBody
+                                    font.weight: head.isToday ? Font.Bold : Font.Normal
+                                }
+                            }
                         }
-                        Repeater {
-                            model: root.eventsOn(head.day).filter(e => e.allDay)
-                            EventChip { required property var modelData; ev: modelData; Layout.fillWidth: true; Layout.margins: 1 }
+                        Rectangle { visible: index > 0; y: 24; width: 1; height: parent.height - 24; color: Theme.fgA(0.08) }
+                        Column {
+                            x: 2
+                            y: 26
+                            width: parent.width - 4
+                            spacing: 2
+                            Repeater {
+                                model: root.eventsOn(head.day).filter(e => e.allDay)
+                                EventChip { required property var modelData; ev: modelData; width: parent.width }
+                            }
                         }
                     }
                 }
@@ -498,7 +542,8 @@ FloatingWindow {
                 Layout.fillHeight: true
                 clip: true
                 contentHeight: 24 * tv.hourH
-                Component.onCompleted: contentY = 8 * tv.hourH
+                // A little above 08:00, so that hour's label is not cut off.
+                Component.onCompleted: contentY = 8 * tv.hourH - 10
                 Item {
                     width: fl.width
                     height: 24 * tv.hourH
@@ -618,13 +663,15 @@ FloatingWindow {
     Component {
         id: yearView
         Flickable {
+            id: yf
             clip: true
             contentHeight: yg.implicitHeight + 20
+            // As many months per row as fit (a small month is 174 px wide), centred.
             GridLayout {
                 id: yg
-                x: 20
-                width: parent.width - 40
-                columns: 4
+                readonly property int fit: Math.max(1, Math.min(4, Math.floor((yf.width - 40 + columnSpacing) / (174 + columnSpacing))))
+                x: Math.max(20, (yf.width - implicitWidth) / 2)
+                columns: fit
                 rowSpacing: 18
                 columnSpacing: 24
                 Repeater {

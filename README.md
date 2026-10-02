@@ -178,8 +178,7 @@ Open only what you need.
   Images go to `~/Pictures/Screenshots` and the clipboard; click the thumbnail in the corner to mark one up.
 - Displays: resolution, scale, rotation and arrangement per screen, remembered by the screen itself, and
   mirroring from Control Center
-- Clave apps, drawn in the shell's style: Notes (Markdown files in `~/Documents/Notes`), Calendar (`.ics`
-  files) and Contacts (`.vcf` files). No accounts and no sync: the files are yours.
+- Calendar, drawn in the shell's style: plain `.ics` files, no accounts and no sync. The files are yours.
 - Clipboard history (`Super+V`), emoji picker (`Ctrl+Super+Space`), Night Light, and a keyboard shortcut list
   (`Super+/`)
 - A lock screen and idle timeouts, an SDDM login screen, and a Plymouth boot splash
@@ -191,11 +190,11 @@ fingers for Apps, and spread 4 fingers for full screen.
 Bibata cursor, Inter and JetBrains Mono, and the freedesktop sound theme. Qt5, Qt6,
 GTK4/libadwaita and Flatpak apps all follow the theme.
 
-**Standard apps** (`packages/apps.txt`, all from the Arch repositories): Reminders, Stickies, Weather, Clock,
-Maps, Photos, Books, Podcasts, Music, Videos, Voice Memos, Camera, Fonts, Chess, Freeform board, Scanner,
-Screen Sharing, Console, System Information, Disk Utility, Keychain and Backups, next to Files, Text Editor,
-Calculator and the image and archive viewers. None of them runs a background service. Only Weather, Maps and
-Podcasts go online, and only while open. Change any app's icon in System Settings > Appearance.
+**Standard apps** (`packages/apps.txt`, all from the Arch repositories): Clock, Maps, Photos, Books, Music,
+Videos, Camera, Fonts, Chess, Scanner, Screen Sharing, Console, System Information, Disk Utility, Keychain and
+Backups, next to Files, Text Editor, Calculator and the image and archive viewers. None of them runs a
+background service. Only Maps and the Books catalogs go online, and only while open. Change any app's icon in
+System Settings > Appearance.
 
 **Desktop essentials:** GNOME Keyring, printing (CUPS and mDNS discovery), Bluetooth, exFAT and NTFS support,
 CJK and emoji fonts, zram, a journald size cap, and weekly cache cleanup.

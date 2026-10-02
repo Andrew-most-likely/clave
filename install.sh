@@ -101,9 +101,15 @@ if [ "$update" -eq 1 ]; then run "$HOME/.local/bin/clave-prefs" apps defaults --
 else run "$HOME/.local/bin/clave-prefs" apps defaults || true; fi
 # Mail (extras) checks for new mail only while open.
 run gsettings set org.gnome.Geary run-in-background false 2>/dev/null || true
+# Calculator (APP-14): below 700 px it folds the Advanced, Financial and
+# Programming keys into swipe pages. Start wide enough for them, once; a size
+# the user picks later is kept.
+if [ "$(gsettings get org.gnome.calculator window-size 2>/dev/null)" = "(360, -1)" ]; then
+    run gsettings set org.gnome.calculator window-size "(720, 560)" || true
+fi
 
 say "Genie shaders and Hyprland plugins"
-if [ "$update" -eq 0 ] || changed_since_last_install 'DockApp/shaders|hypr-minimize|hyprbars'; then
+if [ "$update" -eq 0 ] || changed_since_last_install 'DockApp/shaders|hypr-minimize|hyprbars|rebuild-plugins'; then
     run "$HOME/.config/quickshell/DockApp/shaders/build.sh" || warn "Shader build failed: the genie effect falls back to a plain fade"
     run "$HOME/.local/share/clave/rebuild-plugins.sh" || warn "Plugin build failed; see ~/.cache/clave/rebuild-plugins.log"
 else

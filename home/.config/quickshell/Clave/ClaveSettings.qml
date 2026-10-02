@@ -194,9 +194,7 @@ Singleton {
     // name come from: a Clave desktop entry, or an icon name in Clave-icons
     // for a window that has none. The Dock and Overview use it (BR-13).
     readonly property var shellWindows: ({
-        "Notes": "clave-notes",
         "Calendar": "clave-calendar",
-        "Contacts": "clave-contacts",
         "Activity Monitor": "clave-activity-monitor",
         "Force Quit Applications": "clave-activity-monitor",
         "System Settings": "preferences-system",
@@ -206,7 +204,7 @@ Singleton {
         if (appId !== "org.quickshell")
             return appId
         const t = `${title ?? ""}`
-        // "About Notes" belongs to Notes.
+        // "About Calendar" belongs to Calendar.
         return root.shellWindows[t] ?? root.shellWindows[t.replace(/^About /, "")] ?? appId
     }
 

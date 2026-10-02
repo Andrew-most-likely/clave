@@ -18,8 +18,6 @@
 .config/quickshell/CustomTheme
 .config/quickshell/ClaveApps
 .config/quickshell/clave-calendar.qml
-.config/quickshell/clave-contacts.qml
-.config/quickshell/clave-notes.qml
 
 # Launchers, notifications, terminal, fetch
 .config/rofi/config.rasi
@@ -62,6 +60,7 @@
 .local/bin/clave-apps
 .local/bin/clave-lock-clock
 .local/bin/clave-nightlight
+.local/bin/clave-netid-set
 .local/bin/clave-pim
 .local/bin/clave-power
 .local/bin/clave-prefs
@@ -74,8 +73,6 @@
 .local/share/applications/clave-apps.desktop
 .local/share/applications/clave-activity-monitor.desktop
 .local/share/applications/clave-calendar.desktop
-.local/share/applications/clave-contacts.desktop
-.local/share/applications/clave-notes.desktop
 .local/share/icons/hicolor/scalable/apps/clave-apps.svg
 .local/share/icons/Clave-icons
 .local/share/icons/Clave-icons-dark

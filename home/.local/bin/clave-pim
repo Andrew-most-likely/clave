@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Calendar and Contacts files for the Clave apps (PROJECT_PLAN.md APP-8).
-Open-source libraries read and write the formats (icalendar, python-dateutil
-for repeating events, vobject); the apps only draw. Plain files, no sync, no
-network: other apps and backups can read them, and importing a file means
-copying it into the folder.
+"""Calendar files for the Clave Calendar app (PROJECT_PLAN.md APP-8).
+Open-source libraries read and write the format (icalendar, python-dateutil
+for repeating events); the app only draws. Plain files, no sync, no network:
+other apps and backups can read them, and importing a file means copying it
+into the folder.
 
   ~/.local/share/clave/calendars/NAME.ics    one file per calendar
-  ~/.local/share/clave/contacts/*.vcf        one file per contact (files with
-                                             several contacts are read too)
 
   clave-pim calendars                         calendars as JSON
   clave-pim calendar-new NAME [COLOR]
@@ -17,10 +15,9 @@ copying it into the folder.
                                               dates), repeats expanded
   clave-pim event-save < JSON                 add or change one event
   clave-pim event-delete CAL UID [DATE]       DATE: only that repeat
-  clave-pim contacts                          contacts as JSON
-  clave-pim contact-save < JSON               add or change one contact
-  clave-pim contact-delete ID
-  clave-pim import FILE                       copy an .ics or .vcf file in
+  clave-pim import FILE                       copy an .ics file in
+
+Errors are one line on stderr (the app shows them), never a traceback.
 """
 import datetime as dt
 import json
@@ -32,7 +29,6 @@ import uuid
 
 DATA = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
 CAL_DIR = os.path.join(DATA, "clave/calendars")
-CARD_DIR = os.path.join(DATA, "clave/contacts")
 COLORS = ["#0a84ff", "#30d158", "#ff453a", "#ff9f0a", "#bf5af2", "#ffd60a", "#64d2ff"]
 NAME_RE = re.compile(r"[^\w .,()'-]+")
 
@@ -48,10 +44,9 @@ def out(v):
 def libs():
     try:
         import icalendar  # noqa: F401
-        import vobject  # noqa: F401
         from dateutil import rrule  # noqa: F401
     except ImportError as e:
-        fail(f"missing library: {e.name} (install python-icalendar, python-vobject, python-dateutil)")
+        fail(f"missing library: {e.name} (install python-icalendar, python-dateutil)")
 
 
 def write_atomic(path, data):
@@ -259,131 +254,24 @@ def event_delete(cal, uid, date=None):
     save_cal(cal, c)
 
 
-# ---------------------------------------------------------------- Contacts
-
-def card_files():
-    if not os.path.isdir(CARD_DIR):
-        return []
-    return sorted(os.path.join(CARD_DIR, f) for f in os.listdir(CARD_DIR)
-                  if f.lower().endswith((".vcf", ".vcard")) and not f.startswith("."))
-
-
-def read_cards(path):
-    import vobject
-    with open(path, encoding="utf-8", errors="replace") as f:
-        return list(vobject.readComponents(f.read(), ignoreUnreadable=True))
-
-
-def values(card, name):
-    return [str(x.value) for x in card.contents.get(name, []) if str(x.value).strip()]
-
-
-def typed(card, name):
-    res = []
-    for x in card.contents.get(name, []):
-        t = [p.lower() for p in x.params.get("TYPE", []) if p.lower() not in ("internet", "pref", "voice")]
-        res.append({"label": (t[0] if t else "other"), "value": str(x.value)})
-    return res
-
-
-def contacts():
-    res = []
-    for path in card_files():
-        stem = os.path.basename(path).rsplit(".", 1)[0]
-        try:
-            cards = read_cards(path)
-        except Exception as e:  # vobject raises many kinds; skip the file
-            res.append({"id": stem, "name": stem, "error": str(e)})
-            continue
-        for i, card in enumerate(cards):
-            n = card.contents.get("n", [None])[0]
-            given = family = ""
-            if n is not None:
-                given, family = str(n.value.given or ""), str(n.value.family or "")
-            fn = (values(card, "fn") or [f"{given} {family}".strip()])[0]
-            org = card.contents.get("org", [None])[0]
-            res.append({
-                "id": stem if len(cards) == 1 else f"{stem}#{i}",
-                "name": fn or "No Name", "given": given, "family": family,
-                "org": " ".join(org.value) if org is not None and isinstance(org.value, list) else str(org.value) if org else "",
-                "emails": typed(card, "email"), "phones": typed(card, "tel"),
-                "addresses": [{"label": a["label"], "value": str(a["value"]).replace("\n", ", ").strip(", ")}
-                              for a in typed(card, "adr")],
-                "birthday": (values(card, "bday") or [""])[0],
-                "notes": (values(card, "note") or [""])[0],
-                "readOnly": len(cards) > 1,
-            })
-    res.sort(key=lambda c: ((c.get("family") or c["name"]).lower(), c["name"].lower()))
-    return res
-
-
-def contact_save(data):
-    """{id?, given, family, org, emails:[{label,value}], phones:[...],
-    birthday, notes}. One .vcf per contact."""
-    import vobject
-    cid = data.get("id") or ""
-    if "#" in cid:
-        fail("this contact is part of a file with several contacts: import it on its own first")
-    card = vobject.vCard()
-    given, family = (data.get("given") or "").strip(), (data.get("family") or "").strip()
-    org = (data.get("org") or "").strip()
-    card.add("n").value = vobject.vcard.Name(family=family, given=given)
-    card.add("fn").value = f"{given} {family}".strip() or org or "No Name"
-    if org:
-        card.add("org").value = [org]
-    for key, name in (("emails", "email"), ("phones", "tel")):
-        for item in data.get(key) or []:
-            if (item.get("value") or "").strip():
-                p = card.add(name)
-                p.value = item["value"].strip()
-                p.type_param = (item.get("label") or "other").upper()
-    if data.get("birthday"):
-        card.add("bday").value = data["birthday"]
-    if data.get("notes"):
-        card.add("note").value = data["notes"]
-    card.add("uid").value = cid or str(uuid.uuid4())
-    if not cid:
-        base = safe_id(card.fn.value)
-        cid, n = base, 2
-        while os.path.exists(os.path.join(CARD_DIR, cid + ".vcf")):
-            cid, n = f"{base} {n}", n + 1
-    path = os.path.join(CARD_DIR, os.path.basename(cid) + ".vcf")
-    write_atomic(path, card.serialize().encode())
-    out({"id": cid})
-
-
-def contact_delete(cid):
-    if "#" in cid:
-        fail("this contact is part of a file with several contacts")
-    p = os.path.join(CARD_DIR, os.path.basename(cid) + ".vcf")
-    if os.path.exists(p):
-        os.unlink(p)
-
-
 def import_file(src):
+    from icalendar import Calendar
     src = os.path.realpath(os.path.expanduser(src))
     if not os.path.isfile(src):
         fail(f"no such file: {src}")
-    low = src.lower()
-    if low.endswith(".ics"):
-        dst_dir = CAL_DIR
-    elif low.endswith((".vcf", ".vcard")):
-        dst_dir = CARD_DIR
-    else:
-        fail("only .ics and .vcf files can be imported")
-    base, ext = os.path.splitext(os.path.basename(src))
-    base = safe_id(base)
-    dst, n = os.path.join(dst_dir, base + ext.lower()), 2
-    while os.path.exists(dst):
-        dst, n = os.path.join(dst_dir, f"{base} {n}{ext.lower()}"), n + 1
+    if not src.lower().endswith(".ics"):
+        fail("only .ics calendar files can be imported")
     # Checked by reading it before it is copied in.
-    if dst_dir == CAL_DIR:
-        from icalendar import Calendar
+    try:
         with open(src, "rb") as f:
             Calendar.from_ical(f.read())
-    else:
-        read_cards(src)
-    os.makedirs(dst_dir, exist_ok=True)
+    except ValueError:
+        fail(f"{os.path.basename(src)} is not a calendar file that can be read")
+    base = safe_id(os.path.splitext(os.path.basename(src))[0])
+    dst, n = os.path.join(CAL_DIR, base + ".ics"), 2
+    while os.path.exists(dst):
+        dst, n = os.path.join(CAL_DIR, f"{base} {n}.ics"), n + 1
+    os.makedirs(CAL_DIR, exist_ok=True)
     shutil.copyfile(src, dst)
     out({"file": dst})
 
@@ -416,12 +304,6 @@ def main():
         event_save(json.load(sys.stdin))
     elif cmd == "event-delete" and len(a) in (3, 4):
         event_delete(a[1], a[2], a[3] if len(a) == 4 else None)
-    elif cmd == "contacts":
-        out(contacts())
-    elif cmd == "contact-save":
-        contact_save(json.load(sys.stdin))
-    elif cmd == "contact-delete" and len(a) == 2:
-        contact_delete(a[1])
     elif cmd == "import" and len(a) == 2:
         import_file(a[1])
     else:
@@ -429,4 +311,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except json.JSONDecodeError:
+        fail("clave-pim: the event data was not valid JSON")
+    except (KeyError, TypeError) as e:
+        fail(f"clave-pim: the event data is missing a field: {e}")
+    except (OSError, ValueError) as e:
+        # A calendar file that cannot be read or written: say which, in one line.
+        fail(f"clave-pim: {e}")
