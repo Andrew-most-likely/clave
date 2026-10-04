@@ -25,7 +25,7 @@ repo edk2-ovmf 202608-1
 repo exfatprogs 1.4.3-1
 repo eza 0.23.5-2
 repo fastfetch 2.69.0-1
-repo ffmpeg 2:9.0.2-1
+repo ffmpeg 2:9.0.2-2
 repo file-roller 44.7-1
 repo firefox 157.0-1
 repo flatpak 1:1.18.4-1
@@ -49,7 +49,7 @@ repo hardinfo2 2.3.1-1
 repo hunspell 1.7.4-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
-repo hyprland 0.56.2-3
+repo hyprland 0.56.2-4
 git hyprland-plugins 64d6f514ea94
 repo hyprlock 0.9.6-3
 repo hyprpicker 0.4.7-4
