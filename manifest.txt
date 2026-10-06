@@ -131,7 +131,7 @@ repo ttf-jetbrains-mono 2.304-2
 repo ttf-liberation 2.1.5-2
 repo unrar 1:7.3.1-1
 repo unzip 6.0-23
-repo upower 1.91.4-1
+repo upower 1.91.5-1
 repo usbguard 1.1.4-11
 repo virt-manager 5.1.0-4
 repo wf-recorder 0.6.0-2
