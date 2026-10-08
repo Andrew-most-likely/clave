@@ -50,7 +50,7 @@ repo hunspell 1.7.5-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
 repo hyprland 0.56.2-4
-git hyprland-plugins 64d6f514ea94
+git hyprland-plugins 428bfcd1c9ee
 repo hyprlock 0.9.6-3
 repo hyprpicker 0.4.7-4
 repo hyprsunset 0.4.0-3
@@ -79,7 +79,7 @@ repo noto-fonts 1:2026.10.01-1
 repo noto-fonts-cjk 20240730-1
 repo noto-fonts-emoji 1:2.051-1
 repo noto-fonts-extra 1:2026.10.01-1
-repo nss-mdns 0.15.1-2
+repo nss-mdns 0.15.1-3
 repo ntfs-3g 2026.9.28-1
 repo nwg-look 1.1.2-1
 repo opensnitch 1.7.2-4
@@ -98,10 +98,10 @@ repo python-icalendar 7.3.0-1
 repo qemu-full 11.1.2-1
 repo qt5-wayland 5.15.19+kde+r55-1
 repo qt5ct 1.9-2
-repo qt6-declarative 6.11.2-2
-repo qt6-shadertools 6.11.2-1
-repo qt6-wayland 6.11.2-1
-repo qt6ct 0.11-8
+repo qt6-declarative 6.12.0-1
+repo qt6-shadertools 6.12.0-1
+repo qt6-wayland 6.12.0-1
+repo qt6ct 0.11-9
 repo quickshell 0.3.1-1
 repo ripgrep 15.2.0-1
 repo rofi 2.0.0-1
@@ -137,7 +137,7 @@ repo virt-manager 5.1.0-4
 repo wf-recorder 0.6.0-2
 aur whitesur-icon-theme 2026.09.10-1
 repo wireplumber 0.5.18-1
-repo wireshark-qt 4.7.3-1
+repo wireshark-qt 4.7.4-1
 repo wl-clipboard 1:2.3.0-1
 repo xdg-desktop-portal-gtk 1.15.3-1
 repo xdg-desktop-portal-hyprland 1.4.1-2
