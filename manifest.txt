@@ -102,7 +102,7 @@ repo qt6-declarative 6.12.0-1
 repo qt6-shadertools 6.12.0-1
 repo qt6-wayland 6.12.0-1
 repo qt6ct 0.11-9
-repo quickshell 0.3.1-1
+repo quickshell 0.3.2-1
 repo ripgrep 15.2.0-1
 repo rofi 2.0.0-1
 repo rofi-calc 2.5.1-1
