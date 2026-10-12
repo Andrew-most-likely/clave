@@ -65,12 +65,12 @@ repo libadwaita 1:1.10.0-1
 repo libnotify 0.8.8-1
 repo librsvg 2:2.63.2-1
 repo libvirt 1:12.8.0-1
-repo linux-hardened 7.2.8.hardened1-2
+repo linux-hardened 7.2.10.hardened1-1
 repo loupe 51.0-1
 repo lynis 3.1.7-1
 repo man-db 2.13.1-2
 repo man-pages 6.19-1
-repo nautilus 51.0.1-2
+repo nautilus 51.1-1
 repo neovim 0.12.6-1
 repo network-manager-applet 1.36.0-2
 repo networkmanager 1.58.1-2
