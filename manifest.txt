@@ -81,7 +81,7 @@ repo noto-fonts-emoji 1:2.051-1
 repo noto-fonts-extra 1:2026.10.01-1
 repo nss-mdns 0.15.1-3
 repo ntfs-3g 2026.9.28-1
-repo nwg-look 1.1.2-1
+repo nwg-look 1.2.0-1
 repo opensnitch 1.7.2-4
 repo pacman-contrib 1.13.1-1
 repo pavucontrol 1:6.2-1
@@ -117,7 +117,7 @@ repo snapshot 51.0-1
 repo sound-theme-freedesktop 0.8-6
 repo starship 1.26.0-1
 repo steam missing
-repo sushi 51.1-1
+repo sushi 51.2-1
 repo swaync 0.12.6-1
 repo swayosd 0.3.2-1
 repo system-config-printer 1.5.18-7
