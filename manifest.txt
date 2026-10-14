@@ -54,7 +54,7 @@ git hyprland-plugins 428bfcd1c9ee
 repo hyprlock 0.9.6-3
 repo hyprpicker 0.4.7-4
 repo hyprsunset 0.4.0-3
-repo imagemagick 7.1.2.33-1
+repo imagemagick 7.1.2.33-3
 repo inter-font 4.1-1
 repo jq 1.8.2-1
 repo kitty 0.49.2-1
