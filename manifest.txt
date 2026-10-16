@@ -27,7 +27,7 @@ repo eza 0.23.5-2
 repo fastfetch 2.70.0-1
 repo ffmpeg 2:9.0.2-2
 repo file-roller 44.7-1
-repo firefox 157.0.1-1
+repo firefox 158.0-1
 repo flatpak 1:1.18.4-1
 repo fzf 0.74.5-1
 repo gcc 16.2.1+r23+gd564253eb6c8-1
