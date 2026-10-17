@@ -65,7 +65,7 @@ repo libadwaita 1:1.10.0-1
 repo libnotify 0.8.8-1
 repo librsvg 2:2.63.2-1
 repo libvirt 1:12.8.0-1
-repo linux-hardened 7.2.10.hardened1-1
+repo linux-hardened 7.2.10.hardened1-2
 repo loupe 51.0-1
 repo lynis 3.1.7-1
 repo man-db 2.13.1-2
