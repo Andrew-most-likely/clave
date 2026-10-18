@@ -5,7 +5,7 @@ repo apparmor 4.1.7-1
 aur apparmor.d 0.4914.0-1
 repo arch-audit 0.2.0-5
 repo audit 4.2.1-1
-repo avahi 1:0.9rc5-1
+repo avahi 1:0.9rc5-2
 repo awww 0.12.1-1
 repo baobab 50.0-1
 repo bat 0.26.1-3
@@ -28,7 +28,7 @@ repo fastfetch 2.70.0-1
 repo ffmpeg 2:9.0.2-2
 repo file-roller 44.7-1
 repo firefox 158.0-1
-repo flatpak 1:1.18.4-1
+repo flatpak 1:1.18.4-2
 repo fzf 0.74.5-1
 repo gcc 16.2.1+r23+gd564253eb6c8-1
 repo geary 1:46.0-9
@@ -62,10 +62,10 @@ repo kvantum 1.1.8-1
 repo kvantum-qt5 1.1.8-1
 aur kvantum-theme-whitesur-git r114.2b4bcc7-1
 repo libadwaita 1:1.10.0-1
-repo libnotify 0.8.8-1
-repo librsvg 2:2.63.2-1
+repo libnotify 0.8.9-1
+repo librsvg 2:2.63.3-1
 repo libvirt 1:12.8.0-1
-repo linux-hardened 7.2.10.hardened1-2
+repo linux-hardened 7.2.10.hardened1-3
 repo loupe 51.0-1
 repo lynis 3.1.7-1
 repo man-db 2.13.1-2
@@ -115,7 +115,7 @@ repo showtime 50.0-1
 repo slurp 1.5.0-2
 repo snapshot 51.0-1
 repo sound-theme-freedesktop 0.8-6
-repo starship 1.26.0-1
+repo starship 1.27.0-1
 repo steam missing
 repo sushi 51.2-1
 repo swaync 0.12.6-1
