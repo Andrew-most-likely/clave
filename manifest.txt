@@ -1,7 +1,7 @@
 repo 7zip 26.04-1
 git WhiteSur-gtk-theme d5782652d412
 aur aide 0.19.4-2
-repo apparmor 4.1.7-1
+repo apparmor 4.1.8-2
 aur apparmor.d 0.4914.0-1
 repo arch-audit 0.2.0-5
 repo audit 4.2.1-1
@@ -54,7 +54,7 @@ git hyprland-plugins 428bfcd1c9ee
 repo hyprlock 0.9.6-3
 repo hyprpicker 0.4.7-4
 repo hyprsunset 0.4.0-3
-repo imagemagick 7.1.2.34-1
+repo imagemagick 7.1.2.34-2
 repo inter-font 4.1-1
 repo jq 1.8.2-1
 repo kitty 0.49.2-1
@@ -84,7 +84,7 @@ repo ntfs-3g 2026.9.28-1
 repo nwg-look 1.2.1-1
 repo opensnitch 1.7.2-4
 repo pacman-contrib 1.13.1-1
-repo pavucontrol 1:6.2-1
+repo pavucontrol 1:6.2-2
 repo pipewire 1:1.6.9-1
 repo pipewire-pulse 1:1.6.9-1
 repo pkgconf 3.0.7-1
@@ -110,7 +110,7 @@ repo rofi-emoji 4.1.0-3
 repo sassc 3.6.2-5
 repo satty 0.22.0-1
 repo sddm 0.21.0-7
-repo seahorse 1:47.0.1-6
+repo seahorse 1:47.0.1-7
 repo showtime 50.0-1
 repo slurp 1.5.0-2
 repo snapshot 51.0-1
@@ -139,7 +139,7 @@ aur whitesur-icon-theme 2026.09.10-1
 repo wireplumber 0.5.18-1
 repo wireshark-qt 4.7.4-1
 repo wl-clipboard 1:2.3.0-1
-repo xdg-desktop-portal-gtk 1.15.3-1
+repo xdg-desktop-portal-gtk 1.15.3-2
 repo xdg-desktop-portal-hyprland 1.4.1-2
 repo xdg-user-dirs 0.20-1
 repo xdg-utils 1.2.1-2
