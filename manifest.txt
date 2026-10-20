@@ -87,7 +87,7 @@ repo pacman-contrib 1.13.1-1
 repo pavucontrol 1:6.2-2
 repo pipewire 1:1.6.9-1
 repo pipewire-pulse 1:1.6.9-1
-repo pkgconf 3.0.7-1
+repo pkgconf 3.0.10-1
 repo playerctl 2.4.1-5
 repo plymouth 26.134.222-3
 repo polkit-gnome 0.105-12
