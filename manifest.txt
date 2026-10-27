@@ -1,6 +1,6 @@
 repo 7zip 26.05-1
 git WhiteSur-gtk-theme d5782652d412
-aur aide 0.19.4-2
+aur aide 0.19.5-1
 repo apparmor 4.1.8-2
 aur apparmor.d 0.4915.0-1
 repo arch-audit 0.2.0-5
