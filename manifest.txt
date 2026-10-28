@@ -27,7 +27,7 @@ repo eza 0.23.5-2
 repo fastfetch 2.70.0-1
 repo ffmpeg 2:9.0.2-2
 repo file-roller 44.7-1
-repo firefox 158.0.1-1
+repo firefox 159.0-1
 repo flatpak 1:1.18.4-2
 repo fzf 0.74.5-1
 repo gcc 16.2.1+r23+gd564253eb6c8-1
@@ -98,7 +98,7 @@ repo python-icalendar 7.3.0-1
 repo qemu-full 11.1.2-1
 repo qt5-wayland 5.15.19+kde+r55-1
 repo qt5ct 1.9-2
-repo qt6-declarative 6.12.0-2
+repo qt6-declarative 6.12.0-3
 repo qt6-shadertools 6.12.0-1
 repo qt6-wayland 6.12.0-1
 repo qt6ct 0.11-9
@@ -129,7 +129,7 @@ repo ttf-carlito 20230509-2
 repo ttf-dejavu 2.37+18+g9b5d1b2f-8
 repo ttf-jetbrains-mono 2.304-2
 repo ttf-liberation 2.1.5-2
-repo unrar 1:7.3.1-1
+repo unrar 1:7.3.2-1
 repo unzip 6.0-23
 repo upower 1.91.5-1
 repo usbguard 1.1.4-11
