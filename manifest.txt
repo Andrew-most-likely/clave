@@ -49,7 +49,7 @@ repo hardinfo2 2.3.1-1
 repo hunspell 1.7.5-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
-repo hyprland 0.56.2-4
+repo hyprland 0.57.0-1
 git hyprland-plugins d2427d4d15b3
 repo hyprlock 0.9.6-3
 repo hyprpicker 0.4.7-4
@@ -121,7 +121,7 @@ repo sushi 51.2-1
 repo swaync 0.12.6-1
 repo swayosd 0.3.2-1
 repo system-config-printer 1.5.18-7
-repo tesseract 5.5.3-1
+repo tesseract 5.5.4-1
 repo tesseract-data-eng 2:4.1.0-5
 repo timeshift 26.09.0-1
 repo ttf-caladea 20200113-4
