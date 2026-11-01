@@ -54,7 +54,7 @@ git hyprland-plugins d2427d4d15b3
 repo hyprlock 0.9.6-3
 repo hyprpicker 0.4.7-4
 repo hyprsunset 0.4.0-3
-repo imagemagick 7.1.2.34-2
+repo imagemagick 7.1.2.35-1
 repo inter-font 4.1-1
 repo jq 1.8.2-1
 repo kitty 0.49.2-1
@@ -75,10 +75,10 @@ repo neovim 0.12.6-1
 repo network-manager-applet 1.36.0-2
 repo networkmanager 1.58.1-2
 repo nftables 1:1.1.7-3
-repo noto-fonts 1:2026.10.01-1
+repo noto-fonts 1:2026.11.01-1
 repo noto-fonts-cjk 20240730-1
-repo noto-fonts-emoji 1:2.057-1
-repo noto-fonts-extra 1:2026.10.01-1
+repo noto-fonts-emoji 1:20260924-1
+repo noto-fonts-extra 1:2026.11.01-1
 repo nss-mdns 0.15.1-3
 repo ntfs-3g 2026.9.28-1
 repo nwg-look 1.2.1-1
