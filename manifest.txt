@@ -49,7 +49,7 @@ repo hardinfo2 2.3.1-1
 repo hunspell 1.7.6-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
-repo hyprland 0.57.0-3
+repo hyprland 0.57.1-1
 git hyprland-plugins d2427d4d15b3
 repo hyprlock 0.9.7-2
 repo hyprpicker 0.4.8-1
@@ -140,7 +140,7 @@ repo wireplumber 0.5.18-1
 repo wireshark-qt 4.7.4-1
 repo wl-clipboard 1:2.3.0-1
 repo xdg-desktop-portal-gtk 1.15.3-2
-repo xdg-desktop-portal-hyprland 1.4.1-2
+repo xdg-desktop-portal-hyprland 1.5.0-1
 repo xdg-user-dirs 0.20-1
 repo xdg-utils 1.2.1-2
 repo yelp 49.2-1
