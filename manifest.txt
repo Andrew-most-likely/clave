@@ -1,4 +1,4 @@
-repo 7zip 26.05-1
+repo 7zip 26.06-1
 git WhiteSur-gtk-theme d5782652d412
 aur aide 0.19.5-1
 repo apparmor 4.1.8-2
@@ -24,7 +24,7 @@ repo dosfstools 4.2-5
 repo edk2-ovmf 202608-1
 repo exfatprogs 1.4.3-1
 repo eza 0.23.5-2
-repo fastfetch 2.70.0-1
+repo fastfetch 2.71.0-1
 repo ffmpeg 2:9.0.2-2
 repo file-roller 44.7-1
 repo firefox 159.0.1-1
