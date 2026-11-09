@@ -49,7 +49,7 @@ repo hardinfo2 2.3.1-1
 repo hunspell 1.7.6-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
-repo hyprland 0.57.1-1
+repo hyprland 0.57.2-1
 git hyprland-plugins d2427d4d15b3
 repo hyprlock 0.9.7-2
 repo hyprpicker 0.4.8-1
@@ -58,8 +58,8 @@ repo imagemagick 7.1.2.35-1
 repo inter-font 4.1-1
 repo jq 1.8.2-1
 repo kitty 0.49.2-1
-repo kvantum 1.1.8-1
-repo kvantum-qt5 1.1.8-1
+repo kvantum 1.1.9-1
+repo kvantum-qt5 1.1.9-1
 aur kvantum-theme-whitesur-git r114.2b4bcc7-1
 repo libadwaita 1:1.10.0-1
 repo libnotify 0.8.9-1
@@ -118,8 +118,8 @@ repo sound-theme-freedesktop 0.8-6
 repo starship 1.27.0-1
 repo steam missing
 repo sushi 51.2-1
-repo swaync 0.12.6-1
-repo swayosd 0.3.2-1
+repo swaync 0.12.6-2
+repo swayosd 0.3.2-2
 repo system-config-printer 1.5.18-7
 repo tesseract 5.5.4-1
 repo tesseract-data-eng 2:4.1.0-5
