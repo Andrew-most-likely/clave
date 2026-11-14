@@ -29,7 +29,7 @@ repo ffmpeg 2:9.0.2-3
 repo file-roller 44.7-1
 repo firefox 160.0-1
 repo flatpak 1:1.18.4-2
-repo fzf 0.74.5-1
+repo fzf 0.75.0-1
 repo gcc 16.2.1+r23+gd564253eb6c8-1
 repo geary 1:46.0-9
 repo git 2.56.1-1
