@@ -26,7 +26,7 @@ repo exfatprogs 1.4.4-1
 repo eza 0.23.5-2
 repo fastfetch 2.71.0-1
 repo ffmpeg 2:9.0.2-3
-repo file-roller 44.7-1
+repo file-roller 44.8-1
 repo firefox 160.0-1
 repo flatpak 1:1.18.4-2
 repo fzf 0.75.0-1
@@ -50,7 +50,7 @@ repo hunspell 1.7.6-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
 repo hyprland 0.57.2-1
-git hyprland-plugins d2427d4d15b3
+git hyprland-plugins f2747debf2f7
 repo hyprlock 0.9.7-2
 repo hyprpicker 0.4.8-1
 repo hyprsunset 0.4.0-3
