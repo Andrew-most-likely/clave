@@ -25,7 +25,7 @@ repo edk2-ovmf 202608-1
 repo exfatprogs 1.4.4-1
 repo eza 0.23.5-2
 repo fastfetch 2.71.0-1
-repo ffmpeg 2:9.0.2-3
+repo ffmpeg 2:9.0.2-5
 repo file-roller 44.8-1
 repo firefox 160.0-1
 repo flatpak 1:1.18.4-2
@@ -42,15 +42,15 @@ repo gnome-logs 50.0-1
 repo gnome-text-editor 51.0-1
 repo gnome-themes-extra 1:3.28-1
 repo grim 1.5.0-2
-repo gst-libav 1.28.9-1
-repo gst-plugin-va 1.28.9-1
+repo gst-libav 1.28.9-2
+repo gst-plugin-va 1.28.9-2
 repo gtk4 1:4.24.1-1
 repo hardinfo2 2.3.1-1
 repo hunspell 1.7.6-1
 repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
 repo hyprland 0.57.2-1
-git hyprland-plugins f2747debf2f7
+git hyprland-plugins 2e03a09a92ba
 repo hyprlock 0.9.7-2
 repo hyprpicker 0.4.8-1
 repo hyprsunset 0.4.0-3
@@ -87,7 +87,7 @@ repo pacman-contrib 1.13.1-1
 repo pavucontrol 1:6.2-2
 repo pipewire 1:1.6.11-1
 repo pipewire-pulse 1:1.6.11-1
-repo pkgconf 3.0.10-1
+repo pkgconf 3.0.11-1
 repo playerctl 2.4.1-5
 repo plymouth 26.134.222-3
 repo polkit-gnome 0.105-12
@@ -123,7 +123,7 @@ repo swayosd 0.3.2-2
 repo system-config-printer 1.5.18-7
 repo tesseract 5.5.4-1
 repo tesseract-data-eng 2:4.1.0-5
-repo timeshift 26.11.0-1
+repo timeshift 26.11.1-1
 repo ttf-caladea 20200113-4
 repo ttf-carlito 20230509-2
 repo ttf-dejavu 2.37+18+g9b5d1b2f-8
