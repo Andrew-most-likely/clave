@@ -25,7 +25,7 @@ repo edk2-ovmf 202608-1
 repo exfatprogs 1.4.5-1
 repo eza 0.23.5-2
 repo fastfetch 2.71.0-1
-repo ffmpeg 2:9.0.2-5
+repo ffmpeg 2:9.1-1
 repo file-roller 44.8-1
 repo firefox 160.0.1-1
 repo flatpak 1:1.18.4-2
@@ -54,10 +54,10 @@ git hyprland-plugins 2e03a09a92ba
 repo hyprlock 0.9.7-2
 repo hyprpicker 0.4.8-1
 repo hyprsunset 0.4.0-3
-repo imagemagick 7.1.2.35-1
+repo imagemagick 7.1.2.36-2
 repo inter-font 4.1-1
 repo jq 1.8.2-1
-repo kitty 0.50.0-1
+repo kitty 0.51.0-1
 repo kvantum 1.1.9-1
 repo kvantum-qt5 1.1.9-1
 aur kvantum-theme-whitesur-git r114.2b4bcc7-1
