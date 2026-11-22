@@ -51,7 +51,7 @@ repo hunspell-en_us 2026.02.25-1
 repo hypridle 0.1.8-2
 repo hyprland 0.57.2-1
 git hyprland-plugins 2e03a09a92ba
-repo hyprlock 0.9.7-2
+repo hyprlock 0.9.7-3
 repo hyprpicker 0.4.8-1
 repo hyprsunset 0.4.0-3
 repo imagemagick 7.1.2.36-2
@@ -111,7 +111,7 @@ repo sassc 3.6.2-5
 repo satty 0.22.0-1
 repo sddm 0.21.0-7
 repo seahorse 1:47.0.1-7
-repo showtime 50.0-1
+repo showtime 50.1.1-1
 repo slurp 1.5.0-2
 repo snapshot 51.0-1
 repo sound-theme-freedesktop 0.8-6
@@ -143,6 +143,6 @@ repo xdg-desktop-portal-gtk 1.15.3-2
 repo xdg-desktop-portal-hyprland 1.5.0-1
 repo xdg-user-dirs 0.20-1
 repo xdg-utils 1.2.1-2
-repo yelp 49.2-1
+repo yelp 49.2-2
 repo zoxide 0.10.0-1
 repo zram-generator 1.2.1-1
