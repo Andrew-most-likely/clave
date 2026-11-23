@@ -35,7 +35,7 @@ repo geary 1:46.0-9
 repo git 2.56.1-1
 repo gnome-calculator 51.1-1
 repo gnome-clocks 51.0-2
-repo gnome-dictionary 40.0+r89+g0f14a2e-1
+repo gnome-dictionary 40.0+r89+g0f14a2e-2
 repo gnome-disk-utility 46.1-3
 repo gnome-keyring 1:51.1-1
 repo gnome-logs 50.0-1
@@ -57,7 +57,7 @@ repo hyprsunset 0.4.0-3
 repo imagemagick 7.1.2.36-2
 repo inter-font 4.1-1
 repo jq 1.8.2-1
-repo kitty 0.51.0-1
+repo kitty 0.51.1-1
 repo kvantum 1.1.9-1
 repo kvantum-qt5 1.1.9-1
 aur kvantum-theme-whitesur-git r114.2b4bcc7-1
@@ -65,7 +65,7 @@ repo libadwaita 1:1.10.0-1
 repo libnotify 0.8.9-1
 repo librsvg 2:2.63.4-1
 repo libvirt 1:12.9.0-1
-repo linux-hardened 7.2.15.hardened1-3
+repo linux-hardened 7.3.5.hardened1-1
 repo loupe 51.2-1
 repo lynis 3.1.7-1
 repo man-db 2.13.3-1
