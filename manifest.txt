@@ -25,7 +25,7 @@ repo edk2-ovmf 202608-1
 repo exfatprogs 1.4.5-1
 repo eza 0.23.5-2
 repo fastfetch 2.71.0-1
-repo ffmpeg 2:9.1-1
+repo ffmpeg 2:9.1-2
 repo file-roller 44.8-1
 repo firefox 161.0-1
 repo flatpak 1:1.18.6-1
@@ -108,7 +108,7 @@ repo rofi 2.1.1-1
 repo rofi-calc 2.5.1-1
 repo rofi-emoji 4.1.0-3
 repo sassc 3.6.2-5
-repo satty 0.22.0-1
+repo satty 0.23.0-1
 repo sddm 0.21.0-7
 repo seahorse 1:47.0.1-7
 repo showtime 50.1.1-1
